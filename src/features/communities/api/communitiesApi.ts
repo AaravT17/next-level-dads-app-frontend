@@ -1,12 +1,14 @@
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type {
+  AnyConversationsCursor,
   Community,
   Conversation,
   ConversationCreate,
   ConversationMessage,
   ConversationParticipant,
-  ConversationsCursor,
+  ConversationSort,
+  ConversationTimeWindow,
   MessageCreate,
   MessagesCursor,
 } from '@/types/communities'
@@ -22,11 +24,24 @@ export const communitiesApi = {
       .get<Community>(`/api/communities/${communityId}`, t)
       .then((r) => r.data),
 
-  getCommunityConversations: (communityId: string, cursor?: ConversationsCursor) => {
+  getCommunityConversations: (
+    communityId: string,
+    sort: ConversationSort,
+    timeWindow: ConversationTimeWindow,
+    cursor?: AnyConversationsCursor,
+  ) => {
     const params = new URLSearchParams()
+    params.append('sort', sort)
+    if (timeWindow !== 'all') params.append('time_window', timeWindow)
     if (cursor) {
       params.append('cursor_id', cursor.cursor_id)
-      params.append('cursor_last_activity_at', cursor.cursor_last_activity_at)
+      if ('cursor_last_activity_at' in cursor) {
+        params.append('cursor_last_activity_at', cursor.cursor_last_activity_at)
+      } else if ('cursor_heart_count' in cursor) {
+        params.append('cursor_heart_count', String(cursor.cursor_heart_count))
+      } else if ('cursor_reply_count' in cursor) {
+        params.append('cursor_reply_count', String(cursor.cursor_reply_count))
+      }
     }
     return axiosPrivate
       .get<Conversation[]>(`/api/communities/${communityId}/conversations`, { params, ...t })

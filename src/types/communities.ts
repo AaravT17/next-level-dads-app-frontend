@@ -96,10 +96,28 @@ export interface CommunityMembersCursor {
   cursor_joined_at: string
 }
 
+export type ConversationSort = 'recent' | 'popular' | 'active'
+export type ConversationTimeWindow = 'today' | 'week' | 'month' | 'year' | 'all'
+
 export interface ConversationsCursor {
   cursor_id: string
   cursor_last_activity_at: string
 }
+
+export interface PopularConversationsCursor {
+  cursor_id: string
+  cursor_heart_count: number
+}
+
+export interface ActiveConversationsCursor {
+  cursor_id: string
+  cursor_reply_count: number
+}
+
+export type AnyConversationsCursor =
+  | ConversationsCursor
+  | PopularConversationsCursor
+  | ActiveConversationsCursor
 
 export interface MessagesCursor {
   cursor_id: string

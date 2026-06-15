@@ -15,13 +15,20 @@ import { ConversationCard } from '../components/ConversationCard'
 import { ConversationComposer } from '../components/ConversationComposer'
 import { EmptyState } from '../components/EmptyState'
 import { conversationDetail } from '@/lib/routes'
+import type { ConversationSort, ConversationTimeWindow } from '@/types/communities'
 
-type ConversationFilter = 'recent' | 'popular' | 'active'
-
-const FILTERS: { value: ConversationFilter; label: string }[] = [
+const FILTERS: { value: ConversationSort; label: string }[] = [
   { value: 'recent', label: 'Recent' },
   { value: 'popular', label: 'Popular' },
   { value: 'active', label: 'Most Active' },
+]
+
+const TIME_WINDOWS: { value: ConversationTimeWindow; label: string }[] = [
+  { value: 'today', label: 'Today' },
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+  { value: 'year', label: 'This Year' },
+  { value: 'all', label: 'All Time' },
 ]
 
 const CommunityDetailPage = () => {
@@ -29,7 +36,8 @@ const CommunityDetailPage = () => {
   const { communityId } = useParams<{ communityId: string }>()
   const queryClient = useQueryClient()
   const [composerOpen, setComposerOpen] = useState(false)
-  const [activeFilter, setActiveFilter] = useState<ConversationFilter>('recent')
+  const [activeFilter, setActiveFilter] = useState<ConversationSort>('recent')
+  const [timeWindow, setTimeWindow] = useState<ConversationTimeWindow>('all')
 
   const {
     data: community,
@@ -44,14 +52,12 @@ const CommunityDetailPage = () => {
     fetchNextPage: fetchNextConversations,
     hasNextPage: hasNextConversations,
     isFetchingNextPage: isFetchingNextConversations,
-  } = useCommunityConversations(communityId)
+  } = useCommunityConversations(communityId, activeFilter, timeWindow)
 
-  const conversations = useMemo(() => {
-    const flat = conversationsData?.pages.flat() ?? []
-    if (activeFilter === 'popular') return [...flat].sort((a, b) => b.heart_count - a.heart_count)
-    if (activeFilter === 'active') return [...flat].sort((a, b) => b.reply_count - a.reply_count)
-    return flat
-  }, [conversationsData, activeFilter])
+  const conversations = useMemo(
+    () => conversationsData?.pages.flat() ?? [],
+    [conversationsData],
+  )
 
   const conversationsSentinelRef = useRef<HTMLDivElement>(null)
 
@@ -206,6 +212,42 @@ const CommunityDetailPage = () => {
                 <Plus className="w-4 h-4" />
                 Start a conversation
               </Button>
+            )}
+          </div>
+
+          {/* Filter pills */}
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setActiveFilter(f.value)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    activeFilter === f.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            {activeFilter !== 'recent' && (
+              <div className="flex gap-2 flex-wrap">
+                {TIME_WINDOWS.map((w) => (
+                  <button
+                    key={w.value}
+                    onClick={() => setTimeWindow(w.value)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      timeWindow === w.value
+                        ? 'bg-foreground text-background'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
