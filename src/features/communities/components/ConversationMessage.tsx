@@ -1,5 +1,8 @@
+import { useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { ConversationMessage as ConversationMessageType } from '@/types/communities'
 import { HeartButton } from './HeartButton'
+import { MessageRepliesSection } from './MessageRepliesSection'
 import { useHeartMessage } from '../hooks/useHeartMessage'
 
 interface ConversationMessageProps {
@@ -26,8 +29,11 @@ function initials(name: string): string {
 }
 
 export function ConversationMessage({ message }: ConversationMessageProps) {
+  const [showReplies, setShowReplies] = useState(false)
   const { heart, unheart } = useHeartMessage(message.id, message.conversation_id)
   const author = message.author
+
+  const handleRepliesToggle = () => setShowReplies((v) => !v)
 
   return (
     <div className="flex gap-3">
@@ -60,7 +66,7 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
           {message.body}
         </p>
 
-        <div className="mt-1.5">
+        <div className="mt-1.5 flex items-center gap-4">
           <HeartButton
             count={message.heart_count}
             isHearted={message.is_hearted}
@@ -68,7 +74,31 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
             onUnheart={() => unheart.mutate()}
             disabled={heart.isPending || unheart.isPending}
           />
+          <button
+            type="button"
+            onClick={handleRepliesToggle}
+            className="flex items-center gap-1.5 text-base text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showReplies ? (
+              <>Hide replies <ChevronUp className="w-4 h-4" /></>
+            ) : message.reply_count > 0 ? (
+              <>
+                See {message.reply_count} {message.reply_count === 1 ? 'reply' : 'replies'}
+                <ChevronDown className="w-4 h-4" />
+              </>
+            ) : (
+              'Reply'
+            )}
+          </button>
         </div>
+
+        {showReplies && (
+          <MessageRepliesSection
+            messageId={message.id}
+            conversationId={message.conversation_id}
+            initialComposing={message.reply_count === 0}
+          />
+        )}
       </div>
     </div>
   )

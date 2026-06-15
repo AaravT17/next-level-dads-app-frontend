@@ -28,10 +28,31 @@ export interface ConversationMessage {
   conversation_id: string
   author: AuthorInfo | null
   body: string
+  reply_count: number
   heart_count: number
   is_hearted: boolean
   created_at: string
   updated_at: string
+}
+
+export interface MessageReply {
+  id: string
+  message_id: string
+  author: AuthorInfo | null
+  body: string
+  heart_count: number
+  is_hearted: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ReplyCreate {
+  body: string
+}
+
+export interface RepliesCursor {
+  cursor_id: string
+  cursor_heart_count: number
 }
 
 export interface ConversationParticipant {

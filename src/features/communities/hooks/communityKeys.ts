@@ -9,4 +9,5 @@ export const communityKeys = {
     ['conversation-messages', conversationId] as const,
   participants: (conversationId: string) =>
     ['conversation-participants', conversationId] as const,
+  replies: (messageId: string) => ['message-replies', messageId] as const,
 }

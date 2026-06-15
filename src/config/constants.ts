@@ -68,6 +68,7 @@ export const PROFILES_PAGE_LIMIT = 20
 export const COMMUNITIES_PAGE_LIMIT = 20
 export const CONVERSATIONS_PAGE_LIMIT = 10
 export const MESSAGES_PAGE_LIMIT = 5
+export const REPLIES_PAGE_LIMIT = 5
 export const EVENTS_PAGE_LIMIT = 20
 
 export const DISCOVER_DADS_FILTERS_AGE_RANGES = [

@@ -10,7 +10,10 @@ import type {
   ConversationSort,
   ConversationTimeWindow,
   MessageCreate,
+  MessageReply,
   MessagesCursor,
+  RepliesCursor,
+  ReplyCreate,
 } from '@/types/communities'
 
 const t = { timeout: TIMEOUT_LENGTH_MS }
@@ -97,4 +100,26 @@ export const communitiesApi = {
 
   unheartMessage: (messageId: string) =>
     axiosPrivate.delete(`/api/messages/${messageId}/heart`, t),
+
+  getMessageReplies: (messageId: string, cursor?: RepliesCursor) => {
+    const params = new URLSearchParams()
+    if (cursor) {
+      params.append('cursor_id', cursor.cursor_id)
+      params.append('cursor_heart_count', String(cursor.cursor_heart_count))
+    }
+    return axiosPrivate
+      .get<MessageReply[]>(`/api/messages/${messageId}/replies`, { params, ...t })
+      .then((r) => r.data)
+  },
+
+  createReply: (messageId: string, payload: ReplyCreate) =>
+    axiosPrivate
+      .post<MessageReply>(`/api/messages/${messageId}/replies`, payload, t)
+      .then((r) => r.data),
+
+  heartReply: (replyId: string) =>
+    axiosPrivate.post(`/api/replies/${replyId}/heart`, {}, t),
+
+  unheartReply: (replyId: string) =>
+    axiosPrivate.delete(`/api/replies/${replyId}/heart`, t),
 }
