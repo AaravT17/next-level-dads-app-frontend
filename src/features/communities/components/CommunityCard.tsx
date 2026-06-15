@@ -14,28 +14,28 @@ export function CommunityCard({ community }: CommunityCardProps) {
 
   return (
     <Card
-      className="overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      className="overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-primary"
       onClick={() => navigate(communityDetail(community.id))}
     >
-      <CardContent className="p-5 space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-base font-heading font-semibold text-foreground leading-snug">
+      <CardContent className="p-6 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-lg font-heading font-semibold text-foreground leading-snug">
             {community.name}
           </h3>
           {community.role && (
-            <Badge variant="soft" className="shrink-0 text-xs">
+            <Badge variant="soft" className="shrink-0 text-xs mt-0.5">
               {community.role}
             </Badge>
           )}
         </div>
 
         {community.description && (
-          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
             {community.description}
           </p>
         )}
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1 border-t border-border">
           <Users className="w-4 h-4" />
           <span>{community.member_count} members</span>
         </div>

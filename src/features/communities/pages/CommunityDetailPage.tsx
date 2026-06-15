@@ -16,11 +16,20 @@ import { ConversationComposer } from '../components/ConversationComposer'
 import { EmptyState } from '../components/EmptyState'
 import { conversationDetail } from '@/lib/routes'
 
+type ConversationFilter = 'recent' | 'popular' | 'active'
+
+const FILTERS: { value: ConversationFilter; label: string }[] = [
+  { value: 'recent', label: 'Recent' },
+  { value: 'popular', label: 'Popular' },
+  { value: 'active', label: 'Most Active' },
+]
+
 const CommunityDetailPage = () => {
   const navigate = useNavigate()
   const { communityId } = useParams<{ communityId: string }>()
   const queryClient = useQueryClient()
   const [composerOpen, setComposerOpen] = useState(false)
+  const [activeFilter, setActiveFilter] = useState<ConversationFilter>('recent')
 
   const {
     data: community,
@@ -37,10 +46,12 @@ const CommunityDetailPage = () => {
     isFetchingNextPage: isFetchingNextConversations,
   } = useCommunityConversations(communityId)
 
-  const conversations = useMemo(
-    () => conversationsData?.pages.flat() ?? [],
-    [conversationsData],
-  )
+  const conversations = useMemo(() => {
+    const flat = conversationsData?.pages.flat() ?? []
+    if (activeFilter === 'popular') return [...flat].sort((a, b) => b.heart_count - a.heart_count)
+    if (activeFilter === 'active') return [...flat].sort((a, b) => b.reply_count - a.reply_count)
+    return flat
+  }, [conversationsData, activeFilter])
 
   const conversationsSentinelRef = useRef<HTMLDivElement>(null)
 
@@ -116,25 +127,27 @@ const CommunityDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
+      <div className="relative bg-card border-b-2 border-primary px-6 py-7 flex items-center justify-center shadow-sm">
         <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
         <h1 className="text-2xl font-heading font-semibold text-foreground">
           {community.name}
         </h1>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-md mx-auto px-4 pt-3 pb-6 space-y-4">
         <Button
           variant="ghost"
+          size="lg"
           onClick={() => navigate(-1)}
-          className="-ml-2 text-muted-foreground"
+          className="-ml-2 text-muted-foreground font-bold"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-5 h-5 mr-2" />
           Back
         </Button>
 
-        {/* Community header */}
-        <div className="space-y-3">
+        {/* Community header card */}
+        <div className="bg-card border-2 border-primary/30 rounded-xl p-5 space-y-4 shadow-md">
+          <h2 className="text-xl font-heading font-bold text-foreground">{community.name}</h2>
           {community.description && (
             <p className="text-muted-foreground leading-relaxed">{community.description}</p>
           )}
@@ -153,7 +166,6 @@ const CommunityDetailPage = () => {
           {community.is_member ? (
             <Button
               variant="outline"
-              size="sm"
               className="rounded-full"
               onClick={() => leaveMutation.mutate()}
               disabled={leaveMutation.isPending}
@@ -167,7 +179,6 @@ const CommunityDetailPage = () => {
           ) : (
             <Button
               variant="outline"
-              size="sm"
               className="rounded-full"
               onClick={() => joinMutation.mutate()}
               disabled={joinMutation.isPending}
@@ -183,13 +194,12 @@ const CommunityDetailPage = () => {
 
         {/* Conversations section */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between border-b border-border pb-3">
             <h2 className="text-lg font-heading font-semibold text-foreground">
               Conversations
             </h2>
             {!composerOpen && (
               <Button
-                size="sm"
                 className="rounded-full gap-1.5"
                 onClick={() => setComposerOpen(true)}
               >

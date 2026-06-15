@@ -30,28 +30,26 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
       }
     >
       <CardContent className="p-4 space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <h4 className="font-semibold text-foreground leading-snug line-clamp-2 flex-1">
-            {conversation.title}
-          </h4>
-          {conversation.prompt_type && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
-              {conversation.prompt_type}
-            </span>
-          )}
-        </div>
+        <h4 className="font-semibold text-foreground leading-snug line-clamp-2">
+          {conversation.title}
+        </h4>
 
         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
           {conversation.body}
         </p>
 
-        {conversation.author && (
-          <p className="text-xs text-muted-foreground">
-            {conversation.author.name}
-          </p>
-        )}
+        <div className="flex items-center justify-between gap-2">
+          {conversation.author && (
+            <p className="text-xs text-muted-foreground">{conversation.author.name}</p>
+          )}
+          {conversation.prompt_type && (
+            <span className="text-xs text-muted-foreground/70 bg-muted px-2.5 py-1 rounded-full ml-auto">
+              {conversation.prompt_type}
+            </span>
+          )}
+        </div>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground border-t border-border pt-2 mt-1">
           <span className="flex items-center gap-1">
             <MessageCircle className="w-3.5 h-3.5" />
             {conversation.reply_count}

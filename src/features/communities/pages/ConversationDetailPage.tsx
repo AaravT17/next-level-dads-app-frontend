@@ -4,7 +4,6 @@ import { ArrowLeft, Loader2, MessageCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Separator } from '@/components/ui/separator'
 import BottomNav from '@/components/BottomNav'
 import logo from '@/assets/logo.png'
 import { useConversation } from '../hooks/useConversation'
@@ -149,8 +148,8 @@ const ConversationDetailPage = () => {
           Back
         </Button>
 
-        {/* Original conversation */}
-        <div className="space-y-3">
+        {/* Original conversation post */}
+        <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           {author && (
             <div className="flex items-center gap-2">
               {author.avatar_url ? (
@@ -165,13 +164,12 @@ const ConversationDetailPage = () => {
                 </div>
               )}
               <span className="text-sm font-semibold text-foreground">{author.name}</span>
+              {conversation.prompt_type && (
+                <span className="ml-auto text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                  {conversation.prompt_type}
+                </span>
+              )}
             </div>
-          )}
-
-          {conversation.prompt_type && (
-            <span className="inline-block text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              {conversation.prompt_type}
-            </span>
           )}
 
           <h2 className="text-xl font-heading font-semibold text-foreground">
@@ -181,7 +179,7 @@ const ConversationDetailPage = () => {
             {conversation.body}
           </p>
 
-          <div className="flex items-center gap-4 pt-1">
+          <div className="flex items-center gap-4 pt-1 border-t border-border">
             <HeartButton
               count={conversation.heart_count}
               isHearted={conversation.is_hearted}
@@ -197,21 +195,74 @@ const ConversationDetailPage = () => {
           </div>
         </div>
 
-        <Separator />
-
         {/* Participants */}
         {participants && participants.length > 0 && (
-          <>
+          <div className="bg-card border border-border rounded-xl p-4">
             <ParticipantList participants={participants} />
-            <Separator />
-          </>
+          </div>
         )}
 
         {/* Replies */}
-        <div className="space-y-5">
-          <h3 className="font-heading font-semibold text-foreground">
-            Join the conversation
-          </h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="text-2xl font-heading font-semibold text-foreground">
+              Replies
+            </h3>
+            {!replyOpen && (
+              <Button
+                className="rounded-full px-12"
+                onClick={() => setReplyOpen(true)}
+              >
+                Reply
+              </Button>
+            )}
+          </div>
+
+          {replyOpen && (
+            <form onSubmit={handleSubmit(onReply)} className="space-y-3 bg-card border border-border rounded-xl p-4">
+              <Textarea
+                placeholder="Write a reply..."
+                rows={3}
+                autoFocus
+                {...register('body', {
+                  required: 'Reply cannot be empty',
+                  maxLength: { value: 3000, message: 'Max 3000 characters' },
+                })}
+              />
+              {errors.body && (
+                <p className="text-xs text-destructive">{errors.body.message}</p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    reset()
+                    setReplyOpen(false)
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createMessage.isPending}
+                  className="flex-1 rounded-full"
+                >
+                  {createMessage.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    'Send reply'
+                  )}
+                </Button>
+              </div>
+              {createMessage.isError && (
+                <p className="text-xs text-destructive text-center">
+                  Failed to send reply. Please try again.
+                </p>
+              )}
+            </form>
+          )}
 
           {msgsLoading ? (
             <div className="flex justify-center py-8">
@@ -224,7 +275,7 @@ const ConversationDetailPage = () => {
             />
           ) : (
             <>
-              <div className="space-y-5">
+              <div>
                 {messages.map((msg) => (
                   <ConversationMessage key={msg.id} message={msg} />
                 ))}
@@ -238,63 +289,6 @@ const ConversationDetailPage = () => {
             </>
           )}
         </div>
-
-        <Separator />
-
-        {/* Reply composer */}
-        {!replyOpen ? (
-          <Button
-            className="w-full rounded-full"
-            variant="outline"
-            onClick={() => setReplyOpen(true)}
-          >
-            Reply
-          </Button>
-        ) : (
-          <form onSubmit={handleSubmit(onReply)} className="space-y-3">
-            <Textarea
-              placeholder="Write a reply..."
-              rows={3}
-              autoFocus
-              {...register('body', {
-                required: 'Reply cannot be empty',
-                maxLength: { value: 3000, message: 'Max 3000 characters' },
-              })}
-            />
-            {errors.body && (
-              <p className="text-xs text-destructive">{errors.body.message}</p>
-            )}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  reset()
-                  setReplyOpen(false)
-                }}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={createMessage.isPending}
-                className="flex-1 rounded-full"
-              >
-                {createMessage.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  'Send reply'
-                )}
-              </Button>
-            </div>
-            {createMessage.isError && (
-              <p className="text-xs text-destructive text-center">
-                Failed to send reply. Please try again.
-              </p>
-            )}
-          </form>
-        )}
       </div>
 
       <BottomNav />

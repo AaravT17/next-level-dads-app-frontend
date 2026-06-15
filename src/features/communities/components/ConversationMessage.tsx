@@ -31,7 +31,7 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
 
   return (
     <div className="flex gap-3">
-      <div className="shrink-0 mt-0.5">
+      <div className="flex flex-col items-center shrink-0">
         {author?.avatar_url ? (
           <img
             src={author.avatar_url}
@@ -43,9 +43,10 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
             {author ? initials(author.name) : '?'}
           </div>
         )}
+        <div className="w-0.5 flex-1 bg-border mt-2 rounded-full" />
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pb-4">
         <div className="flex items-baseline gap-2">
           <span className="text-sm font-semibold text-foreground">
             {author?.name ?? 'Anonymous'}
@@ -55,7 +56,7 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
           </span>
         </div>
 
-        <p className="text-sm text-foreground mt-1 leading-relaxed whitespace-pre-wrap">
+        <p className="text-lg text-foreground mt-1 leading-relaxed whitespace-pre-wrap">
           {message.body}
         </p>
 
