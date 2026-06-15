@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Loader2, MessageCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -44,7 +44,32 @@ const ConversationDetailPage = () => {
     isError: convError,
   } = useConversation(conversationId)
 
-  const { data: messages, isLoading: msgsLoading } = useConversationMessages(conversationId)
+  const {
+    data: messagesData,
+    isLoading: msgsLoading,
+    fetchNextPage: fetchNextMessages,
+    hasNextPage: hasNextMessages,
+    isFetchingNextPage: isFetchingNextMessages,
+  } = useConversationMessages(conversationId)
+
+  const messages = useMemo(() => messagesData?.pages.flat() ?? [], [messagesData])
+
+  const messagesSentinelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const sentinel = messagesSentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextMessages && !isFetchingNextMessages) {
+          fetchNextMessages()
+        }
+      },
+      { threshold: 0.1 },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasNextMessages, isFetchingNextMessages, fetchNextMessages])
   const { data: participants } = useConversationParticipants(conversationId)
 
   const { heart, unheart } = useHeartConversation(
@@ -192,17 +217,25 @@ const ConversationDetailPage = () => {
             <div className="flex justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
-          ) : !messages || messages.length === 0 ? (
+          ) : messages.length === 0 ? (
             <EmptyState
               title="No replies yet"
               description="Be the first to join this conversation."
             />
           ) : (
-            <div className="space-y-5">
-              {messages.map((msg) => (
-                <ConversationMessage key={msg.id} message={msg} />
-              ))}
-            </div>
+            <>
+              <div className="space-y-5">
+                {messages.map((msg) => (
+                  <ConversationMessage key={msg.id} message={msg} />
+                ))}
+              </div>
+              <div ref={messagesSentinelRef} className="h-4" />
+              {isFetchingNextMessages && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </>
           )}
         </div>
 

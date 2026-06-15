@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Users, Loader2, Plus } from 'lucide-react'
@@ -29,10 +29,35 @@ const CommunityDetailPage = () => {
   } = useCommunity(communityId)
 
   const {
-    data: conversations,
+    data: conversationsData,
     isLoading: conversationsLoading,
     isError: conversationsError,
+    fetchNextPage: fetchNextConversations,
+    hasNextPage: hasNextConversations,
+    isFetchingNextPage: isFetchingNextConversations,
   } = useCommunityConversations(communityId)
+
+  const conversations = useMemo(
+    () => conversationsData?.pages.flat() ?? [],
+    [conversationsData],
+  )
+
+  const conversationsSentinelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const sentinel = conversationsSentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextConversations && !isFetchingNextConversations) {
+          fetchNextConversations()
+        }
+      },
+      { threshold: 0.1 },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasNextConversations, isFetchingNextConversations, fetchNextConversations])
 
   const joinMutation = useMutation({
     mutationFn: () =>
@@ -192,17 +217,25 @@ const CommunityDetailPage = () => {
                 Failed to load conversations. Please try again.
               </p>
             </div>
-          ) : !conversations || conversations.length === 0 ? (
+          ) : conversations.length === 0 ? (
             <EmptyState
               title="No conversations yet"
               description="Be the first to start one."
             />
           ) : (
-            <div className="space-y-3">
-              {conversations.map((conv) => (
-                <ConversationCard key={conv.id} conversation={conv} />
-              ))}
-            </div>
+            <>
+              <div className="space-y-3">
+                {conversations.map((conv) => (
+                  <ConversationCard key={conv.id} conversation={conv} />
+                ))}
+              </div>
+              <div ref={conversationsSentinelRef} className="h-4" />
+              {isFetchingNextConversations && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

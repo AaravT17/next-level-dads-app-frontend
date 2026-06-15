@@ -6,7 +6,9 @@ import type {
   ConversationCreate,
   ConversationMessage,
   ConversationParticipant,
+  ConversationsCursor,
   MessageCreate,
+  MessagesCursor,
 } from '@/types/communities'
 
 const t = { timeout: TIMEOUT_LENGTH_MS }
@@ -20,10 +22,16 @@ export const communitiesApi = {
       .get<Community>(`/api/communities/${communityId}`, t)
       .then((r) => r.data),
 
-  getCommunityConversations: (communityId: string) =>
-    axiosPrivate
-      .get<Conversation[]>(`/api/communities/${communityId}/conversations`, t)
-      .then((r) => r.data),
+  getCommunityConversations: (communityId: string, cursor?: ConversationsCursor) => {
+    const params = new URLSearchParams()
+    if (cursor) {
+      params.append('cursor_id', cursor.cursor_id)
+      params.append('cursor_last_activity_at', cursor.cursor_last_activity_at)
+    }
+    return axiosPrivate
+      .get<Conversation[]>(`/api/communities/${communityId}/conversations`, { params, ...t })
+      .then((r) => r.data)
+  },
 
   createConversation: (communityId: string, payload: ConversationCreate) =>
     axiosPrivate
@@ -35,10 +43,16 @@ export const communitiesApi = {
       .get<Conversation>(`/api/conversations/${conversationId}`, t)
       .then((r) => r.data),
 
-  getConversationMessages: (conversationId: string) =>
-    axiosPrivate
-      .get<ConversationMessage[]>(`/api/conversations/${conversationId}/messages`, t)
-      .then((r) => r.data),
+  getConversationMessages: (conversationId: string, cursor?: MessagesCursor) => {
+    const params = new URLSearchParams()
+    if (cursor) {
+      params.append('cursor_id', cursor.cursor_id)
+      params.append('cursor_created_at', cursor.cursor_created_at)
+    }
+    return axiosPrivate
+      .get<ConversationMessage[]>(`/api/conversations/${conversationId}/messages`, { params, ...t })
+      .then((r) => r.data)
+  },
 
   createMessage: (conversationId: string, payload: MessageCreate) =>
     axiosPrivate

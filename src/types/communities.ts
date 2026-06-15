@@ -95,3 +95,13 @@ export interface CommunityMembersCursor {
   cursor_id: string
   cursor_joined_at: string
 }
+
+export interface ConversationsCursor {
+  cursor_id: string
+  cursor_last_activity_at: string
+}
+
+export interface MessagesCursor {
+  cursor_id: string
+  cursor_created_at: string
+}
