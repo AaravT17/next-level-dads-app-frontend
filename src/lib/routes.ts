@@ -107,6 +107,12 @@ export const communityDetail = (communityId: number | string) =>
   `/communities/${communityId}` as const
 
 /**
+ * Get route for a conversation within a community
+ */
+export const conversationDetail = (communityId: string, conversationId: string) =>
+  `/communities/${communityId}/conversations/${conversationId}` as const
+
+/**
  * Get route for community members
  */
 export const communityMembers = (communityId: number | string) =>

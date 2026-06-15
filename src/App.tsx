@@ -20,7 +20,6 @@ import Chats from './pages/Chats'
 import Chat from './pages/Chat'
 import Discover from './pages/Discover'
 import Groups from './pages/Groups'
-import CommunityDetail from './pages/CommunityDetail'
 import Members from './pages/Members'
 import MyProfile from './pages/MyProfile'
 import ProfileDetail from './pages/ProfileDetail'
@@ -28,6 +27,9 @@ import Connections from './pages/Connections'
 import Requests from './pages/Requests'
 import EventDetail from './pages/EventDetail'
 import NotFound from './pages/NotFound'
+import CommunitiesPage from './features/communities/pages/CommunitiesPage'
+import CommunityDetailPage from './features/communities/pages/CommunityDetailPage'
+import ConversationDetailPage from './features/communities/pages/ConversationDetailPage'
 
 const AppContent = () => {
   return (
@@ -91,8 +93,16 @@ const AppContent = () => {
 
           {/* Communities */}
           <Route
+            path="/communities"
+            element={<ProtectedRoute><CommunitiesPage /></ProtectedRoute>}
+          />
+          <Route
             path="/communities/:communityId"
-            element={<ProtectedRoute><CommunityDetail /></ProtectedRoute>}
+            element={<ProtectedRoute><CommunityDetailPage /></ProtectedRoute>}
+          />
+          <Route
+            path="/communities/:communityId/conversations/:conversationId"
+            element={<ProtectedRoute><ConversationDetailPage /></ProtectedRoute>}
           />
           <Route
             path="/communities/:communityId/members"
