@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { communitiesApi } from '../api/communitiesApi'
 import { communityKeys } from './communityKeys'
+import { scheduleModerationCheck } from '@/features/moderation/hooks/moderationWatch'
 import type { MessageCreate } from '@/types/communities'
 
 export function useCreateMessage(conversationId: string, communityId: string) {
@@ -22,6 +23,7 @@ export function useCreateMessage(conversationId: string, communityId: string) {
       queryClient.invalidateQueries({
         queryKey: communityKeys.conversations(communityId),
       })
+      scheduleModerationCheck(queryClient)
     },
   })
 }

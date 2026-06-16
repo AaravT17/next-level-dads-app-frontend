@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { useCreateConversation } from '../hooks/useCreateConversation'
+import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import type { ConversationCreate } from '@/types/communities'
 
 interface ConversationComposerProps {
@@ -27,6 +28,7 @@ export function ConversationComposer({
   onCancel,
 }: ConversationComposerProps) {
   const { mutate, isPending, isError } = useCreateConversation(communityId)
+  const { isBanned, notice, handlePostError } = useModerationBan()
   const {
     register,
     handleSubmit,
@@ -45,6 +47,7 @@ export function ConversationComposer({
         reset()
         onSuccess?.(conversation.id)
       },
+      onError: (error) => handlePostError(error, 'conversation'),
     })
   }
 
@@ -114,7 +117,11 @@ export function ConversationComposer({
                 Cancel
               </Button>
             )}
-            <Button type="submit" disabled={isPending} className="flex-1 rounded-full">
+            <Button
+              type="submit"
+              disabled={isPending || isBanned}
+              className="flex-1 rounded-full"
+            >
               {isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
@@ -122,7 +129,10 @@ export function ConversationComposer({
               )}
             </Button>
           </div>
-          {isError && (
+          {notice && (
+            <p className="text-xs text-destructive text-center">{notice}</p>
+          )}
+          {isError && !isBanned && (
             <p className="text-xs text-destructive text-center">
               Failed to post. Please try again.
             </p>

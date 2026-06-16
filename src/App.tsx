@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ROUTES } from '@/lib/routes'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PublicRoute, ProtectedRoute, SetupRoute } from '@/components/RouteWrappers'
+import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 
 import Welcome from './pages/Welcome'
 import Login from './pages/Login'
@@ -36,6 +37,7 @@ const AppContent = () => {
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <ModerationNotifier />
       <BrowserRouter>
         <Routes>
           {/* Public Routes - redirect to app if authenticated */}

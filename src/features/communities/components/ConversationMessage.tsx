@@ -4,6 +4,7 @@ import type { ConversationMessage as ConversationMessageType } from '@/types/com
 import { HeartButton } from './HeartButton'
 import { MessageRepliesSection } from './MessageRepliesSection'
 import { useHeartMessage } from '../hooks/useHeartMessage'
+import { ReportButton } from '@/features/moderation/components/ReportButton'
 
 interface ConversationMessageProps {
   message: ConversationMessageType
@@ -90,6 +91,7 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
               'Reply'
             )}
           </button>
+          <ReportButton contentType="message" contentId={message.id} />
         </div>
 
         {showReplies && (

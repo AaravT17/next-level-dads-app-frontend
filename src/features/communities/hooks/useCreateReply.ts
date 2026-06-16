@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { communitiesApi } from '../api/communitiesApi'
 import { communityKeys } from './communityKeys'
+import { scheduleModerationCheck } from '@/features/moderation/hooks/moderationWatch'
 import type { ReplyCreate } from '@/types/communities'
 
 export function useCreateReply(messageId: string, conversationId: string) {
@@ -12,6 +13,7 @@ export function useCreateReply(messageId: string, conversationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: communityKeys.replies(messageId) })
       queryClient.invalidateQueries({ queryKey: communityKeys.messages(conversationId) })
+      scheduleModerationCheck(queryClient)
     },
   })
 }

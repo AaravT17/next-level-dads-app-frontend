@@ -8,6 +8,8 @@ import { HeartButton } from './HeartButton'
 import { useMessageReplies } from '../hooks/useMessageReplies'
 import { useCreateReply } from '../hooks/useCreateReply'
 import { useHeartReply } from '../hooks/useHeartReply'
+import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
+import { ReportButton } from '@/features/moderation/components/ReportButton'
 
 interface MessageRepliesSectionProps {
   messageId: string
@@ -65,7 +67,7 @@ function ReplyItem({ reply }: { reply: MessageReply }) {
         <p className="text-sm text-foreground mt-0.5 whitespace-pre-wrap leading-relaxed">
           {reply.body}
         </p>
-        <div className="mt-1">
+        <div className="mt-1 flex items-center gap-4">
           <HeartButton
             count={reply.heart_count}
             isHearted={reply.is_hearted}
@@ -74,6 +76,7 @@ function ReplyItem({ reply }: { reply: MessageReply }) {
             disabled={heart.isPending || unheart.isPending}
             size="md"
           />
+          <ReportButton contentType="reply" contentId={reply.id} />
         </div>
       </div>
     </div>
@@ -95,6 +98,7 @@ export function MessageRepliesSection({
   } = useMessageReplies(messageId)
   const replies = useMemo(() => data?.pages.flat() ?? [], [data])
   const createReply = useCreateReply(messageId, conversationId)
+  const { isBanned, notice, handlePostError } = useModerationBan()
 
   const {
     register,
@@ -111,6 +115,7 @@ export function MessageRepliesSection({
           reset()
           setComposing(false)
         },
+        onError: (error) => handlePostError(error, 'reply'),
       },
     )
   }
@@ -148,7 +153,7 @@ export function MessageRepliesSection({
             <Button
               type="submit"
               size="sm"
-              disabled={createReply.isPending}
+              disabled={createReply.isPending || isBanned}
               className="flex-1 rounded-full"
             >
               {createReply.isPending ? (
@@ -158,7 +163,8 @@ export function MessageRepliesSection({
               )}
             </Button>
           </div>
-          {createReply.isError && (
+          {notice && <p className="text-xs text-destructive">{notice}</p>}
+          {createReply.isError && !isBanned && (
             <p className="text-xs text-destructive">Failed to send. Please try again.</p>
           )}
         </form>

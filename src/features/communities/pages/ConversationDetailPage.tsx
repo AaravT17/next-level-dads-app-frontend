@@ -10,6 +10,8 @@ import { useConversation } from '../hooks/useConversation'
 import { useConversationMessages } from '../hooks/useConversationMessages'
 import { useConversationParticipants } from '../hooks/useConversationParticipants'
 import { useCreateMessage } from '../hooks/useCreateMessage'
+import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
+import { ReportButton } from '@/features/moderation/components/ReportButton'
 import { useHeartConversation } from '../hooks/useHeartConversation'
 import { HeartButton } from '../components/HeartButton'
 import { ConversationMessage } from '../components/ConversationMessage'
@@ -77,6 +79,7 @@ const ConversationDetailPage = () => {
   )
 
   const createMessage = useCreateMessage(conversationId ?? '', communityId ?? '')
+  const { isBanned, notice, handlePostError } = useModerationBan()
 
   const {
     register,
@@ -93,6 +96,7 @@ const ConversationDetailPage = () => {
           reset()
           setReplyOpen(false)
         },
+        onError: (error) => handlePostError(error, 'reply'),
       },
     )
   }
@@ -192,6 +196,11 @@ const ConversationDetailPage = () => {
               <MessageCircle className="w-4 h-4" />
               {conversation.reply_count} {conversation.reply_count === 1 ? 'reply' : 'replies'}
             </span>
+            <ReportButton
+              contentType="conversation"
+              contentId={conversation.id}
+              className="ml-auto"
+            />
           </div>
         </div>
 
@@ -246,7 +255,7 @@ const ConversationDetailPage = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={createMessage.isPending}
+                  disabled={createMessage.isPending || isBanned}
                   className="flex-1 rounded-full"
                 >
                   {createMessage.isPending ? (
@@ -256,7 +265,10 @@ const ConversationDetailPage = () => {
                   )}
                 </Button>
               </div>
-              {createMessage.isError && (
+              {notice && (
+                <p className="text-xs text-destructive text-center">{notice}</p>
+              )}
+              {createMessage.isError && !isBanned && (
                 <p className="text-xs text-destructive text-center">
                   Failed to send reply. Please try again.
                 </p>
