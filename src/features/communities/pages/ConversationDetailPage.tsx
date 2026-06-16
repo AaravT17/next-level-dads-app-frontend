@@ -14,10 +14,13 @@ import { useCreateMessage } from '../hooks/useCreateMessage'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
 import { useHeartConversation } from '../hooks/useHeartConversation'
+import { useDeleteConversation } from '../hooks/useDeleteConversation'
 import { HeartButton } from '../components/HeartButton'
 import { ConversationMessage } from '../components/ConversationMessage'
 import { ParticipantList } from '../components/ParticipantList'
 import { EmptyState } from '../components/EmptyState'
+import { DeleteContentButton } from '../components/DeleteContentButton'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface ReplyFormValues {
   body: string
@@ -39,6 +42,7 @@ const ConversationDetailPage = () => {
     conversationId: string
   }>()
   const [replyOpen, setReplyOpen] = useState(false)
+  const { user } = useAuth()
 
   const {
     data: conversation,
@@ -81,6 +85,10 @@ const ConversationDetailPage = () => {
   const { data: participants } = useConversationParticipants(conversationId)
 
   const { heart, unheart } = useHeartConversation(
+    conversationId ?? '',
+    communityId ?? '',
+  )
+  const deleteConversation = useDeleteConversation(
     conversationId ?? '',
     communityId ?? '',
   )
@@ -139,6 +147,8 @@ const ConversationDetailPage = () => {
   }
 
   const author = conversation.author
+  const canDeleteConversation =
+    !conversation.is_deleted && author?.id === user?.id
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -186,28 +196,45 @@ const ConversationDetailPage = () => {
           <h2 className="text-xl font-heading font-semibold text-foreground">
             {conversation.title}
           </h2>
-          <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+          <p className={`leading-relaxed whitespace-pre-wrap ${
+            conversation.is_deleted
+              ? 'text-muted-foreground italic'
+              : 'text-foreground'
+          }`}>
             {conversation.body}
           </p>
 
           <div className="flex items-center gap-4 pt-1 border-t border-border">
-            <HeartButton
-              count={conversation.heart_count}
-              isHearted={conversation.is_hearted}
-              onHeart={() => heart.mutate()}
-              onUnheart={() => unheart.mutate()}
-              disabled={heart.isPending || unheart.isPending}
-              size="md"
-            />
+            {!conversation.is_deleted && (
+              <HeartButton
+                count={conversation.heart_count}
+                isHearted={conversation.is_hearted}
+                onHeart={() => heart.mutate()}
+                onUnheart={() => unheart.mutate()}
+                disabled={heart.isPending || unheart.isPending}
+                size="md"
+              />
+            )}
             <span className="flex items-center gap-1 text-sm text-muted-foreground">
               <MessageCircle className="w-4 h-4" />
               {conversation.reply_count} {conversation.reply_count === 1 ? 'reply' : 'replies'}
             </span>
-            <ReportButton
-              contentType="conversation"
-              contentId={conversation.id}
-              className="ml-auto"
-            />
+            <div className="ml-auto flex items-center gap-3">
+              {canDeleteConversation && (
+                <DeleteContentButton
+                  label="post"
+                  isPending={deleteConversation.isPending}
+                  onConfirm={() => deleteConversation.mutate()}
+                  className="text-sm"
+                />
+              )}
+              {!conversation.is_deleted && (
+                <ReportButton
+                  contentType="conversation"
+                  contentId={conversation.id}
+                />
+              )}
+            </div>
           </div>
         </div>
 
@@ -224,7 +251,7 @@ const ConversationDetailPage = () => {
             <h3 className="text-2xl font-heading font-semibold text-foreground">
               Replies
             </h3>
-            {!replyOpen && (
+            {!conversation.is_deleted && !replyOpen && (
               <Button
                 className="rounded-full px-12"
                 onClick={() => setReplyOpen(true)}
@@ -234,7 +261,7 @@ const ConversationDetailPage = () => {
             )}
           </div>
 
-          {replyOpen && (
+          {!conversation.is_deleted && replyOpen && (
             <form onSubmit={handleSubmit(onReply)} className="space-y-3 bg-card border border-border rounded-xl p-4">
               <Textarea
                 placeholder="Write a reply..."

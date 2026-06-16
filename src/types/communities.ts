@@ -18,6 +18,8 @@ export interface Conversation {
   heart_count: number
   participant_count: number
   is_hearted: boolean
+  is_deleted: boolean
+  deleted_at: string | null
   created_at: string
   updated_at: string
   last_activity_at: string
@@ -31,6 +33,8 @@ export interface ConversationMessage {
   reply_count: number
   heart_count: number
   is_hearted: boolean
+  is_deleted: boolean
+  deleted_at: string | null
   created_at: string
   updated_at: string
 }
@@ -42,6 +46,8 @@ export interface MessageReply {
   body: string
   heart_count: number
   is_hearted: boolean
+  is_deleted: boolean
+  deleted_at: string | null
   created_at: string
   updated_at: string
 }

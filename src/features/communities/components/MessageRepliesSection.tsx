@@ -6,16 +6,20 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import type { MessageReply } from '@/types/communities'
 import { HeartButton } from './HeartButton'
+import { DeleteContentButton } from './DeleteContentButton'
 import { useMessageReplies } from '../hooks/useMessageReplies'
 import { useCreateReply } from '../hooks/useCreateReply'
 import { useHeartReply } from '../hooks/useHeartReply'
+import { useDeleteReply } from '../hooks/useDeleteReply'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface MessageRepliesSectionProps {
   messageId: string
   conversationId: string
   initialComposing?: boolean
+  allowComposing?: boolean
 }
 
 interface ReplyFormValues {
@@ -41,9 +45,18 @@ function initials(name: string): string {
     .slice(0, 2)
 }
 
-function ReplyItem({ reply }: { reply: MessageReply }) {
+function ReplyItem({
+  reply,
+  conversationId,
+}: {
+  reply: MessageReply
+  conversationId: string
+}) {
   const author = reply.author
+  const { user } = useAuth()
   const { heart, unheart } = useHeartReply(reply.id, reply.message_id)
+  const deleteReply = useDeleteReply(reply.id, reply.message_id, conversationId)
+  const canDelete = !reply.is_deleted && author?.id === user?.id
 
   return (
     <div className="flex gap-2.5 py-2">
@@ -65,20 +78,35 @@ function ReplyItem({ reply }: { reply: MessageReply }) {
           </span>
           <span className="text-xs text-muted-foreground">{formatTime(reply.created_at)}</span>
         </div>
-        <p className="text-sm text-foreground mt-0.5 whitespace-pre-wrap leading-relaxed">
+        <p className={`text-sm mt-0.5 whitespace-pre-wrap leading-relaxed ${
+          reply.is_deleted
+            ? 'text-muted-foreground italic'
+            : 'text-foreground'
+        }`}>
           {reply.body}
         </p>
-        <div className="mt-1 flex items-center gap-4">
-          <HeartButton
-            count={reply.heart_count}
-            isHearted={reply.is_hearted}
-            onHeart={() => heart.mutate()}
-            onUnheart={() => unheart.mutate()}
-            disabled={heart.isPending || unheart.isPending}
-            size="md"
-          />
-          <ReportButton contentType="reply" contentId={reply.id} />
-        </div>
+        {!reply.is_deleted && (
+          <div className="mt-1 flex items-center gap-4">
+            <HeartButton
+              count={reply.heart_count}
+              isHearted={reply.is_hearted}
+              onHeart={() => heart.mutate()}
+              onUnheart={() => unheart.mutate()}
+              disabled={heart.isPending || unheart.isPending}
+              size="md"
+            />
+            {canDelete && (
+              <DeleteContentButton
+                label="reply"
+                isPending={deleteReply.isPending}
+                onConfirm={() => deleteReply.mutate()}
+                className="text-sm"
+                iconClassName="w-3.5 h-3.5"
+              />
+            )}
+            <ReportButton contentType="reply" contentId={reply.id} />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -88,6 +116,7 @@ export function MessageRepliesSection({
   messageId,
   conversationId,
   initialComposing = false,
+  allowComposing = true,
 }: MessageRepliesSectionProps) {
   const [composing, setComposing] = useState(initialComposing)
   const {
@@ -129,7 +158,7 @@ export function MessageRepliesSection({
 
   return (
     <div className="ml-11 mt-1 border-l-2 border-border pl-3">
-      {composing ? (
+      {allowComposing && composing ? (
         <form onSubmit={handleSubmit(onSubmit)} className="pt-2 pb-2 space-y-2">
           <Textarea
             placeholder="Write a reply..."
@@ -175,7 +204,7 @@ export function MessageRepliesSection({
             <p className="text-xs text-destructive">Failed to send. Please try again.</p>
           )}
         </form>
-      ) : (
+      ) : allowComposing ? (
         <button
           type="button"
           onClick={() => setComposing(true)}
@@ -183,7 +212,7 @@ export function MessageRepliesSection({
         >
           Reply
         </button>
-      )}
+      ) : null}
 
       {isLoading ? (
         <div className="py-2">
@@ -193,7 +222,11 @@ export function MessageRepliesSection({
         <>
           <div className="divide-y divide-border/50">
             {replies.map((reply) => (
-              <ReplyItem key={reply.id} reply={reply} />
+              <ReplyItem
+                key={reply.id}
+                reply={reply}
+                conversationId={conversationId}
+              />
             ))}
           </div>
           {hasNextPage && (

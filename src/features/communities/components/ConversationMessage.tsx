@@ -3,8 +3,11 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { ConversationMessage as ConversationMessageType } from '@/types/communities'
 import { HeartButton } from './HeartButton'
 import { MessageRepliesSection } from './MessageRepliesSection'
+import { DeleteContentButton } from './DeleteContentButton'
 import { useHeartMessage } from '../hooks/useHeartMessage'
+import { useDeleteMessage } from '../hooks/useDeleteMessage'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface ConversationMessageProps {
   message: ConversationMessageType
@@ -31,8 +34,11 @@ function initials(name: string): string {
 
 export function ConversationMessage({ message }: ConversationMessageProps) {
   const [showReplies, setShowReplies] = useState(false)
+  const { user } = useAuth()
   const { heart, unheart } = useHeartMessage(message.id, message.conversation_id)
+  const deleteMessage = useDeleteMessage(message.id, message.conversation_id)
   const author = message.author
+  const canDelete = !message.is_deleted && author?.id === user?.id
 
   const handleRepliesToggle = () => setShowReplies((v) => !v)
 
@@ -63,42 +69,63 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
           </span>
         </div>
 
-        <p className="text-lg text-foreground mt-1 leading-relaxed whitespace-pre-wrap">
+        <p className={`text-lg mt-1 leading-relaxed whitespace-pre-wrap ${
+          message.is_deleted
+            ? 'text-muted-foreground italic'
+            : 'text-foreground'
+        }`}>
           {message.body}
         </p>
 
-        <div className="mt-1.5 flex items-center gap-4">
-          <HeartButton
-            count={message.heart_count}
-            isHearted={message.is_hearted}
-            onHeart={() => heart.mutate()}
-            onUnheart={() => unheart.mutate()}
-            disabled={heart.isPending || unheart.isPending}
-          />
-          <button
-            type="button"
-            onClick={handleRepliesToggle}
-            className="flex items-center gap-1.5 text-base text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {showReplies ? (
-              <>Hide replies <ChevronUp className="w-4 h-4" /></>
-            ) : message.reply_count > 0 ? (
-              <>
-                See {message.reply_count} {message.reply_count === 1 ? 'reply' : 'replies'}
-                <ChevronDown className="w-4 h-4" />
-              </>
-            ) : (
-              'Reply'
+        {(!message.is_deleted || message.reply_count > 0) && (
+          <div className="mt-1.5 flex items-center gap-4">
+            {!message.is_deleted && (
+              <HeartButton
+                count={message.heart_count}
+                isHearted={message.is_hearted}
+                onHeart={() => heart.mutate()}
+                onUnheart={() => unheart.mutate()}
+                disabled={heart.isPending || unheart.isPending}
+              />
             )}
-          </button>
-          <ReportButton contentType="message" contentId={message.id} />
-        </div>
+            {(!message.is_deleted || message.reply_count > 0) && (
+              <button
+                type="button"
+                onClick={handleRepliesToggle}
+                className="flex items-center gap-1.5 text-base text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showReplies ? (
+                  <>Hide replies <ChevronUp className="w-4 h-4" /></>
+                ) : message.reply_count > 0 ? (
+                  <>
+                    See {message.reply_count} {message.reply_count === 1 ? 'reply' : 'replies'}
+                    <ChevronDown className="w-4 h-4" />
+                  </>
+                ) : (
+                  'Reply'
+                )}
+              </button>
+            )}
+            {canDelete && (
+              <DeleteContentButton
+                label="reply"
+                isPending={deleteMessage.isPending}
+                onConfirm={() => deleteMessage.mutate()}
+                className="text-base"
+              />
+            )}
+            {!message.is_deleted && (
+              <ReportButton contentType="message" contentId={message.id} />
+            )}
+          </div>
+        )}
 
         {showReplies && (
           <MessageRepliesSection
             messageId={message.id}
             conversationId={message.conversation_id}
-            initialComposing={message.reply_count === 0}
+            initialComposing={!message.is_deleted && message.reply_count === 0}
+            allowComposing={!message.is_deleted}
           />
         )}
       </div>

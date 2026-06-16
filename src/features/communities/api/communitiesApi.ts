@@ -61,6 +61,9 @@ export const communitiesApi = {
       .get<Conversation>(`/api/conversations/${conversationId}`, t)
       .then((r) => r.data),
 
+  deleteConversation: (conversationId: string) =>
+    axiosPrivate.delete(`/api/conversations/${conversationId}`, t),
+
   getConversationMessages: (conversationId: string, cursor?: MessagesCursor) => {
     const params = new URLSearchParams()
     if (cursor) {
@@ -101,6 +104,9 @@ export const communitiesApi = {
   unheartMessage: (messageId: string) =>
     axiosPrivate.delete(`/api/messages/${messageId}/heart`, t),
 
+  deleteMessage: (messageId: string) =>
+    axiosPrivate.delete(`/api/messages/${messageId}`, t),
+
   getMessageReplies: (messageId: string, cursor?: RepliesCursor) => {
     const params = new URLSearchParams()
     if (cursor) {
@@ -122,4 +128,7 @@ export const communitiesApi = {
 
   unheartReply: (replyId: string) =>
     axiosPrivate.delete(`/api/replies/${replyId}/heart`, t),
+
+  deleteReply: (replyId: string) =>
+    axiosPrivate.delete(`/api/replies/${replyId}`, t),
 }
