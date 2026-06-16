@@ -1,5 +1,4 @@
 import { Heart } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface HeartButtonProps {
@@ -22,7 +21,11 @@ export function HeartButton({
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (disabled) return
-    isHearted ? onUnheart() : onHeart()
+    if (isHearted) {
+      onUnheart()
+      return
+    }
+    onHeart()
   }
 
   return (

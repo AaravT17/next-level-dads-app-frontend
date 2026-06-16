@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
@@ -120,6 +121,12 @@ export function MessageRepliesSection({
     )
   }
 
+  const handleFetchNextPage = () => {
+    fetchNextPage({ throwOnError: true }).catch(() => {
+      toast.error("Couldn't load more replies")
+    })
+  }
+
   return (
     <div className="ml-11 mt-1 border-l-2 border-border pl-3">
       {composing ? (
@@ -192,7 +199,7 @@ export function MessageRepliesSection({
           {hasNextPage && (
             <button
               type="button"
-              onClick={() => fetchNextPage()}
+              onClick={handleFetchNextPage}
               disabled={isFetchingNextPage}
               className="flex items-center gap-1.5 text-sm text-primary hover:underline py-2 disabled:opacity-50"
             >

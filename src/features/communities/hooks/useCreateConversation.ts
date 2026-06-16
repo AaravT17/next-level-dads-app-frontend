@@ -12,7 +12,7 @@ export function useCreateConversation(communityId: string) {
       communitiesApi.createConversation(communityId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: communityKeys.conversations(communityId),
+        queryKey: communityKeys.conversationsAll(communityId),
       })
       scheduleModerationCheck(queryClient)
     },

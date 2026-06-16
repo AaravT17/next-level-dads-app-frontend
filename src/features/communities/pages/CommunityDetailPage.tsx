@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { ArrowLeft, Users, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -61,20 +62,26 @@ const CommunityDetailPage = () => {
 
   const conversationsSentinelRef = useRef<HTMLDivElement>(null)
 
+  const handleFetchNextConversations = useCallback(() => {
+    fetchNextConversations({ throwOnError: true }).catch(() => {
+      toast.error("Couldn't load more conversations")
+    })
+  }, [fetchNextConversations])
+
   useEffect(() => {
     const sentinel = conversationsSentinelRef.current
     if (!sentinel) return
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextConversations && !isFetchingNextConversations) {
-          fetchNextConversations()
+          handleFetchNextConversations()
         }
       },
       { threshold: 0.1 },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [hasNextConversations, isFetchingNextConversations, fetchNextConversations])
+  }, [hasNextConversations, isFetchingNextConversations, handleFetchNextConversations])
 
   const joinMutation = useMutation({
     mutationFn: () =>
@@ -84,6 +91,7 @@ const CommunityDetailPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
     },
+    onError: () => toast.error("Couldn't join community"),
   })
 
   const leaveMutation = useMutation({
@@ -94,6 +102,7 @@ const CommunityDetailPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
     },
+    onError: () => toast.error("Couldn't leave community"),
   })
 
   const handleConversationCreated = (conversationId: string) => {

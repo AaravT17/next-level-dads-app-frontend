@@ -21,7 +21,7 @@ export function useCreateMessage(conversationId: string, communityId: string) {
         queryKey: communityKeys.participants(conversationId),
       })
       queryClient.invalidateQueries({
-        queryKey: communityKeys.conversations(communityId),
+        queryKey: communityKeys.conversationsAll(communityId),
       })
       scheduleModerationCheck(queryClient)
     },

@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { ArrowLeft, Loader2, MessageCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
@@ -57,20 +58,26 @@ const ConversationDetailPage = () => {
 
   const messagesSentinelRef = useRef<HTMLDivElement>(null)
 
+  const handleFetchNextMessages = useCallback(() => {
+    fetchNextMessages({ throwOnError: true }).catch(() => {
+      toast.error("Couldn't load more replies")
+    })
+  }, [fetchNextMessages])
+
   useEffect(() => {
     const sentinel = messagesSentinelRef.current
     if (!sentinel) return
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextMessages && !isFetchingNextMessages) {
-          fetchNextMessages()
+          handleFetchNextMessages()
         }
       },
       { threshold: 0.1 },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [hasNextMessages, isFetchingNextMessages, fetchNextMessages])
+  }, [hasNextMessages, isFetchingNextMessages, handleFetchNextMessages])
   const { data: participants } = useConversationParticipants(conversationId)
 
   const { heart, unheart } = useHeartConversation(
