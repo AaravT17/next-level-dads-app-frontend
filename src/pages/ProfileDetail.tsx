@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { MapPin, Calendar, ArrowLeft, Loader2 } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { getStageDisplayLabel } from '@/utils/users'
+import { chat } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import { useToast } from '@/hooks/use-toast'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
@@ -255,8 +256,29 @@ const ProfileDetail = () => {
     removeConnection.mutate()
   }
 
+  const createChat = useMutation({
+    mutationFn: async () => {
+      const res = await axiosPrivate.post<{ id: string }>(
+        '/api/chats/',
+        { participant_ids: [id] },
+        { timeout: TIMEOUT_LENGTH_MS },
+      )
+      return res.data
+    },
+    onSuccess: (data) => {
+      navigate(chat(data.id))
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to open chat. Please try again.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleChat = () => {
-    // TODO: navigate to chat
+    createChat.mutate()
   }
 
   const handleUnconnect = () => {
@@ -266,7 +288,8 @@ const ProfileDetail = () => {
   const isMutating =
     sendConnectionRequest.isPending ||
     acceptConnectionRequest.isPending ||
-    removeConnection.isPending
+    removeConnection.isPending ||
+    createChat.isPending
 
   const renderButtons = () => {
     if (!profile) return null

@@ -1,6 +1,7 @@
-import { ReactNode } from 'react'
+import { ReactNode, useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useChat } from '@/contexts/ChatContext'
 import { ROUTES } from '@/lib/routes'
 
 /**
@@ -35,6 +36,53 @@ function LoadingSpinner() {
   )
 }
 
+function ConnectionBanner() {
+  const { isReconnecting, isFailed, reconnect } = useChat()
+  const [showReconnected, setShowReconnected] = useState(false)
+  const wasReconnectingRef = useRef(false)
+
+  useEffect(() => {
+    if (isReconnecting) {
+      wasReconnectingRef.current = true
+    } else if (wasReconnectingRef.current && !isFailed) {
+      // Transitioned from reconnecting → success
+      wasReconnectingRef.current = false
+      setShowReconnected(true)
+      const timer = setTimeout(() => setShowReconnected(false), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [isReconnecting, isFailed])
+
+  if (showReconnected) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-green-600 text-white text-sm text-center py-2">
+        Reconnected
+      </div>
+    )
+  }
+
+  if (isReconnecting) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-white text-sm text-center py-2">
+        Attempting to reconnect...
+      </div>
+    )
+  }
+
+  if (isFailed) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground text-sm py-2 flex items-center justify-center gap-3">
+        <span>Connection lost</span>
+        <button onClick={reconnect} className="underline font-semibold">
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  return null
+}
+
 interface RouteWrapperProps {
   children: ReactNode
 }
@@ -67,7 +115,12 @@ export function ProtectedRoute({ children }: RouteWrapperProps) {
     )
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <ConnectionBanner />
+      {children}
+    </>
+  )
 }
 
 /**

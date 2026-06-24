@@ -6,6 +6,7 @@ import { queryClient } from '@/lib/queryClient'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ROUTES } from '@/lib/routes'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ChatProvider } from '@/contexts/ChatContext'
 import { PublicRoute, ProtectedRoute, SetupRoute } from '@/components/RouteWrappers'
 
 import Welcome from './pages/Welcome'
@@ -18,6 +19,7 @@ import ProfileSetup from './pages/ProfileSetup'
 import Match from './pages/Match'
 import Chats from './pages/Chats'
 import Chat from './pages/Chat'
+import ChatManage from './pages/ChatManage'
 import Discover from './pages/Discover'
 import Groups from './pages/Groups'
 import CommunityDetail from './pages/CommunityDetail'
@@ -125,16 +127,12 @@ const AppContent = () => {
             element={<ProtectedRoute><Chats /></ProtectedRoute>}
           />
           <Route
-            path="/chats/individual/:id"
+            path="/chats/:id"
             element={<ProtectedRoute><Chat /></ProtectedRoute>}
           />
           <Route
-            path="/chats/group/:id"
-            element={<ProtectedRoute><Chat /></ProtectedRoute>}
-          />
-          <Route
-            path="/chats/community/:id"
-            element={<ProtectedRoute><Chat /></ProtectedRoute>}
+            path="/chats/:id/manage"
+            element={<ProtectedRoute><ChatManage /></ProtectedRoute>}
           />
 
           {/* Profile */}
@@ -169,7 +167,9 @@ const AppContent = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <AppContent />
+      <ChatProvider>
+        <AppContent />
+      </ChatProvider>
     </AuthProvider>
   </QueryClientProvider>
 )

@@ -67,6 +67,9 @@ export const PROVINCE_OPTIONS = [
 export const PROFILES_PAGE_LIMIT = 20
 export const COMMUNITIES_PAGE_LIMIT = 20
 export const EVENTS_PAGE_LIMIT = 20
+export const CHATS_PAGE_LIMIT = 20
+export const MESSAGES_PAGE_LIMIT = 50
+export const PARTICIPANTS_PAGE_LIMIT = 20
 
 export const DISCOVER_DADS_FILTERS_AGE_RANGES = [
   'Under 25',

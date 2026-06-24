@@ -14,6 +14,14 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
+export function getAccessToken(): string | null {
+  return accessToken
+}
+
+export function getAuthCallbacks(): AuthCallbacks | null {
+  return authCallbacks
+}
+
 export function registerAuthCallbacks(callbacks: AuthCallbacks) {
   authCallbacks = callbacks
 }
@@ -49,5 +57,7 @@ axiosPrivate.interceptors.response.use(
     return Promise.reject(error)
   },
 )
+// TODO: Check whether the interceptor is duplicating updating the access token, since onTokenRefresh already sets
+// the access token and onAuthFailure resets it (sets it to null)
 
 export default axiosPrivate

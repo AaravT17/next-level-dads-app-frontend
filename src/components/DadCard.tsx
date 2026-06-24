@@ -10,9 +10,10 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
 import { getStageDisplayLabel } from '@/utils/users'
-import { profileDetail } from '@/lib/routes'
+import { profileDetail, chat } from '@/lib/routes'
 import { useToast } from '@/hooks/use-toast'
 import axiosPrivate from '@/api/axiosPrivate'
+import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
 
 type ListContext = 'discover' | 'connections' | 'requests'
@@ -203,8 +204,29 @@ const DadCard = ({
     removeConnection.mutate()
   }
 
+  const createChat = useMutation({
+    mutationFn: async () => {
+      const res = await axiosPrivate.post<{ id: string }>(
+        '/api/chats/',
+        { participant_ids: [id] },
+        { timeout: TIMEOUT_LENGTH_MS },
+      )
+      return res.data
+    },
+    onSuccess: (data) => {
+      navigate(chat(data.id))
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to open chat. Please try again.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleChat = () => {
-    // TODO: navigate to chat
+    createChat.mutate()
   }
 
   const handleUnconnect = () => {
@@ -214,7 +236,8 @@ const DadCard = ({
   const isLoading =
     sendConnectionRequest.isPending ||
     acceptConnectionRequest.isPending ||
-    removeConnection.isPending
+    removeConnection.isPending ||
+    createChat.isPending
 
   const renderButtons = () => {
     if (connection_status === 'blocked') return null
