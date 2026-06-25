@@ -13,7 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, CalendarIcon } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ROUTES } from '@/lib/routes'
 import {
   MAX_BIO_LENGTH,
@@ -36,7 +39,7 @@ const ProfileSetup = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    age: '',
+    date_of_birth: '',
     city: '',
     province: '',
     about: '',
@@ -101,20 +104,11 @@ const ProfileSetup = () => {
     if (step >= totalSteps) return
     if (step === 1) {
       const name = formData.name.trim()
-      const age = formData.age.trim()
       const city = formData.city.trim()
-      if (!name || !age || !city || !formData.province) {
+      if (!name || !formData.date_of_birth || !city || !formData.province) {
         toast({
           title: 'Please fill out all required fields',
-          description: 'Name, age, city, and province are required.',
-          variant: 'destructive',
-        })
-        return
-      }
-      if (isNaN(Number(age)) || Number(age) < 0) {
-        toast({
-          title: 'Invalid age',
-          description: 'Please enter a valid non-negative number for age.',
+          description: 'Name, date of birth, city, and province are required.',
           variant: 'destructive',
         })
         return
@@ -170,7 +164,7 @@ const ProfileSetup = () => {
     // required field validation done in handleNext, so we can assume all data is valid at this point
     const profileData = new FormData()
     profileData.append('name', formData.name)
-    profileData.append('age', formData.age)
+    profileData.append('date_of_birth', formData.date_of_birth)
     profileData.append('city', formData.city)
     profileData.append('province', formData.province)
     profileData.append('about', formData.about)
@@ -195,6 +189,7 @@ const ProfileSetup = () => {
           id: res.data.id,
           name: res.data.name,
           age: res.data.age,
+          date_of_birth: res.data.date_of_birth,
           city: res.data.city,
           province: res.data.province,
           about: res.data.about,
@@ -279,19 +274,40 @@ const ProfileSetup = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="age">Age</Label>
-                <Input
-                  id="age"
-                  type="number"
-                  placeholder="Your age"
-                  min={0}
-                  value={formData.age}
-                  onChange={(e) =>
-                    setFormData({ ...formData, age: e.target.value })
-                  }
-                  className="rounded-lg"
-                  disabled={loading}
-                />
+                <Label>Date of Birth</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start rounded-lg font-normal"
+                      disabled={loading}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {formData.date_of_birth ? (
+                        format(parseISO(formData.date_of_birth), 'MMMM d, yyyy')
+                      ) : (
+                        <span className="text-muted-foreground">Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.date_of_birth ? parseISO(formData.date_of_birth) : undefined}
+                      onSelect={(date) =>
+                        setFormData({
+                          ...formData,
+                          date_of_birth: date ? format(date, 'yyyy-MM-dd') : '',
+                        })
+                      }
+                      disabled={(date) => date > new Date()}
+                      captionLayout="dropdown"
+                      fromYear={1900}
+                      toYear={new Date().getFullYear()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">

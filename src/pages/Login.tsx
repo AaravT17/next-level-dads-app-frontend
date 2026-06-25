@@ -61,6 +61,7 @@ const Login = () => {
           id: userRes.data.id,
           name: userRes.data.name,
           age: userRes.data.age,
+          date_of_birth: userRes.data.date_of_birth,
           city: userRes.data.city,
           province: userRes.data.province,
           about: userRes.data.about,

@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChat } from '@/contexts/ChatContext'
 import { ROUTES } from '@/lib/routes'
@@ -83,6 +83,25 @@ function ConnectionBanner() {
   return null
 }
 
+function DobBanner() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  if (!user || user.date_of_birth !== null) return null
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-primary text-primary-foreground text-sm py-2 flex items-center justify-center gap-2">
+      <span>Please add your date of birth to complete your profile.</span>
+      <button
+        onClick={() => navigate(ROUTES.PROFILE)}
+        className="underline font-semibold"
+      >
+        Update now
+      </button>
+    </div>
+  )
+}
+
 interface RouteWrapperProps {
   children: ReactNode
 }
@@ -118,6 +137,7 @@ export function ProtectedRoute({ children }: RouteWrapperProps) {
   return (
     <>
       <ConnectionBanner />
+      <DobBanner />
       {children}
     </>
   )

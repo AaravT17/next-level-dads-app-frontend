@@ -23,7 +23,8 @@ export interface DiscoverCommunitiesCursor {
 export interface CommunityMemberResponse {
   id: string
   name: string
-  age: number
+  age: number | null
+  date_of_birth: string | null
   city: string
   province: string
   about: string

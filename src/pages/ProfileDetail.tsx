@@ -509,7 +509,7 @@ const ProfileDetail = () => {
 
                 <div className="flex-1 min-w-0">
                   <h2 className="text-xl font-heading font-semibold text-foreground">
-                    {profile.name}, {profile.age}
+                    {profile.name}, {profile.age ?? '—'}
                   </h2>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                     <MapPin className="w-4 h-4" />
@@ -611,7 +611,7 @@ const ProfileDetail = () => {
 
           <div>
             <h2 className="text-2xl font-heading font-semibold text-foreground">
-              {profile.name}, {profile.age}
+              {profile.name}, {profile.age ?? '—'}
             </h2>
             <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
               <MapPin className="w-4 h-4" />

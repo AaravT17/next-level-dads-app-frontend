@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: res.data.id,
             name: res.data.name,
             age: res.data.age,
+            date_of_birth: res.data.date_of_birth,
             city: res.data.city,
             province: res.data.province,
             about: res.data.about,
