@@ -256,6 +256,7 @@ const Chat = () => {
     onSuccess: (newMsg) => {
       setMessageInput('')
       setReplyingTo(null)
+      sendWsMessage({ type: 'chats:read', chat_id: chatId })
       // Update all three: chat preview, messages cache, local state
       const found = updateChatPreviewOnNewMessage(queryClient, newMsg)
       if (!found) {
@@ -433,14 +434,14 @@ const Chat = () => {
                       src={msg.sender_avatar_url ?? undefined}
                       alt={msg.sender_name}
                     />
-                    <AvatarFallback>{msg.sender_name[0]}</AvatarFallback>
+                    <AvatarFallback>{msg.sender_name?.[0] ?? '?'}</AvatarFallback>
                   </Avatar>
                 )}
 
                 <div className={`flex flex-col ${isSelf ? 'items-end' : ''} max-w-xs`}>
                   {!isSelf && isGroupChat && (
                     <span className="text-xs text-muted-foreground mb-1">
-                      {msg.sender_name}
+                      {msg.sender_name ?? 'Unknown'}
                     </span>
                   )}
 
@@ -495,7 +496,7 @@ const Chat = () => {
                             ) : (
                               <>
                                 <p className="text-xs font-medium text-muted-foreground truncate">
-                                  {msg.reply_to.sender_name}
+                                  {msg.reply_to.sender_name ?? 'Unknown'}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
                                   {msg.reply_to.content}
@@ -511,7 +512,7 @@ const Chat = () => {
 
                       {/* Hover actions */}
                       {!msg.is_deleted && (
-                        <div className={`absolute -top-7 ${isSelf ? 'right-0' : 'left-0'} hidden group-hover:flex gap-1`}>
+                        <div className={`absolute -top-5 ${isSelf ? 'right-0' : 'left-0'} hidden group-hover:flex gap-1`}>
                           <button
                             onClick={() => setReplyingTo(msg)}
                             className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"

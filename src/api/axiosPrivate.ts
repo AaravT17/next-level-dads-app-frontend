@@ -44,12 +44,11 @@ axiosPrivate.interceptors.response.use(
           {},
           { withCredentials: true },
         )
-        accessToken = res.data.access_token
-        authCallbacks?.onTokenRefresh(accessToken)
-        error.config.headers['Authorization'] = `Bearer ${accessToken}`
+        const newToken = res.data.access_token
+        authCallbacks?.onTokenRefresh(newToken)
+        error.config.headers['Authorization'] = `Bearer ${newToken}`
         return axiosPrivate(error.config)
       } catch {
-        accessToken = null
         authCallbacks?.onAuthFailure()
         return Promise.reject(error)
       }
@@ -57,7 +56,5 @@ axiosPrivate.interceptors.response.use(
     return Promise.reject(error)
   },
 )
-// TODO: Check whether the interceptor is duplicating updating the access token, since onTokenRefresh already sets
-// the access token and onAuthFailure resets it (sets it to null)
 
 export default axiosPrivate

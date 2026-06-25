@@ -191,7 +191,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           return {
             ...old,
             pages: old.pages.map((page) =>
-              page.map((c) => (c.id === chat_id ? { ...c, last_read_at } : c)),
+              page.map((c) => {
+                if (c.id !== chat_id) return c
+                const current = c.last_read_at
+                return { ...c, last_read_at: current && current > last_read_at ? current : last_read_at }
+              }),
             ),
           }
         })
@@ -290,7 +294,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setIsReconnecting(false)
       setIsFailed(false)
     }
-  }, [user, connect, reconnect])
+  }, [user?.id, connect, reconnect])
 
   return (
     <ChatContext.Provider value={{ registerMessageHandler, sendWsMessage, isReconnecting, isFailed, reconnect }}>

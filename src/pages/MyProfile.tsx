@@ -32,6 +32,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import avatarDefaultGrey from '@/assets/avatar-default-grey.png'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
@@ -249,6 +259,24 @@ const MyProfile = () => {
       setIsLoading(false)
     },
   })
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true)
+    try {
+      await axiosPrivate.delete('/api/users/me', { timeout: TIMEOUT_LENGTH_MS })
+      queryClient.clear()
+      setAuth({ user: null, accessToken: null })
+      navigate(ROUTES.WELCOME)
+    } catch {
+      toast({ title: 'Error', description: 'Failed to delete account. Please try again.', variant: 'destructive' })
+      setShowDeleteDialog(false)
+    } finally {
+      setIsDeletingAccount(false)
+    }
+  }
 
   const handleShareProfile = async () => {}
 
@@ -823,9 +851,40 @@ const MyProfile = () => {
               <LogOut className="w-4 h-4 mr-2" />
               Log Out
             </Button>
+
+            <Button
+              variant="outline"
+              className="w-full rounded-full border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={isLoading}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Account
+            </Button>
           </>
         )}
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete your account? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingAccount}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={isDeletingAccount}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingAccount ? 'Deleting...' : 'Delete Account'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
     </div>

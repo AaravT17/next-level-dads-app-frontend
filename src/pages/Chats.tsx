@@ -456,7 +456,7 @@ const Chats = () => {
                 const displayName = getChatDisplayName(c)
                 const avatarUrl = getChatAvatar(c)
                 const preview = getLastMessagePreview(c)
-                const time = c.last_message ? formatTime(c.last_message.created_at) : formatTime(c.updated_at)
+                const time = c.last_message ? formatTime(c.last_message.created_at) : null
                 const hasUnread = c.last_read_at === null || c.updated_at > c.last_read_at
 
                 return (
@@ -481,20 +481,22 @@ const Chats = () => {
                           </div>
                         )}
                         {hasUnread && (
-                          <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-primary border-2 border-background" />
+                          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary border-2 border-background" />
                         )}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className={`truncate ${hasUnread ? 'font-bold text-foreground' : 'font-semibold text-foreground'}`}>
+                          <h3 className={`truncate ${hasUnread ? 'font-bold text-foreground' : 'font-medium text-foreground'}`}>
                             {displayName}
                           </h3>
-                          <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                            {time}
-                          </span>
+                          {time && (
+                            <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                              {time}
+                            </span>
+                          )}
                         </div>
-                        <p className={`text-sm truncate ${preview ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}>
+                        <p className={`text-sm truncate ${hasUnread ? 'text-foreground font-medium' : preview ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}>
                           {preview || 'No messages yet'}
                         </p>
                       </div>

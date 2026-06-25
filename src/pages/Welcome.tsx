@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
 import { useEffect, useState } from 'react'
 import axiosPublic from '@/api/axiosPublic'
-import axiosPrivate from '@/api/axiosPrivate'
+import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
 import { useAuth } from '../contexts/AuthContext'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 
@@ -39,6 +39,7 @@ const Welcome = () => {
       }
 
       setIsLoading(true)
+      let accessToken: string | null = null
       try {
         const res = await axiosPublic.post(
           '/api/auth/oauth/session',
@@ -49,10 +50,10 @@ const Welcome = () => {
         // clear hash from URL
         window.history.replaceState({}, '', '/')
 
-        const accessToken = res.data.access_token
-        setAuth({ user: null, accessToken })
+        accessToken = res.data.access_token
+        setAccessToken(accessToken)
 
-        // fetch user profile
+        // fetch user profile before committing auth state
         const userRes = await axiosPrivate.get('/api/users/me', {
           timeout: TIMEOUT_LENGTH_MS,
         })
@@ -74,9 +75,12 @@ const Welcome = () => {
         navigate(ROUTES.DISCOVER)
       } catch (err: any) {
         if (err.response?.status === 404) {
+          // no profile yet — commit token so SetupRoute allows access
+          setAuth({ user: null, accessToken })
           navigate(ROUTES.SETUP)
           return
         }
+        setAccessToken(null)
         toast({
           title: 'Sign in failed',
           description: 'An error occurred during Google sign in.',
