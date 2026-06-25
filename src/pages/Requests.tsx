@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav'
 import DadCard from '@/components/DadCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Search, Loader2, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Search, X, Loader2, RefreshCw } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -113,6 +113,15 @@ const Requests = () => {
     setSearchQuery(urlSearch)
   }, [urlSearch])
 
+  const clearSearch = () => {
+    setSearchQuery('')
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      newParams.delete('name')
+      return newParams
+    })
+  }
+
   const handleSearch = () => {
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev)
@@ -168,8 +177,17 @@ const Requests = () => {
               placeholder="Search requests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-full"
+              className="pl-10 pr-10 rounded-full"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </form>
 

@@ -18,7 +18,7 @@ import DadCard from '@/components/DadCard'
 import EventCard from '@/components/EventCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, Search, SlidersHorizontal, Loader2 } from 'lucide-react'
+import { RefreshCw, Search, X, SlidersHorizontal, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import {
   Sheet,
@@ -65,6 +65,7 @@ async function fetchDiscoverProfiles(
   )
   filters.provinces.forEach((p) => params.append('provinces', p))
   filters.age_ranges.forEach((r) => params.append('age_ranges', r))
+  if (filters.name) params.append('name', filters.name)
   if (cursor) {
     params.append('cursor_id', cursor.cursor_id)
     params.append('cursor_created_at', cursor.cursor_created_at)
@@ -143,6 +144,9 @@ const Discover = () => {
   )
 
   // Dads tab state - initialize from URL params
+  const urlDadSearch = getStringParam('dad_name')
+  const [dadSearchQuery, setDadSearchQuery] = useState(urlDadSearch)
+
   const urlChildrenAges = useMemo(
     () => getArrayParam('children_age_ranges'),
     [getArrayParam],
@@ -199,8 +203,9 @@ const Discover = () => {
       children_age_ranges: urlChildrenAges,
       provinces: urlProvinces,
       age_ranges: urlAgeRanges,
+      name: urlDadSearch,
     }),
-    [urlInterests, urlChildrenAges, urlProvinces, urlAgeRanges],
+    [urlInterests, urlChildrenAges, urlProvinces, urlAgeRanges, urlDadSearch],
   )
 
   // build communities filters from URL params
@@ -388,6 +393,10 @@ const Discover = () => {
 
   // Sync input fields with URL params when navigating back
   useEffect(() => {
+    setDadSearchQuery(urlDadSearch)
+  }, [urlDadSearch])
+
+  useEffect(() => {
     setCommunitySearchQuery(urlCommunitySearch)
   }, [urlCommunitySearch])
 
@@ -457,12 +466,53 @@ const Discover = () => {
     setPendingInterests([])
     setPendingLocations([])
     setPendingDadAges([])
+    setDadSearchQuery('')
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev)
       newParams.delete('children_age_ranges')
       newParams.delete('interests')
       newParams.delete('provinces')
       newParams.delete('age_ranges')
+      newParams.delete('dad_name')
+      return newParams
+    })
+  }
+
+  const clearDadSearch = () => {
+    setDadSearchQuery('')
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      newParams.delete('dad_name')
+      return newParams
+    })
+  }
+
+  const clearCommunitySearch = () => {
+    setCommunitySearchQuery('')
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      newParams.delete('community_name')
+      return newParams
+    })
+  }
+
+  const clearEventSearch = () => {
+    setEventSearchQuery('')
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      newParams.delete('event_name')
+      return newParams
+    })
+  }
+
+  const handleDadSearch = () => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      if (dadSearchQuery) {
+        newParams.set('dad_name', dadSearchQuery)
+      } else {
+        newParams.delete('dad_name')
+      }
       return newParams
     })
   }
@@ -583,6 +633,31 @@ const Discover = () => {
 
           {tab === 'dads' && (
             <div className="space-y-4 animate-fade-in">
+              <form
+                className="relative mb-4"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  handleDadSearch()
+                }}
+              >
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+                <Input
+                  placeholder="Search dads..."
+                  value={dadSearchQuery}
+                  onChange={(e) => setDadSearchQuery(e.target.value)}
+                  className="pl-10 pr-10 rounded-full"
+                />
+                {dadSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearDadSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </form>
+
               <div className="flex justify-end mb-4">
                 <Sheet
                   open={filtersOpen}
@@ -851,8 +926,17 @@ const Discover = () => {
                   placeholder="Search communities..."
                   value={communitySearchQuery}
                   onChange={(e) => setCommunitySearchQuery(e.target.value)}
-                  className="pl-10 rounded-full"
+                  className="pl-10 pr-10 rounded-full"
                 />
+                {communitySearchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearCommunitySearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </form>
 
               <div className="space-y-4">
@@ -920,8 +1004,17 @@ const Discover = () => {
                   placeholder="Search events..."
                   value={eventSearchQuery}
                   onChange={(e) => setEventSearchQuery(e.target.value)}
-                  className="pl-10 rounded-full"
+                  className="pl-10 pr-10 rounded-full"
                 />
+                {eventSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearEventSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </form>
 
               {/* <div className="py-4">

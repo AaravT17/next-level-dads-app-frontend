@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Search, Loader2, RefreshCw, Plus } from 'lucide-react'
+import { Search, X, Loader2, RefreshCw, Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { communityDetail } from '@/lib/routes'
 import logo from '@/assets/logo.png'
@@ -249,6 +249,24 @@ const Groups = () => {
     setEventSearchQuery(urlEventSearch)
   }, [urlEventSearch])
 
+  const clearCommunitySearch = () => {
+    setCommunitySearchQuery('')
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      newParams.delete('community_name')
+      return newParams
+    })
+  }
+
+  const clearEventSearch = () => {
+    setEventSearchQuery('')
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      newParams.delete('event_name')
+      return newParams
+    })
+  }
+
   const handleCommunitySearch = () => {
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev)
@@ -407,8 +425,17 @@ const Groups = () => {
                   placeholder="Search communities..."
                   value={communitySearchQuery}
                   onChange={(e) => setCommunitySearchQuery(e.target.value)}
-                  className="pl-10 rounded-full"
+                  className="pl-10 pr-10 rounded-full"
                 />
+                {communitySearchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearCommunitySearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </form>
 
               <div className="space-y-4">
@@ -476,8 +503,17 @@ const Groups = () => {
                   placeholder="Search events..."
                   value={eventSearchQuery}
                   onChange={(e) => setEventSearchQuery(e.target.value)}
-                  className="pl-10 rounded-full"
+                  className="pl-10 pr-10 rounded-full"
                 />
+                {eventSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearEventSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </form>
 
               <div className="space-y-4">

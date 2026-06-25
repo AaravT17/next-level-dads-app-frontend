@@ -25,6 +25,7 @@ export interface DiscoverDadsFilters {
   children_age_ranges: string[]
   provinces: string[]
   age_ranges: string[]
+  name: string
 }
 
 export interface DiscoverDadsCursor {
