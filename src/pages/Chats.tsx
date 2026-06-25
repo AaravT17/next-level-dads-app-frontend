@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   useInfiniteQuery,
   useMutation,
@@ -29,14 +29,38 @@ import { ConnectionResponse, ConnectionsCursor } from '@/types/users'
 // ============================================
 
 const Chats = () => {
-  const [searchQuery, setSearchQuery] = useState('')
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [newChatSearch, setNewChatSearch] = useState('')
   const [debouncedNewChatSearch, setDebouncedNewChatSearch] = useState('')
   const [selectedConnections, setSelectedConnections] = useState<string[]>([])
   const [groupName, setGroupName] = useState('')
+  // Local input state — debounced into URL param
+  const [searchInput, setSearchInput] = useState('')
 
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const nameParam = searchParams.get('name') ?? ''
+
+  // Sync input with URL param on mount (e.g. back navigation)
+  useEffect(() => {
+    setSearchInput(nameParam)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounce search input → URL param
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        if (searchInput.trim()) {
+          next.set('name', searchInput.trim())
+        } else {
+          next.delete('name')
+        }
+        return next
+      }, { replace: true })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput, setSearchParams])
 
   // Debounce connection search
   useEffect(() => {
@@ -80,32 +104,66 @@ const Chats = () => {
 
   const chats = useMemo(() => chatsData?.pages.flat() ?? [], [chatsData])
 
+  // ============================================
+  // Search query (server-side, name param active)
+  // ============================================
+
+  const {
+    data: searchData,
+    isLoading: searchLoading,
+    isError: searchError,
+    fetchNextPage: fetchNextSearch,
+    hasNextPage: hasNextSearch,
+    isFetchingNextPage: isFetchingNextSearch,
+  } = useInfiniteQuery({
+    queryKey: ['chats', { name: nameParam }],
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams()
+      params.append('name', nameParam)
+      if (pageParam) {
+        params.append('cursor_id', (pageParam as ChatsCursor).cursor_id)
+        params.append('cursor_updated_at', (pageParam as ChatsCursor).cursor_updated_at)
+      }
+      const res = await axiosPrivate.get<Chat[]>('/api/chats/', {
+        params,
+        timeout: TIMEOUT_LENGTH_MS,
+      })
+      return res.data
+    },
+    initialPageParam: undefined as ChatsCursor | undefined,
+    enabled: !!nameParam,
+    staleTime: 0,
+    gcTime: 0,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.length < CHATS_PAGE_LIMIT) return undefined
+      const last = lastPage[lastPage.length - 1]
+      return { cursor_id: last.id, cursor_updated_at: last.updated_at }
+    },
+  })
+
+  const searchChats = useMemo(() => searchData?.pages.flat() ?? [], [searchData])
+
+  // Active list — search results when name param set, normal cache otherwise
+  const activeChats = nameParam ? searchChats : chats
+  const activeLoading = nameParam ? searchLoading : chatsLoading
+  const activeError = nameParam ? searchError : chatsError
+  const fetchNext = nameParam ? fetchNextSearch : fetchNextChats
+  const hasNext = nameParam ? hasNextSearch : hasNextChats
+  const isFetchingNext = nameParam ? isFetchingNextSearch : isFetchingNextChats
+
   // Chat list sentinel
   const chatSentinelRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const sentinel = chatSentinelRef.current
     if (!sentinel) return
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasNextChats && !isFetchingNextChats) {
-        fetchNextChats()
+      if (entries[0].isIntersecting && hasNext && !isFetchingNext) {
+        fetchNext()
       }
     })
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [hasNextChats, isFetchingNextChats, fetchNextChats])
-
-  // ============================================
-  // Filter chats by search query (client-side)
-  // ============================================
-
-  const filteredChats = useMemo(() => {
-    if (!searchQuery.trim()) return chats
-    const q = searchQuery.toLowerCase()
-    return chats.filter((c) => {
-      const name = c.type === 'dm' ? (c.other_user?.name ?? '') : (c.name ?? '')
-      return name.toLowerCase().includes(q)
-    })
-  }, [chats, searchQuery])
+  }, [hasNext, isFetchingNext, fetchNext])
 
   // ============================================
   // Connections query (for new chat dialog)
@@ -259,8 +317,8 @@ const Chats = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <Input
               placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-10 rounded-full"
             />
           </div>
@@ -383,18 +441,18 @@ const Chats = () => {
           </Dialog>
         </div>
 
-        {chatsLoading ? (
+        {activeLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        ) : chatsError ? (
+        ) : activeError ? (
           <div className="text-center py-12 px-6">
             <p className="text-muted-foreground">Failed to load chats.</p>
           </div>
-        ) : filteredChats.length > 0 ? (
+        ) : activeChats.length > 0 ? (
           <>
             <div className="divide-y divide-border">
-              {filteredChats.map((c) => {
+              {activeChats.map((c) => {
                 const displayName = getChatDisplayName(c)
                 const avatarUrl = getChatAvatar(c)
                 const preview = getLastMessagePreview(c)
@@ -446,7 +504,7 @@ const Chats = () => {
               })}
             </div>
             <div ref={chatSentinelRef} className="h-1" />
-            {isFetchingNextChats && (
+            {isFetchingNext && (
               <div className="flex justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
@@ -455,7 +513,7 @@ const Chats = () => {
         ) : (
           <div className="text-center py-12 px-6">
             <p className="text-muted-foreground">
-              {searchQuery ? 'No conversations found' : 'No chats yet'}
+              {nameParam ? 'No conversations found' : 'No chats yet'}
             </p>
           </div>
         )}
