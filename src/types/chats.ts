@@ -20,6 +20,7 @@ export interface Chat {
   type: ChatType
   name: string | null    // null for DMs, set for groups
   updated_at: string
+  last_read_at: string | null
   last_message: ChatLastMessage | null
   other_user: ChatOtherUser | null   // only present for DMs
 }

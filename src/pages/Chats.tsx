@@ -399,6 +399,7 @@ const Chats = () => {
                 const avatarUrl = getChatAvatar(c)
                 const preview = getLastMessagePreview(c)
                 const time = c.last_message ? formatTime(c.last_message.created_at) : formatTime(c.updated_at)
+                const hasUnread = c.last_read_at === null || c.updated_at > c.last_read_at
 
                 return (
                   <div
@@ -421,11 +422,14 @@ const Chats = () => {
                             <Users className="w-6 h-6 text-muted-foreground" />
                           </div>
                         )}
+                        {hasUnread && (
+                          <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-primary border-2 border-background" />
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-semibold text-foreground truncate">
+                          <h3 className={`truncate ${hasUnread ? 'font-bold text-foreground' : 'font-semibold text-foreground'}`}>
                             {displayName}
                           </h3>
                           <span className="text-xs text-muted-foreground shrink-0 ml-2">

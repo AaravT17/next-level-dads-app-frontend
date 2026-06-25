@@ -7,14 +7,14 @@ import {
   useCallback,
   ReactNode,
 } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import axiosPrivate, {
   getAccessToken,
   setAccessToken,
   getAuthCallbacks,
 } from '@/api/axiosPrivate'
-import { Message } from '@/types/chats'
+import { Message, Chat } from '@/types/chats'
 import {
   updateChatPreviewOnNewMessage,
   insertChatPreview,
@@ -52,9 +52,17 @@ type WsEvent =
         edited_at: null
       }
     }
+  | {
+      type: 'chats:read'
+      payload: {
+        chat_id: string
+        last_read_at: string
+      }
+    }
 
 interface ChatContextType {
   registerMessageHandler: (chatId: string, handler: MessageHandler) => () => void
+  sendWsMessage: (data: object) => void
   isReconnecting: boolean
   isFailed: boolean
   reconnect: () => void
@@ -156,6 +164,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         if (messageHandlerRef.current?.chatId === message.chat_id) {
           messageHandlerRef.current.handler(parsed)
+          sendWsMessage({ type: 'chats:read', chat_id: message.chat_id })
         }
       } else if (parsed.type === 'messages:edit') {
         const payload = parsed.payload
@@ -175,6 +184,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         if (messageHandlerRef.current?.chatId === payload.chat_id) {
           messageHandlerRef.current.handler(parsed)
         }
+      } else if (parsed.type === 'chats:read') {
+        const { chat_id, last_read_at } = parsed.payload
+        queryClient.setQueryData<InfiniteData<Chat[]>>(['chats'], (old) => {
+          if (!old) return old
+          return {
+            ...old,
+            pages: old.pages.map((page) =>
+              page.map((c) => (c.id === chat_id ? { ...c, last_read_at } : c)),
+            ),
+          }
+        })
       }
     }
 
@@ -223,6 +243,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, [logout, queryClient])
 
+  const sendWsMessage = useCallback((data: object) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(data))
+    }
+  }, [])
+
   const reconnect = useCallback(() => {
     shouldReconnectRef.current = true
     reconnectAttemptRef.current = 0
@@ -267,7 +293,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [user, connect, reconnect])
 
   return (
-    <ChatContext.Provider value={{ registerMessageHandler, isReconnecting, isFailed, reconnect }}>
+    <ChatContext.Provider value={{ registerMessageHandler, sendWsMessage, isReconnecting, isFailed, reconnect }}>
       {children}
     </ChatContext.Provider>
   )

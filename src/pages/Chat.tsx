@@ -28,7 +28,7 @@ import { toast } from 'sonner'
 
 const Chat = () => {
   const { user } = useAuth()
-  const { registerMessageHandler } = useChat()
+  const { registerMessageHandler, sendWsMessage } = useChat()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { id } = useParams<{ id: string }>()
@@ -207,6 +207,11 @@ const Chat = () => {
   // ============================================
   // WS handler
   // ============================================
+
+  useEffect(() => {
+    if (!chatId) return
+    sendWsMessage({ type: 'chats:read', chat_id: chatId })
+  }, [chatId, sendWsMessage])
 
   useEffect(() => {
     if (!chatId) return
