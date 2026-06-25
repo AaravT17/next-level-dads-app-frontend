@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/r
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ArrowLeft, Send, Users, ChevronDown, Pencil, Trash2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Send, Users, ChevronDown, Pencil, Trash2, Loader2, Reply, X } from 'lucide-react'
 import { groupsTab, chatManage } from '@/lib/routes'
 import { type ChatType, type Message, type Chat, type MessagesCursor } from '@/types/chats'
 import { useAuth } from '@/contexts/AuthContext'
@@ -45,6 +45,7 @@ const Chat = () => {
   const [messageInput, setMessageInput] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
   const [olderCursor, setOlderCursor] = useState<MessagesCursor | null>(null)
@@ -244,16 +245,17 @@ const Chat = () => {
   // TODO: add optimistic update — insert a temp message into local state on mutate,
   // replace with server response on success, remove on error
   const sendMessage = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, replyToId }: { content: string; replyToId?: string | null }) => {
       const res = await axiosPrivate.post<Message>(
         `/api/chats/${chatId}/messages`,
-        { content },
+        { content, reply_to_id: replyToId ?? null },
         { timeout: TIMEOUT_LENGTH_MS },
       )
       return res.data
     },
     onSuccess: (newMsg) => {
       setMessageInput('')
+      setReplyingTo(null)
       // Update all three: chat preview, messages cache, local state
       const found = updateChatPreviewOnNewMessage(queryClient, newMsg)
       if (!found) {
@@ -331,7 +333,7 @@ const Chat = () => {
   const handleSend = () => {
     const content = messageInput.trim()
     if (!content || sendMessage.isPending) return
-    sendMessage.mutate(content)
+    sendMessage.mutate({ content, replyToId: replyingTo?.id })
   }
 
   const handleBack = () => {
@@ -485,29 +487,56 @@ const Chat = () => {
                             : 'bg-card text-foreground border border-border'
                         }`}
                       >
+                        {/* Reply quote block */}
+                        {msg.reply_to && !msg.is_deleted && (
+                          <div className="mb-1.5 pl-2 border-l-2 border-muted-foreground/40">
+                            {msg.reply_to.is_deleted ? (
+                              <p className="text-xs text-muted-foreground italic">Message deleted</p>
+                            ) : (
+                              <>
+                                <p className="text-xs font-medium text-muted-foreground truncate">
+                                  {msg.reply_to.sender_name}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {msg.reply_to.content}
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        )}
                         <p className={`text-sm ${msg.is_deleted ? 'italic text-muted-foreground' : ''}`}>
                           {msg.is_deleted ? 'Message deleted' : msg.content}
                         </p>
                       </div>
 
-                      {/* Hover actions — own messages only, non-deleted */}
-                      {isSelf && !msg.is_deleted && (
-                        <div className="absolute -top-7 right-0 hidden group-hover:flex gap-1">
+                      {/* Hover actions */}
+                      {!msg.is_deleted && (
+                        <div className={`absolute -top-7 ${isSelf ? 'right-0' : 'left-0'} hidden group-hover:flex gap-1`}>
                           <button
-                            onClick={() => {
-                              setEditingId(msg.id)
-                              setEditContent(msg.content)
-                            }}
+                            onClick={() => setReplyingTo(msg)}
                             className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
                           >
-                            <Pencil className="w-3 h-3" />
+                            <Reply className="w-3 h-3" />
                           </button>
-                          <button
-                            onClick={() => deleteMessage.mutate(msg.id)}
-                            className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          {isSelf && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingId(msg.id)
+                                  setEditContent(msg.content)
+                                }}
+                                className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => deleteMessage.mutate(msg.id)}
+                                className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -549,6 +578,24 @@ const Chat = () => {
 
       {/* Input */}
       <div className="bg-card border-t border-border shrink-0">
+        {replyingTo && (
+          <div className="max-w-md mx-auto px-6 pt-3 flex items-start gap-2">
+            <div className="flex-1 pl-2 border-l-2 border-primary min-w-0">
+              <p className="text-xs font-medium text-primary">
+                Replying to {replyingTo.sender_name}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {replyingTo.is_deleted ? 'Message deleted' : replyingTo.content}
+              </p>
+            </div>
+            <button
+              onClick={() => setReplyingTo(null)}
+              className="text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         <div className="max-w-md mx-auto px-6 py-4">
           <div className="flex gap-2">
             <Input
