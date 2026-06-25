@@ -14,6 +14,7 @@ import axiosPrivate from '@/api/axiosPrivate'
 import { useToast } from '@/hooks/use-toast'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
+import type { Chat } from '@/types/chats'
 
 async function fetchProfile(id: string): Promise<Profile> {
   const res = await axiosPrivate.get<Profile>(`/api/users/${id}`, {
@@ -230,6 +231,30 @@ const ProfileDetail = () => {
     mutationFn: () => axiosPrivate.delete(`/api/connections/${id}`),
     onSuccess: () => {
       updateStatusInCache(null)
+
+      // Backend deletes the DM chat on disconnect — clean up chat caches
+      const chatsData = queryClient.getQueryData<InfiniteData<Chat[]>>(['chats'])
+      if (chatsData) {
+        let dmChatId: string | null = null
+        const updatedPages = chatsData.pages.map((page) => {
+          const filtered = page.filter((c) => {
+            if (c.type === 'dm' && c.other_user?.id === id) {
+              dmChatId = c.id
+              return false
+            }
+            return true
+          })
+          return filtered
+        })
+        if (dmChatId) {
+          queryClient.setQueryData<InfiniteData<Chat[]>>(['chats'], {
+            ...chatsData,
+            pages: updatedPages,
+          })
+          queryClient.removeQueries({ queryKey: ['chats', dmChatId] })
+          queryClient.removeQueries({ queryKey: ['messages', dmChatId] })
+        }
+      }
     },
     onError: () => {
       toast({

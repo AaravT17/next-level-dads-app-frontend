@@ -241,6 +241,8 @@ const Chat = () => {
   // Send message
   // ============================================
 
+  // TODO: add optimistic update — insert a temp message into local state on mutate,
+  // replace with server response on success, remove on error
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {
       const res = await axiosPrivate.post<Message>(
