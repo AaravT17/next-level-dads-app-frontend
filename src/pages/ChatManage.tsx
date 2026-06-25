@@ -4,7 +4,7 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient, InfiniteData }
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Search, Loader2, Shield, ShieldOff, UserMinus, UserPlus, LogOut } from 'lucide-react'
+import { ArrowLeft, Search, Loader2, Shield, ShieldOff, UserMinus, UserPlus, LogOut, Pencil, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, PARTICIPANTS_PAGE_LIMIT } from '@/config/constants'
@@ -32,6 +32,8 @@ const ChatManage = () => {
   const [addSearch, setAddSearch] = useState('')
   const [debouncedAddSearch, setDebouncedAddSearch] = useState('')
   const [selectedAddable, setSelectedAddable] = useState<string[]>([])
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
 
   // Debounce addable search
   useEffect(() => {
@@ -270,6 +272,37 @@ const ChatManage = () => {
     },
   })
 
+  // Update group name
+  const updateName = useMutation({
+    mutationFn: async (name: string) => {
+      await axiosPrivate.patch(
+        `/api/chats/${chatId}`,
+        { name },
+        { timeout: TIMEOUT_LENGTH_MS },
+      )
+      return name
+    },
+    onSuccess: (name) => {
+      setIsEditingName(false)
+      queryClient.setQueryData<Chat>(['chats', chatId], (old) => {
+        if (!old) return old
+        return { ...old, name }
+      })
+      queryClient.setQueryData<InfiniteData<Chat[]>>(['chats'], (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          pages: old.pages.map((page) =>
+            page.map((c) => (c.id === chatId ? { ...c, name } : c)),
+          ),
+        }
+      })
+    },
+    onError: () => {
+      toast.error('Failed to update group name.')
+    },
+  })
+
   // ============================================
   // Render
   // ============================================
@@ -287,9 +320,61 @@ const ChatManage = () => {
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-lg font-heading font-semibold text-foreground flex-1">
-            {groupName}
-          </h1>
+
+          {isEditingName ? (
+            <div className="flex items-center gap-2 flex-1">
+              <Input
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                maxLength={100}
+                autoFocus
+                className="h-8 text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const trimmed = nameInput.trim()
+                    if (trimmed) updateName.mutate(trimmed)
+                  }
+                  if (e.key === 'Escape') setIsEditingName(false)
+                }}
+              />
+              <button
+                onClick={() => {
+                  const trimmed = nameInput.trim()
+                  if (trimmed) updateName.mutate(trimmed)
+                }}
+                disabled={!nameInput.trim() || updateName.isPending}
+                className="text-primary disabled:opacity-40"
+              >
+                {updateName.isPending
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <Check className="w-4 h-4" />
+                }
+              </button>
+              <button
+                onClick={() => setIsEditingName(false)}
+                className="text-muted-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-1">
+              <h1 className="text-lg font-heading font-semibold text-foreground">
+                {groupName}
+              </h1>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setNameInput(groupName)
+                    setIsEditingName(true)
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
