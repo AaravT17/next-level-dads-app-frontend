@@ -102,6 +102,33 @@ export function PublicRoute({ children }: RouteWrapperProps) {
 }
 
 /**
+ * AdminRoute - Requires full auth AND is_admin === true.
+ *
+ * Behavior:
+ * - While loading: Shows spinner
+ * - Not authenticated: Redirects to /
+ * - Authenticated but not admin: Redirects to /discover
+ * - Authenticated admin: Renders children
+ */
+export function AdminRoute({ children }: RouteWrapperProps) {
+  const { user, accessToken, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
+
+  if (!accessToken || !user) {
+    return <Navigate to={ROUTES.WELCOME} replace />
+  }
+
+  if (!user.isAdmin) {
+    return <Navigate to={ROUTES.DISCOVER} replace />
+  }
+
+  return <>{children}</>
+}
+
+/**
  * SetupRoute - For the profile setup page.
  *
  * Behavior:

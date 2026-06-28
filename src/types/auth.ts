@@ -8,6 +8,7 @@ export interface User {
   avatarUrl: string
   interests: string[]
   children_age_ranges: string[]
+  isAdmin: boolean
 }
 
 export interface AuthState {

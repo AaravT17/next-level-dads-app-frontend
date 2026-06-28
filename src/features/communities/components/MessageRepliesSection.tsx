@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -14,6 +15,8 @@ import { useDeleteReply } from '../hooks/useDeleteReply'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
 import { useAuth } from '@/contexts/AuthContext'
+import { profileDetail } from '@/lib/routes'
+import { PendingReportGate } from './PendingReportGate'
 
 interface MessageRepliesSectionProps {
   messageId: string
@@ -60,31 +63,56 @@ function ReplyItem({
 
   return (
     <div className="flex gap-2.5 py-2">
-      {author?.avatar_url ? (
-        <img
-          src={author.avatar_url}
-          alt={author.name}
-          className="w-6 h-6 rounded-full object-cover shrink-0 mt-0.5"
-        />
+      {author ? (
+        <Link to={profileDetail(author.id)} className="shrink-0 mt-0.5">
+          {author.avatar_url ? (
+            <img
+              src={author.avatar_url}
+              alt={author.name}
+              className="w-6 h-6 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-semibold">
+              {initials(author.name)}
+            </div>
+          )}
+        </Link>
       ) : (
         <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-semibold shrink-0 mt-0.5">
-          {author ? initials(author.name) : '?'}
+          ?
         </div>
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="text-xs font-semibold text-foreground">
-            {author?.name ?? 'Anonymous'}
-          </span>
+          {author ? (
+            <Link
+              to={profileDetail(author.id)}
+              className="text-xs font-semibold text-foreground hover:underline"
+            >
+              {author.name}
+            </Link>
+          ) : (
+            <span className="text-xs font-semibold text-foreground">Anonymous</span>
+          )}
           <span className="text-xs text-muted-foreground">{formatTime(reply.created_at)}</span>
         </div>
-        <p className={`text-sm mt-0.5 whitespace-pre-wrap leading-relaxed ${
-          reply.is_deleted
-            ? 'text-muted-foreground italic'
-            : 'text-foreground'
-        }`}>
-          {reply.body}
-        </p>
+        {reply.has_pending_report && !reply.is_deleted ? (
+          <div className="mt-2">
+            <PendingReportGate compact>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
+                {reply.body}
+              </p>
+            </PendingReportGate>
+          </div>
+        ) : (
+          <p className={`text-sm mt-0.5 whitespace-pre-wrap leading-relaxed ${
+            reply.is_deleted
+              ? 'text-muted-foreground italic'
+              : 'text-foreground'
+          }`}>
+            {reply.body}
+          </p>
+        )}
         {!reply.is_deleted && (
           <div className="mt-1 flex items-center gap-4">
             <HeartButton

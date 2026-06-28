@@ -4,6 +4,7 @@ import type {
   BanStatus,
   ModerationNotification,
   ReportCreate,
+  UserReportCreate,
 } from '@/types/moderation'
 
 const t = { timeout: TIMEOUT_LENGTH_MS }
@@ -28,4 +29,7 @@ export const moderationApi = {
 
   markAllNotificationsRead: () =>
     axiosPrivate.post('/api/moderation/notifications/read-all', {}, t),
+
+  reportUser: (payload: UserReportCreate) =>
+    axiosPrivate.post('/api/moderation/user-reports', payload, t).then((r) => r.data),
 }

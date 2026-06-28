@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { ConversationMessage as ConversationMessageType } from '@/types/communities'
 import { HeartButton } from './HeartButton'
@@ -8,6 +9,8 @@ import { useHeartMessage } from '../hooks/useHeartMessage'
 import { useDeleteMessage } from '../hooks/useDeleteMessage'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
 import { useAuth } from '@/contexts/AuthContext'
+import { profileDetail } from '@/lib/routes'
+import { PendingReportGate } from './PendingReportGate'
 
 interface ConversationMessageProps {
   message: ConversationMessageType
@@ -45,15 +48,23 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
   return (
     <div className="flex gap-3">
       <div className="flex flex-col items-center shrink-0">
-        {author?.avatar_url ? (
-          <img
-            src={author.avatar_url}
-            alt={author.name}
-            className="w-8 h-8 rounded-full object-cover"
-          />
+        {author ? (
+          <Link to={profileDetail(author.id)} className="shrink-0">
+            {author.avatar_url ? (
+              <img
+                src={author.avatar_url}
+                alt={author.name}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+                {initials(author.name)}
+              </div>
+            )}
+          </Link>
         ) : (
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
-            {author ? initials(author.name) : '?'}
+            ?
           </div>
         )}
         <div className="w-0.5 flex-1 bg-border mt-2 rounded-full" />
@@ -61,21 +72,38 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
 
       <div className="flex-1 min-w-0 pb-4">
         <div className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold text-foreground">
-            {author?.name ?? 'Anonymous'}
-          </span>
+          {author ? (
+            <Link
+              to={profileDetail(author.id)}
+              className="text-sm font-semibold text-foreground hover:underline"
+            >
+              {author.name}
+            </Link>
+          ) : (
+            <span className="text-sm font-semibold text-foreground">Anonymous</span>
+          )}
           <span className="text-xs text-muted-foreground">
             {formatTime(message.created_at)}
           </span>
         </div>
 
-        <p className={`text-lg mt-1 leading-relaxed whitespace-pre-wrap ${
-          message.is_deleted
-            ? 'text-muted-foreground italic'
-            : 'text-foreground'
-        }`}>
-          {message.body}
-        </p>
+        {message.has_pending_report && !message.is_deleted ? (
+          <div className="mt-2">
+            <PendingReportGate>
+              <p className="text-lg leading-relaxed whitespace-pre-wrap text-foreground">
+                {message.body}
+              </p>
+            </PendingReportGate>
+          </div>
+        ) : (
+          <p className={`text-lg mt-1 leading-relaxed whitespace-pre-wrap ${
+            message.is_deleted
+              ? 'text-muted-foreground italic'
+              : 'text-foreground'
+          }`}>
+            {message.body}
+          </p>
+        )}
 
         {(!message.is_deleted || message.reply_count > 0) && (
           <div className="mt-1.5 flex items-center gap-4">

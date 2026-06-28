@@ -6,7 +6,7 @@ import { queryClient } from '@/lib/queryClient'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ROUTES } from '@/lib/routes'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { PublicRoute, ProtectedRoute, SetupRoute } from '@/components/RouteWrappers'
+import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 
 import Welcome from './pages/Welcome'
@@ -31,6 +31,7 @@ import NotFound from './pages/NotFound'
 import CommunitiesPage from './features/communities/pages/CommunitiesPage'
 import CommunityDetailPage from './features/communities/pages/CommunityDetailPage'
 import ConversationDetailPage from './features/communities/pages/ConversationDetailPage'
+import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
 
 const AppContent = () => {
   return (
@@ -165,6 +166,12 @@ const AppContent = () => {
           <Route
             path={ROUTES.REQUESTS}
             element={<ProtectedRoute><Requests /></ProtectedRoute>}
+          />
+
+          {/* Admin */}
+          <Route
+            path={ROUTES.ADMIN}
+            element={<AdminRoute><AdminDashboardPage /></AdminRoute>}
           />
 
           {/* Catch-all */}

@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom'
 import type { ConversationParticipant } from '@/types/communities'
+import { profileDetail } from '@/lib/routes'
 
 interface ParticipantListProps {
   participants: ConversationParticipant[]
@@ -23,7 +25,7 @@ export function ParticipantList({ participants }: ParticipantListProps) {
       </p>
       <div className="flex flex-wrap gap-2">
         {participants.map((p) => (
-          <div key={p.id} className="flex items-center gap-1.5" title={p.name}>
+          <Link key={p.id} to={profileDetail(p.id)} title={p.name}>
             {p.avatar_url ? (
               <img
                 src={p.avatar_url}
@@ -35,7 +37,7 @@ export function ParticipantList({ participants }: ParticipantListProps) {
                 {initials(p.name)}
               </div>
             )}
-          </div>
+          </Link>
         ))}
       </div>
     </div>

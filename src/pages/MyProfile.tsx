@@ -22,6 +22,7 @@ import {
   Pencil,
   Upload,
   Trash2,
+  Shield,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -776,6 +777,17 @@ const MyProfile = () => {
               <Share2 className="w-4 h-4 mr-2" />
               Share Profile
             </Button> */}
+
+            {user?.isAdmin && (
+              <Button
+                variant="outline"
+                className="w-full rounded-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                onClick={() => navigate(ROUTES.ADMIN)}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Moderation Dashboard
+              </Button>
+            )}
 
             <Button
               variant="outline"

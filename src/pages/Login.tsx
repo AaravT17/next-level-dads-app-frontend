@@ -67,6 +67,7 @@ const Login = () => {
           avatarUrl: userRes.data.avatar_url,
           interests: userRes.data.interests,
           children_age_ranges: userRes.data.children,
+          isAdmin: userRes.data.is_admin ?? false,
         },
         accessToken,
       })

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ArrowLeft, Loader2, MessageCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -21,6 +21,7 @@ import { ParticipantList } from '../components/ParticipantList'
 import { EmptyState } from '../components/EmptyState'
 import { DeleteContentButton } from '../components/DeleteContentButton'
 import { useAuth } from '@/contexts/AuthContext'
+import { profileDetail } from '@/lib/routes'
 
 interface ReplyFormValues {
   body: string
@@ -154,8 +155,8 @@ const ConversationDetailPage = () => {
     <div className="min-h-screen bg-background pb-20">
       <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
         <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-        <h1 className="text-xl font-heading font-semibold text-foreground line-clamp-1 px-16">
-          {conversation.title}
+        <h1 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground px-16">
+          Community post
         </h1>
       </div>
 
@@ -173,18 +174,26 @@ const ConversationDetailPage = () => {
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           {author && (
             <div className="flex items-center gap-2">
-              {author.avatar_url ? (
-                <img
-                  src={author.avatar_url}
-                  alt={author.name}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
-                  {initials(author.name)}
-                </div>
-              )}
-              <span className="text-sm font-semibold text-foreground">{author.name}</span>
+              <Link to={profileDetail(author.id)} className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                {author.avatar_url ? (
+                  <img
+                    src={author.avatar_url}
+                    alt={author.name}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+                    {initials(author.name)}
+                  </div>
+                )}
+              </Link>
+              <Link
+                to={profileDetail(author.id)}
+                className="text-sm font-semibold text-foreground hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {author.name}
+              </Link>
               {conversation.prompt_type && (
                 <span className="ml-auto text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                   {conversation.prompt_type}

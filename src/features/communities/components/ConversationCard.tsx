@@ -3,6 +3,7 @@ import { MessageCircle, Heart, Users, Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { conversationDetail } from '@/lib/routes'
 import type { Conversation } from '@/types/communities'
+import { PendingReportGate } from './PendingReportGate'
 
 interface ConversationCardProps {
   conversation: Conversation
@@ -30,19 +31,27 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
       }
     >
       <CardContent className="p-4 space-y-2">
-        <h4 className={`font-semibold leading-snug line-clamp-2 ${
-          conversation.is_deleted
-            ? 'text-muted-foreground italic'
-            : 'text-foreground'
-        }`}>
-          {conversation.title}
-        </h4>
+        {conversation.has_pending_report && !conversation.is_deleted ? (
+          <PendingReportGate compact revealable={false}>
+            <span />
+          </PendingReportGate>
+        ) : (
+          <>
+            <h4 className={`font-semibold leading-snug line-clamp-2 ${
+              conversation.is_deleted
+                ? 'text-muted-foreground italic'
+                : 'text-foreground'
+            }`}>
+              {conversation.title}
+            </h4>
 
-        <p className={`text-sm text-muted-foreground leading-relaxed line-clamp-2 ${
-          conversation.is_deleted ? 'italic' : ''
-        }`}>
-          {conversation.body}
-        </p>
+            <p className={`text-sm text-muted-foreground leading-relaxed line-clamp-2 ${
+              conversation.is_deleted ? 'italic' : ''
+            }`}>
+              {conversation.body}
+            </p>
+          </>
+        )}
 
         <div className="flex items-center justify-between gap-2">
           {conversation.author && (

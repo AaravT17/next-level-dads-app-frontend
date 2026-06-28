@@ -70,6 +70,9 @@ export const ROUTES = {
   PROFILES: '/profiles',
   CONNECTIONS: '/connections',
   REQUESTS: '/requests',
+
+  // Admin
+  ADMIN: '/admin',
 } as const
 
 // ============================================

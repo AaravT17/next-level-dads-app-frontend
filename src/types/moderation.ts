@@ -23,3 +23,8 @@ export interface ReportCreate {
   content_id: string
   reason?: string
 }
+
+export interface UserReportCreate {
+  reported_id: string
+  reason?: string
+}

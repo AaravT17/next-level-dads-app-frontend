@@ -68,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             avatarUrl: res.data.avatar_url,
             interests: res.data.interests,
             children_age_ranges: res.data.children,
+            isAdmin: res.data.is_admin ?? false,
           },
         }))
       } catch (err: any) {
