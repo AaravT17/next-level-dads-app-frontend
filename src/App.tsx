@@ -9,7 +9,6 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 import { ChatProvider } from '@/contexts/ChatContext'
-import { PublicRoute, ProtectedRoute, SetupRoute } from '@/components/RouteWrappers'
 
 import Welcome from './pages/Welcome'
 import Login from './pages/Login'
