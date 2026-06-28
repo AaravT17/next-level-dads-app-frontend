@@ -1,3 +1,89 @@
+// ── Conversation types ─────────────────────────────────────────────────────
+
+export interface AuthorInfo {
+  id: string
+  name: string
+  avatar_url: string | null
+  about: string | null
+}
+
+export interface Conversation {
+  id: string
+  community_id: string
+  author: AuthorInfo | null
+  title: string
+  body: string
+  prompt_type: string | null
+  reply_count: number
+  heart_count: number
+  participant_count: number
+  is_hearted: boolean
+  is_deleted: boolean
+  has_pending_report: boolean
+  deleted_at: string | null
+  created_at: string
+  updated_at: string
+  last_activity_at: string
+}
+
+export interface ConversationMessage {
+  id: string
+  conversation_id: string
+  author: AuthorInfo | null
+  body: string
+  reply_count: number
+  heart_count: number
+  is_hearted: boolean
+  is_deleted: boolean
+  has_pending_report: boolean
+  deleted_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MessageReply {
+  id: string
+  message_id: string
+  author: AuthorInfo | null
+  body: string
+  heart_count: number
+  is_hearted: boolean
+  is_deleted: boolean
+  has_pending_report: boolean
+  deleted_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ReplyCreate {
+  body: string
+}
+
+export interface RepliesCursor {
+  cursor_id: string
+  cursor_heart_count: number
+}
+
+export interface ConversationParticipant {
+  id: string
+  name: string
+  avatar_url: string | null
+  first_joined_at: string
+  last_active_at: string
+}
+
+export interface ConversationCreate {
+  title: string
+  body: string
+  prompt_type?: string
+}
+
+export interface MessageCreate {
+  body: string
+}
+
+// ── Community types ────────────────────────────────────────────────────────
+
 export type CommunityRole = 'admin' | 'member' | null
 
 export interface Community {
@@ -39,4 +125,32 @@ export interface CommunityMemberResponse {
 export interface CommunityMembersCursor {
   cursor_id: string
   cursor_joined_at: string
+}
+
+export type ConversationSort = 'recent' | 'popular' | 'active'
+export type ConversationTimeWindow = 'today' | 'week' | 'month' | 'year' | 'all'
+
+export interface ConversationsCursor {
+  cursor_id: string
+  cursor_last_activity_at: string
+}
+
+export interface PopularConversationsCursor {
+  cursor_id: string
+  cursor_heart_count: number
+}
+
+export interface ActiveConversationsCursor {
+  cursor_id: string
+  cursor_reply_count: number
+}
+
+export type AnyConversationsCursor =
+  | ConversationsCursor
+  | PopularConversationsCursor
+  | ActiveConversationsCursor
+
+export interface MessagesCursor {
+  cursor_id: string
+  cursor_created_at: string
 }

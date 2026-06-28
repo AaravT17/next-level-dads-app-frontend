@@ -68,6 +68,9 @@ export const ROUTES = {
   PROFILES: '/profiles',
   CONNECTIONS: '/connections',
   REQUESTS: '/requests',
+
+  // Admin
+  ADMIN: '/admin',
 } as const
 
 // ============================================
@@ -103,6 +106,12 @@ export const groupsTab = (tab: 'communities' | 'events') =>
  */
 export const communityDetail = (communityId: number | string) =>
   `/communities/${communityId}` as const
+
+/**
+ * Get route for a conversation within a community
+ */
+export const conversationDetail = (communityId: string, conversationId: string) =>
+  `/communities/${communityId}/conversations/${conversationId}` as const
 
 /**
  * Get route for community members

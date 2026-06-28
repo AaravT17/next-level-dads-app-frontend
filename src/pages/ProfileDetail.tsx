@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import BottomNav from '@/components/BottomNav'
@@ -666,6 +667,13 @@ const ProfileDetail = () => {
 
         {/* Action buttons */}
         <div className="px-6">{renderButtons()}</div>
+
+        {/* Report */}
+        {profile && id && (
+          <div className="px-6 flex justify-center">
+            <ReportUserButton userId={id} userName={profile.name} />
+          </div>
+        )}
       </div>
 
       <BottomNav />

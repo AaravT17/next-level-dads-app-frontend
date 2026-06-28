@@ -6,6 +6,8 @@ import { queryClient } from '@/lib/queryClient'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ROUTES } from '@/lib/routes'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
+import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 import { ChatProvider } from '@/contexts/ChatContext'
 import { PublicRoute, ProtectedRoute, SetupRoute } from '@/components/RouteWrappers'
 
@@ -22,7 +24,6 @@ import Chat from './pages/Chat'
 import ChatManage from './pages/ChatManage'
 import Discover from './pages/Discover'
 import Groups from './pages/Groups'
-import CommunityDetail from './pages/CommunityDetail'
 import Members from './pages/Members'
 import MyProfile from './pages/MyProfile'
 import ProfileDetail from './pages/ProfileDetail'
@@ -30,12 +31,17 @@ import Connections from './pages/Connections'
 import Requests from './pages/Requests'
 import EventDetail from './pages/EventDetail'
 import NotFound from './pages/NotFound'
+import CommunitiesPage from './features/communities/pages/CommunitiesPage'
+import CommunityDetailPage from './features/communities/pages/CommunityDetailPage'
+import ConversationDetailPage from './features/communities/pages/ConversationDetailPage'
+import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
 
 const AppContent = () => {
   return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <ModerationNotifier />
       <BrowserRouter>
         <Routes>
           {/* Public Routes - redirect to app if authenticated */}
@@ -93,8 +99,16 @@ const AppContent = () => {
 
           {/* Communities */}
           <Route
+            path="/communities"
+            element={<ProtectedRoute><CommunitiesPage /></ProtectedRoute>}
+          />
+          <Route
             path="/communities/:communityId"
-            element={<ProtectedRoute><CommunityDetail /></ProtectedRoute>}
+            element={<ProtectedRoute><CommunityDetailPage /></ProtectedRoute>}
+          />
+          <Route
+            path="/communities/:communityId/conversations/:conversationId"
+            element={<ProtectedRoute><ConversationDetailPage /></ProtectedRoute>}
           />
           <Route
             path="/communities/:communityId/members"
@@ -151,6 +165,12 @@ const AppContent = () => {
           <Route
             path={ROUTES.REQUESTS}
             element={<ProtectedRoute><Requests /></ProtectedRoute>}
+          />
+
+          {/* Admin */}
+          <Route
+            path={ROUTES.ADMIN}
+            element={<AdminRoute><AdminDashboardPage /></AdminRoute>}
           />
 
           {/* Catch-all */}
