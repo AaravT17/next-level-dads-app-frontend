@@ -90,6 +90,8 @@ const CommunityDetailPage = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
+      queryClient.removeQueries({ queryKey: ['discover', 'communities'] })
+      queryClient.removeQueries({ queryKey: ['groups', 'communities'] })
     },
     onError: () => toast.error("Couldn't join community"),
   })
@@ -101,6 +103,8 @@ const CommunityDetailPage = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
+      queryClient.removeQueries({ queryKey: ['discover', 'communities'] })
+      queryClient.removeQueries({ queryKey: ['groups', 'communities'] })
     },
     onError: () => toast.error("Couldn't leave community"),
   })
