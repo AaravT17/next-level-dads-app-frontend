@@ -16,7 +16,7 @@ import {
 import {
   Edit,
   MapPin,
-  Calendar,
+  Calendar as CalendarIcon,
   LogOut,
   Share2,
   Pencil,
@@ -24,12 +24,25 @@ import {
   Trash2,
   Shield,
 } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import avatarDefaultGrey from '@/assets/avatar-default-grey.png'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
@@ -53,7 +66,8 @@ import { useToast } from '@/hooks/use-toast'
 interface UserResponse {
   id: string
   name: string
-  age: number
+  age: number | null
+  date_of_birth: string | null
   city: string
   province: string
   about: string
@@ -87,7 +101,7 @@ const MyProfile = () => {
   // Form state
   const [formData, setFormData] = useState({
     name: '',
-    age: '',
+    date_of_birth: '',
     city: '',
     province: '',
     about: '',
@@ -100,7 +114,7 @@ const MyProfile = () => {
     if (user) {
       setFormData({
         name: user.name,
-        age: String(user.age),
+        date_of_birth: user.date_of_birth ?? '',
         city: user.city,
         province: user.province,
         about: user.about,
@@ -127,7 +141,7 @@ const MyProfile = () => {
   const updateProfile = useMutation({
     mutationFn: (data: {
       name: string
-      age: number
+      date_of_birth: string
       city: string
       province: string
       about: string
@@ -144,10 +158,11 @@ const MyProfile = () => {
           id: data.id,
           name: data.name,
           age: data.age,
+          date_of_birth: data.date_of_birth,
           city: data.city,
           province: data.province,
           about: data.about,
-          avatarUrl: data.avatar_url || '',
+          avatarUrl: data.avatar_url,
           interests: data.interests,
           children_age_ranges: data.children,
         },
@@ -224,7 +239,7 @@ const MyProfile = () => {
     onSuccess: () => {
       if (user) {
         setAuth({
-          user: { ...user, avatarUrl: '' },
+          user: { ...user, avatarUrl: null },
           accessToken,
         })
       }
@@ -245,6 +260,24 @@ const MyProfile = () => {
       setIsLoading(false)
     },
   })
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true)
+    try {
+      await axiosPrivate.delete('/api/users/me', { timeout: TIMEOUT_LENGTH_MS })
+      queryClient.clear()
+      setAuth({ user: null, accessToken: null })
+      navigate(ROUTES.WELCOME)
+    } catch {
+      toast({ title: 'Error', description: 'Failed to delete account. Please try again.', variant: 'destructive' })
+      setShowDeleteDialog(false)
+    } finally {
+      setIsDeletingAccount(false)
+    }
+  }
 
   const handleShareProfile = async () => {}
 
@@ -298,7 +331,7 @@ const MyProfile = () => {
     if (user) {
       setFormData({
         name: user.name,
-        age: String(user.age),
+        date_of_birth: user.date_of_birth ?? '',
         city: user.city,
         province: user.province,
         about: user.about,
@@ -314,7 +347,7 @@ const MyProfile = () => {
     if (user) {
       setFormData({
         name: user.name,
-        age: String(user.age),
+        date_of_birth: user.date_of_birth ?? '',
         city: user.city,
         province: user.province,
         about: user.about,
@@ -339,13 +372,24 @@ const MyProfile = () => {
   }
 
   const handleSave = () => {
+    const name = formData.name.trim()
+    const city = formData.city.trim()
+    const about = formData.about.trim()
+    if (!name || !formData.date_of_birth || !city || !formData.province || !about || formData.children_age_ranges.length === 0) {
+      toast({
+        title: 'Please fill out all required fields',
+        description: 'Name, date of birth, city, province, about, and children\'s age are required.',
+        variant: 'destructive',
+      })
+      return
+    }
     setIsLoading(true)
     updateProfile.mutate({
-      name: formData.name,
-      age: parseInt(formData.age, 10),
-      city: formData.city,
+      name,
+      date_of_birth: formData.date_of_birth,
+      city,
       province: formData.province,
-      about: formData.about,
+      about,
       interests: formData.interests,
       children_age_ranges: formData.children_age_ranges,
     })
@@ -449,7 +493,7 @@ const MyProfile = () => {
             <>
               <div>
                 <h2 className="text-2xl font-heading font-semibold text-foreground">
-                  {user.name}, {user.age}
+                  {user.name}, {user.age ?? '—'}
                 </h2>
                 <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
                   <MapPin className="w-4 h-4" />
@@ -529,19 +573,40 @@ const MyProfile = () => {
             </div>
 
             <div>
-              <h3 className="font-semibold text-foreground mb-2">Age</h3>
-              <Input
-                id="age"
-                type="number"
-                min={0}
-                value={formData.age}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, age: e.target.value }))
-                }
-                placeholder="Your age"
-                className="rounded-lg"
-                disabled={isLoading}
-              />
+              <h3 className="font-semibold text-foreground mb-2">Date of Birth</h3>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start rounded-lg font-normal"
+                    disabled={isLoading}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                    {formData.date_of_birth ? (
+                      format(parseISO(formData.date_of_birth), 'MMMM d, yyyy')
+                    ) : (
+                      <span className="text-muted-foreground">Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.date_of_birth ? parseISO(formData.date_of_birth) : undefined}
+                    onSelect={(date) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        date_of_birth: date ? format(date, 'yyyy-MM-dd') : '',
+                      }))
+                    }
+                    disabled={(date) => date > new Date()}
+                    captionLayout="dropdown"
+                    fromYear={1900}
+                    toYear={new Date().getFullYear()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -714,7 +779,7 @@ const MyProfile = () => {
                     variant="soft"
                     className="rounded-full"
                   >
-                    <Calendar className="w-3 h-3 mr-1" />
+                    <CalendarIcon className="w-3 h-3 mr-1" />
                     {getStageDisplayLabel(stage)}
                   </Badge>
                 ))}
@@ -798,9 +863,40 @@ const MyProfile = () => {
               <LogOut className="w-4 h-4 mr-2" />
               Log Out
             </Button>
+
+            <Button
+              variant="outline"
+              className="w-full rounded-full border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={isLoading}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Account
+            </Button>
           </>
         )}
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete your account? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingAccount}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={isDeletingAccount}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingAccount ? 'Deleting...' : 'Delete Account'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
     </div>

@@ -1,11 +1,12 @@
 export interface User {
   id: string
   name: string
-  age: number
+  age: number | null
+  date_of_birth: string | null
   city: string
   province: string
   about: string
-  avatarUrl: string
+  avatarUrl: string | null
   interests: string[]
   children_age_ranges: string[]
   isAdmin: boolean

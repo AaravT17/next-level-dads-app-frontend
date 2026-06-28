@@ -10,10 +10,12 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
 import { getStageDisplayLabel } from '@/utils/users'
-import { profileDetail } from '@/lib/routes'
+import { profileDetail, chat } from '@/lib/routes'
 import { useToast } from '@/hooks/use-toast'
 import axiosPrivate from '@/api/axiosPrivate'
+import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
+import type { Chat } from '@/types/chats'
 
 type ListContext = 'discover' | 'connections' | 'requests'
 
@@ -177,6 +179,30 @@ const DadCard = ({
     mutationFn: () => axiosPrivate.delete(`/api/connections/${id}`),
     onSuccess: () => {
       updateStatusInCache(null)
+
+      // Backend deletes the DM chat on disconnect — clean up chat caches
+      const chatsData = queryClient.getQueryData<InfiniteData<Chat[]>>(['chats'])
+      if (chatsData) {
+        let dmChatId: string | null = null
+        const updatedPages = chatsData.pages.map((page) => {
+          const filtered = page.filter((c) => {
+            if (c.type === 'dm' && c.other_user?.id === id) {
+              dmChatId = c.id
+              return false
+            }
+            return true
+          })
+          return filtered
+        })
+        if (dmChatId) {
+          queryClient.setQueryData<InfiniteData<Chat[]>>(['chats'], {
+            ...chatsData,
+            pages: updatedPages,
+          })
+          queryClient.removeQueries({ queryKey: ['chats', dmChatId] })
+          queryClient.removeQueries({ queryKey: ['messages', dmChatId] })
+        }
+      }
     },
     onError: () => {
       toast({
@@ -203,8 +229,29 @@ const DadCard = ({
     removeConnection.mutate()
   }
 
+  const createChat = useMutation({
+    mutationFn: async () => {
+      const res = await axiosPrivate.post<{ id: string }>(
+        '/api/chats/',
+        { participant_ids: [id] },
+        { timeout: TIMEOUT_LENGTH_MS },
+      )
+      return res.data
+    },
+    onSuccess: (data) => {
+      navigate(chat(data.id))
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to open chat. Please try again.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleChat = () => {
-    // TODO: navigate to chat
+    createChat.mutate()
   }
 
   const handleUnconnect = () => {
@@ -214,7 +261,8 @@ const DadCard = ({
   const isLoading =
     sendConnectionRequest.isPending ||
     acceptConnectionRequest.isPending ||
-    removeConnection.isPending
+    removeConnection.isPending ||
+    createChat.isPending
 
   const renderButtons = () => {
     if (connection_status === 'blocked') return null
@@ -329,7 +377,7 @@ const DadCard = ({
 
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-heading font-semibold text-foreground">
-              {name}, {age}
+              {name}, {age ?? '—'}
             </h3>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
               <MapPin className="w-3 h-3" />

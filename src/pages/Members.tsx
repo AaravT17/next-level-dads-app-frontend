@@ -226,7 +226,7 @@ const Members = () => {
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-foreground">
-                      {member.name}, {member.age}
+                      {member.name}, {member.age ?? '—'}
                     </h3>
                     <p className="text-xs text-muted-foreground">
                       {member.childrenAges}
