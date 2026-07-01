@@ -262,8 +262,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     connect()
   }, [connect])
 
+  const hasAcceptedLegal = !!(
+    user?.legal_acceptances.terms && user?.legal_acceptances.privacy_policy
+  )
+
   useEffect(() => {
-    if (!user) {
+    if (!user || !hasAcceptedLegal) {
       shouldReconnectRef.current = false
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
       wsRef.current?.close()
@@ -294,7 +298,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setIsReconnecting(false)
       setIsFailed(false)
     }
-  }, [user?.id, connect, reconnect])
+  }, [user?.id, hasAcceptedLegal, connect, reconnect])
 
   return (
     <ChatContext.Provider value={{ registerMessageHandler, sendWsMessage, isReconnecting, isFailed, reconnect }}>

@@ -70,6 +70,13 @@ const Login = () => {
           interests: userRes.data.interests,
           children_age_ranges: userRes.data.children,
           isAdmin: userRes.data.is_admin ?? false,
+          preferences: {
+            marketing_emails_opt_in: userRes.data.preferences?.marketing_emails_opt_in ?? false,
+          },
+          legal_acceptances: {
+            terms: userRes.data.legal_acceptances?.terms ?? false,
+            privacy_policy: userRes.data.legal_acceptances?.privacy_policy ?? false,
+          },
         },
         accessToken,
       })

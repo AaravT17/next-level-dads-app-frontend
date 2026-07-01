@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowLeft, CalendarIcon } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { Calendar } from '@/components/ui/calendar'
@@ -35,7 +36,7 @@ const ProfileSetup = () => {
   const [loading, setLoading] = useState(false)
   const { accessToken, setAuth } = useAuth()
   const [step, setStep] = useState(1)
-  const totalSteps = 4
+  const totalSteps = 5
 
   const [formData, setFormData] = useState({
     name: '',
@@ -52,6 +53,12 @@ const ProfileSetup = () => {
 
   const [avatar, setAvatar] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [confirmedAge, setConfirmedAge] = useState(false)
+  const [marketingOptIn, setMarketingOptIn] = useState(false)
+
+  const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL as string
 
   const toggleInterest = (interest: string) => {
     if (loading) return
@@ -161,7 +168,14 @@ const ProfileSetup = () => {
 
   const handleSubmit = async () => {
     if (loading) return
-    // required field validation done in handleNext, so we can assume all data is valid at this point
+    if (!agreedToTerms || !confirmedAge) {
+      toast({
+        title: 'Please accept all required agreements',
+        description: 'You must agree to the Terms and Conditions, Privacy Policy, and confirm your age.',
+        variant: 'destructive',
+      })
+      return
+    }
     const profileData = new FormData()
     profileData.append('name', formData.name)
     profileData.append('date_of_birth', formData.date_of_birth)
@@ -175,6 +189,9 @@ const ProfileSetup = () => {
     if (avatar) {
       profileData.append('avatar', avatar)
     }
+    profileData.append('accepted_terms', 'true')
+    profileData.append('accepted_privacy_policy', 'true')
+    profileData.append('marketing_emails_opt_in', String(marketingOptIn))
 
     try {
       setLoading(true)
@@ -196,6 +213,14 @@ const ProfileSetup = () => {
           avatarUrl: res.data.avatar_url,
           interests: res.data.interests,
           children_age_ranges: res.data.children,
+          isAdmin: res.data.is_admin ?? false,
+          preferences: {
+            marketing_emails_opt_in: res.data.preferences?.marketing_emails_opt_in ?? marketingOptIn,
+          },
+          legal_acceptances: {
+            terms: true,
+            privacy_policy: true,
+          },
         },
         accessToken,
       })
@@ -555,6 +580,79 @@ const ProfileSetup = () => {
                   Remove
                 </Button>
               )}
+            </div>
+          </div>
+        )}
+
+        {step === 5 && (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-heading font-semibold text-foreground">
+                One last step
+              </h2>
+              <p className="text-muted-foreground">
+                Please review and accept the following before creating your profile.
+              </p>
+            </div>
+
+            <div className="space-y-5">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="terms"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
+                  disabled={loading}
+                  className="mt-0.5"
+                />
+                <label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
+                  I agree to the{' '}
+                  <a
+                    href={`${WEBSITE_BASE_URL}/terms`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4"
+                  >
+                    Terms and Conditions
+                  </a>{' '}
+                  and{' '}
+                  <a
+                    href={`${WEBSITE_BASE_URL}/privacy`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4"
+                  >
+                    Privacy Policy
+                  </a>
+                  . <span className="text-destructive">*</span>
+                </label>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="age"
+                  checked={confirmedAge}
+                  onCheckedChange={(checked) => setConfirmedAge(!!checked)}
+                  disabled={loading}
+                  className="mt-0.5"
+                />
+                <label htmlFor="age" className="text-sm leading-relaxed cursor-pointer">
+                  I confirm I am 18 years of age or older.{' '}
+                  <span className="text-destructive">*</span>
+                </label>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="marketing"
+                  checked={marketingOptIn}
+                  onCheckedChange={(checked) => setMarketingOptIn(!!checked)}
+                  disabled={loading}
+                  className="mt-0.5"
+                />
+                <label htmlFor="marketing" className="text-sm leading-relaxed cursor-pointer text-muted-foreground">
+                  I'd like to receive occasional emails about new features, events, and updates from Next Level Dads. I can unsubscribe at any time.
+                </label>
+              </div>
             </div>
           </div>
         )}

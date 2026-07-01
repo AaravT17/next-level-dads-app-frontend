@@ -1,12 +1,34 @@
+// TODO: Add date separators between messages (e.g. "Today", "Yesterday", specific dates) so users can orient
+// themselves in longer conversations — currently messages only show time, no date context.
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  InfiniteData,
+} from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ArrowLeft, Send, Users, ChevronDown, Pencil, Trash2, Loader2, Reply, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  Send,
+  Users,
+  ChevronDown,
+  Pencil,
+  Trash2,
+  Loader2,
+  Reply,
+  X,
+} from 'lucide-react'
 import { groupsTab, chatManage } from '@/lib/routes'
-import { type ChatType, type Message, type Chat, type MessagesCursor } from '@/types/chats'
+import {
+  type ChatType,
+  type Message,
+  type Chat,
+  type MessagesCursor,
+} from '@/types/chats'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChat } from '@/contexts/ChatContext'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -88,7 +110,9 @@ const Chat = () => {
   const displayName = isGroupChat
     ? (chatData?.name ?? 'Group')
     : (chatData?.other_user?.name ?? '')
-  const avatarUrl = isGroupChat ? null : (chatData?.other_user?.avatar_url ?? null)
+  const avatarUrl = isGroupChat
+    ? null
+    : (chatData?.other_user?.avatar_url ?? null)
 
   // ============================================
   // Messages initial load
@@ -97,9 +121,12 @@ const Chat = () => {
   const { data: initialMessages, isSuccess: messagesLoaded } = useQuery({
     queryKey: ['messages', chatId],
     queryFn: async () => {
-      const res = await axiosPrivate.get<Message[]>(`/api/chats/${chatId}/messages`, {
-        timeout: TIMEOUT_LENGTH_MS,
-      })
+      const res = await axiosPrivate.get<Message[]>(
+        `/api/chats/${chatId}/messages`,
+        {
+          timeout: TIMEOUT_LENGTH_MS,
+        },
+      )
       // Reverse once on arrival: API returns newest-first, cache stores oldest-first
       return [...res.data].reverse()
     },
@@ -115,7 +142,10 @@ const Chat = () => {
     // Cursor points to the oldest loaded message (index 0 in oldest-first)
     if (initialMessages.length > 0) {
       const oldest = initialMessages[0]
-      setOlderCursor({ cursor_id: oldest.id, cursor_created_at: oldest.created_at })
+      setOlderCursor({
+        cursor_id: oldest.id,
+        cursor_created_at: oldest.created_at,
+      })
       setHasMoreOlder(true)
     } else {
       setHasMoreOlder(false)
@@ -162,10 +192,13 @@ const Chat = () => {
         cursor_id: olderCursor.cursor_id,
         cursor_created_at: olderCursor.cursor_created_at,
       })
-      const res = await axiosPrivate.get<Message[]>(`/api/chats/${chatId}/messages`, {
-        params,
-        timeout: TIMEOUT_LENGTH_MS,
-      })
+      const res = await axiosPrivate.get<Message[]>(
+        `/api/chats/${chatId}/messages`,
+        {
+          params,
+          timeout: TIMEOUT_LENGTH_MS,
+        },
+      )
       const older = res.data
 
       if (older.length === 0) {
@@ -178,7 +211,10 @@ const Chat = () => {
 
       // Update cursor to the oldest message in this page
       const oldestInPage = older[older.length - 1]
-      setOlderCursor({ cursor_id: oldestInPage.id, cursor_created_at: oldestInPage.created_at })
+      setOlderCursor({
+        cursor_id: oldestInPage.id,
+        cursor_created_at: oldestInPage.created_at,
+      })
 
       // Preserve scroll position
       requestAnimationFrame(() => {
@@ -231,7 +267,9 @@ const Chat = () => {
       } else if (event.type === 'messages:delete') {
         const { id } = event.payload
         setMessages((prev) =>
-          prev.map((m) => (m.id === id ? { ...m, is_deleted: true, content: '' } : m)),
+          prev.map((m) =>
+            m.id === id ? { ...m, is_deleted: true, content: '' } : m,
+          ),
         )
       }
     })
@@ -245,7 +283,13 @@ const Chat = () => {
   // TODO: add optimistic update — insert a temp message into local state on mutate,
   // replace with server response on success, remove on error
   const sendMessage = useMutation({
-    mutationFn: async ({ content, replyToId }: { content: string; replyToId?: string | null }) => {
+    mutationFn: async ({
+      content,
+      replyToId,
+    }: {
+      content: string
+      replyToId?: string | null
+    }) => {
       const res = await axiosPrivate.post<Message>(
         `/api/chats/${chatId}/messages`,
         { content, reply_to_id: replyToId ?? null },
@@ -260,9 +304,12 @@ const Chat = () => {
       // Update all three: chat preview, messages cache, local state
       const found = updateChatPreviewOnNewMessage(queryClient, newMsg)
       if (!found) {
-        axiosPrivate.get<Chat>(`/api/chats/${chatId}`).then((res) => {
-          insertChatPreview(queryClient, res.data)
-        }).catch(() => {})
+        axiosPrivate
+          .get<Chat>(`/api/chats/${chatId}`)
+          .then((res) => {
+            insertChatPreview(queryClient, res.data)
+          })
+          .catch(() => {})
       }
       updateMessagesCache(queryClient, chatId, newMsg)
       setMessages((prev) => insertMessage(prev, newMsg))
@@ -279,8 +326,19 @@ const Chat = () => {
   // ============================================
 
   const editMessage = useMutation({
-    mutationFn: async ({ messageId, newContent }: { messageId: string; newContent: string }) => {
-      const res = await axiosPrivate.patch<{ id: string; content: string; edited_at: string; chat_id: string }>(
+    mutationFn: async ({
+      messageId,
+      newContent,
+    }: {
+      messageId: string
+      newContent: string
+    }) => {
+      const res = await axiosPrivate.patch<{
+        id: string
+        content: string
+        edited_at: string
+        chat_id: string
+      }>(
         `/api/chats/${chatId}/messages/${messageId}`,
         { new_content: newContent },
         { timeout: TIMEOUT_LENGTH_MS },
@@ -294,7 +352,9 @@ const Chat = () => {
       patchMessageInCache(queryClient, chatId, data)
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === data.id ? { ...m, content: data.content, edited_at: data.edited_at } : m,
+          m.id === data.id
+            ? { ...m, content: data.content, edited_at: data.edited_at }
+            : m,
         ),
       )
     },
@@ -315,11 +375,18 @@ const Chat = () => {
       return messageId
     },
     onSuccess: (messageId) => {
-      const patch = { id: messageId, chat_id: chatId, is_deleted: true as const, content: '' }
+      const patch = {
+        id: messageId,
+        chat_id: chatId,
+        is_deleted: true as const,
+        content: '',
+      }
       updateChatPreviewOnDelete(queryClient, patch)
       patchMessageInCache(queryClient, chatId, patch)
       setMessages((prev) =>
-        prev.map((m) => (m.id === messageId ? { ...m, is_deleted: true, content: '' } : m)),
+        prev.map((m) =>
+          m.id === messageId ? { ...m, is_deleted: true, content: '' } : m,
+        ),
       )
     },
     onError: () => {
@@ -410,7 +477,10 @@ const Chat = () => {
         className="flex-1 max-w-md mx-auto w-full px-6 py-4 overflow-y-auto relative"
       >
         {/* Top sentinel — triggers loading older messages */}
-        <div ref={topSentinelRef} className="h-1" />
+        <div
+          ref={topSentinelRef}
+          className="h-1"
+        />
 
         {isFetchingOlder && (
           <div className="flex justify-center py-3">
@@ -434,11 +504,15 @@ const Chat = () => {
                       src={msg.sender_avatar_url ?? undefined}
                       alt={msg.sender_name}
                     />
-                    <AvatarFallback>{msg.sender_name?.[0] ?? '?'}</AvatarFallback>
+                    <AvatarFallback>
+                      {msg.sender_name?.[0] ?? '?'}
+                    </AvatarFallback>
                   </Avatar>
                 )}
 
-                <div className={`flex flex-col ${isSelf ? 'items-end' : ''} max-w-xs`}>
+                <div
+                  className={`flex flex-col ${isSelf ? 'items-end' : ''} max-w-xs`}
+                >
                   {!isSelf && isGroupChat && (
                     <span className="text-xs text-muted-foreground mb-1">
                       {msg.sender_name ?? 'Unknown'}
@@ -454,7 +528,10 @@ const Chat = () => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault()
                             if (editContent.trim()) {
-                              editMessage.mutate({ messageId: msg.id, newContent: editContent.trim() })
+                              editMessage.mutate({
+                                messageId: msg.id,
+                                newContent: editContent.trim(),
+                              })
                             }
                           }
                           if (e.key === 'Escape') {
@@ -470,7 +547,10 @@ const Chat = () => {
                         variant="ghost"
                         onClick={() => {
                           if (editContent.trim()) {
-                            editMessage.mutate({ messageId: msg.id, newContent: editContent.trim() })
+                            editMessage.mutate({
+                              messageId: msg.id,
+                              newContent: editContent.trim(),
+                            })
                           }
                         }}
                         disabled={editMessage.isPending}
@@ -492,7 +572,9 @@ const Chat = () => {
                         {msg.reply_to && !msg.is_deleted && (
                           <div className="mb-1.5 pl-2 border-l-2 border-muted-foreground/40">
                             {msg.reply_to.is_deleted ? (
-                              <p className="text-xs text-muted-foreground italic">Message deleted</p>
+                              <p className="text-xs text-muted-foreground italic">
+                                Message deleted
+                              </p>
                             ) : (
                               <>
                                 <p className="text-xs font-medium text-muted-foreground truncate">
@@ -505,14 +587,18 @@ const Chat = () => {
                             )}
                           </div>
                         )}
-                        <p className={`text-sm ${msg.is_deleted ? 'italic text-muted-foreground' : ''}`}>
+                        <p
+                          className={`text-sm ${msg.is_deleted ? 'italic text-muted-foreground' : ''}`}
+                        >
                           {msg.is_deleted ? 'Message deleted' : msg.content}
                         </p>
                       </div>
 
                       {/* Hover actions */}
                       {!msg.is_deleted && (
-                        <div className={`absolute -top-5 ${isSelf ? 'right-0' : 'left-0'} hidden group-hover:flex gap-1`}>
+                        <div
+                          className={`absolute -top-5 ${isSelf ? 'right-0' : 'left-0'} hidden group-hover:flex gap-1`}
+                        >
                           <button
                             onClick={() => setReplyingTo(msg)}
                             className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
@@ -556,7 +642,10 @@ const Chat = () => {
         </div>
 
         {/* Bottom sentinel — isAtBottom detection */}
-        <div ref={bottomSentinelRef} className="h-1" />
+        <div
+          ref={bottomSentinelRef}
+          className="h-1"
+        />
         <div ref={messagesEndRef} />
       </div>
 
@@ -617,10 +706,11 @@ const Chat = () => {
               disabled={sendMessage.isPending || !messageInput.trim()}
               className="rounded-full shrink-0 bg-gradient-gold"
             >
-              {sendMessage.isPending
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Send className="w-4 h-4" />
-              }
+              {sendMessage.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
             </Button>
           </div>
         </div>

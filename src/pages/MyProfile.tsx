@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import BottomNav from '@/components/BottomNav'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -165,6 +166,9 @@ const MyProfile = () => {
           avatarUrl: data.avatar_url,
           interests: data.interests,
           children_age_ranges: data.children,
+          isAdmin: user?.isAdmin ?? false,
+          preferences: user?.preferences ?? { marketing_emails_opt_in: false },
+          legal_acceptances: user?.legal_acceptances ?? { terms: false, privacy_policy: false },
         },
         accessToken,
       })
@@ -263,6 +267,30 @@ const MyProfile = () => {
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+
+  const updatePreferences = useMutation({
+    mutationFn: (marketing_emails_opt_in: boolean) =>
+      axiosPrivate.patch('/api/users/me/preferences', { marketing_emails_opt_in }, {
+        timeout: TIMEOUT_LENGTH_MS,
+      }),
+    onSuccess: (_, marketing_emails_opt_in) => {
+      if (user) {
+        setAuth({
+          user: { ...user, preferences: { marketing_emails_opt_in } },
+          accessToken,
+        })
+      }
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update preferences. Please try again.',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL as string
 
   const handleDeleteAccount = async () => {
     setIsDeletingAccount(true)
@@ -875,6 +903,46 @@ const MyProfile = () => {
             </Button>
           </>
         )}
+
+        <div className="flex items-center justify-between gap-4">
+          <label htmlFor="marketing-toggle" className="text-sm text-muted-foreground leading-relaxed flex-1">
+            Receive occasional emails about new features, events, and updates from Next Level Dads.
+          </label>
+          <Switch
+            id="marketing-toggle"
+            checked={user.preferences.marketing_emails_opt_in}
+            disabled={updatePreferences.isPending}
+            onCheckedChange={(checked) => updatePreferences.mutate(checked)}
+          />
+        </div>
+
+        {/* Footer links */}
+        <div className="flex justify-center gap-6 pt-2 pb-2 text-xs text-muted-foreground">
+          <a
+            href={`${WEBSITE_BASE_URL}/terms`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4 hover:text-foreground transition-colors"
+          >
+            Terms and Conditions
+          </a>
+          <a
+            href={`${WEBSITE_BASE_URL}/privacy`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4 hover:text-foreground transition-colors"
+          >
+            Privacy Policy
+          </a>
+          <a
+            href={`${WEBSITE_BASE_URL}/community-guidelines`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4 hover:text-foreground transition-colors"
+          >
+            Community Guidelines
+          </a>
+        </div>
       </div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

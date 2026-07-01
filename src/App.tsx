@@ -8,6 +8,7 @@ import { ROUTES } from '@/lib/routes'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
+import { LegalAcceptancesModal } from '@/components/LegalAcceptancesModal'
 import { ChatProvider } from '@/contexts/ChatContext'
 
 import Welcome from './pages/Welcome'
@@ -41,6 +42,7 @@ const AppContent = () => {
       <Toaster />
       <Sonner />
       <ModerationNotifier />
+      <LegalAcceptancesModal />
       <BrowserRouter>
         <Routes>
           {/* Public Routes - redirect to app if authenticated */}

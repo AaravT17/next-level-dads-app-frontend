@@ -70,6 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             interests: res.data.interests,
             children_age_ranges: res.data.children,
             isAdmin: res.data.is_admin ?? false,
+            preferences: {
+              marketing_emails_opt_in: res.data.preferences?.marketing_emails_opt_in ?? false,
+            },
+            legal_acceptances: {
+              terms: res.data.legal_acceptances?.terms ?? false,
+              privacy_policy: res.data.legal_acceptances?.privacy_policy ?? false,
+            },
           },
         }))
       } catch (err: any) {
