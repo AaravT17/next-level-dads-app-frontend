@@ -62,12 +62,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: res.data.id,
             name: res.data.name,
             age: res.data.age,
+            date_of_birth: res.data.date_of_birth,
             city: res.data.city,
             province: res.data.province,
             about: res.data.about,
             avatarUrl: res.data.avatar_url,
             interests: res.data.interests,
             children_age_ranges: res.data.children,
+            isAdmin: res.data.is_admin ?? false,
+            preferences: {
+              marketing_emails_opt_in: res.data.preferences?.marketing_emails_opt_in ?? false,
+            },
+            legal_acceptances: {
+              terms: res.data.legal_acceptances?.terms ?? false,
+              privacy_policy: res.data.legal_acceptances?.privacy_policy ?? false,
+            },
           },
         }))
       } catch (err: any) {

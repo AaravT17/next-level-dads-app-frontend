@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import BottomNav from '@/components/BottomNav'
@@ -9,10 +10,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { MapPin, Calendar, ArrowLeft, Loader2 } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { getStageDisplayLabel } from '@/utils/users'
+import { chat } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import { useToast } from '@/hooks/use-toast'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
+import type { Chat } from '@/types/chats'
 
 async function fetchProfile(id: string): Promise<Profile> {
   const res = await axiosPrivate.get<Profile>(`/api/users/${id}`, {
@@ -229,6 +232,30 @@ const ProfileDetail = () => {
     mutationFn: () => axiosPrivate.delete(`/api/connections/${id}`),
     onSuccess: () => {
       updateStatusInCache(null)
+
+      // Backend deletes the DM chat on disconnect — clean up chat caches
+      const chatsData = queryClient.getQueryData<InfiniteData<Chat[]>>(['chats'])
+      if (chatsData) {
+        let dmChatId: string | null = null
+        const updatedPages = chatsData.pages.map((page) => {
+          const filtered = page.filter((c) => {
+            if (c.type === 'dm' && c.other_user?.id === id) {
+              dmChatId = c.id
+              return false
+            }
+            return true
+          })
+          return filtered
+        })
+        if (dmChatId) {
+          queryClient.setQueryData<InfiniteData<Chat[]>>(['chats'], {
+            ...chatsData,
+            pages: updatedPages,
+          })
+          queryClient.removeQueries({ queryKey: ['chats', dmChatId] })
+          queryClient.removeQueries({ queryKey: ['messages', dmChatId] })
+        }
+      }
     },
     onError: () => {
       toast({
@@ -255,8 +282,29 @@ const ProfileDetail = () => {
     removeConnection.mutate()
   }
 
+  const createChat = useMutation({
+    mutationFn: async () => {
+      const res = await axiosPrivate.post<{ id: string }>(
+        '/api/chats/',
+        { participant_ids: [id] },
+        { timeout: TIMEOUT_LENGTH_MS },
+      )
+      return res.data
+    },
+    onSuccess: (data) => {
+      navigate(chat(data.id))
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to open chat. Please try again.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleChat = () => {
-    // TODO: navigate to chat
+    createChat.mutate()
   }
 
   const handleUnconnect = () => {
@@ -266,7 +314,8 @@ const ProfileDetail = () => {
   const isMutating =
     sendConnectionRequest.isPending ||
     acceptConnectionRequest.isPending ||
-    removeConnection.isPending
+    removeConnection.isPending ||
+    createChat.isPending
 
   const renderButtons = () => {
     if (!profile) return null
@@ -461,7 +510,7 @@ const ProfileDetail = () => {
 
                 <div className="flex-1 min-w-0">
                   <h2 className="text-xl font-heading font-semibold text-foreground">
-                    {profile.name}, {profile.age}
+                    {profile.name}, {profile.age ?? '—'}
                   </h2>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                     <MapPin className="w-4 h-4" />
@@ -563,7 +612,7 @@ const ProfileDetail = () => {
 
           <div>
             <h2 className="text-2xl font-heading font-semibold text-foreground">
-              {profile.name}, {profile.age}
+              {profile.name}, {profile.age ?? '—'}
             </h2>
             <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
               <MapPin className="w-4 h-4" />
@@ -618,6 +667,13 @@ const ProfileDetail = () => {
 
         {/* Action buttons */}
         <div className="px-6">{renderButtons()}</div>
+
+        {/* Report */}
+        {profile && id && (
+          <div className="px-6 flex justify-center">
+            <ReportUserButton userId={id} userName={profile.name} />
+          </div>
+        )}
       </div>
 
       <BottomNav />

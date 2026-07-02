@@ -9,7 +9,8 @@ export interface Profile {
   id: string
   created_at: string
   name: string
-  age: number
+  age: number | null
+  date_of_birth: string | null
   city: string
   province: string
   about: string
@@ -24,6 +25,7 @@ export interface DiscoverDadsFilters {
   children_age_ranges: string[]
   provinces: string[]
   age_ranges: string[]
+  name: string
 }
 
 export interface DiscoverDadsCursor {
@@ -34,7 +36,8 @@ export interface DiscoverDadsCursor {
 export interface ConnectionResponse {
   id: string
   name: string
-  age: number
+  age: number | null
+  date_of_birth: string | null
   city: string
   province: string
   about: string

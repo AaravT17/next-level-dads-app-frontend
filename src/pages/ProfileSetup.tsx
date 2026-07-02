@@ -13,7 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowLeft } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ArrowLeft, CalendarIcon } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ROUTES } from '@/lib/routes'
 import {
   MAX_BIO_LENGTH,
@@ -32,11 +36,11 @@ const ProfileSetup = () => {
   const [loading, setLoading] = useState(false)
   const { accessToken, setAuth } = useAuth()
   const [step, setStep] = useState(1)
-  const totalSteps = 4
+  const totalSteps = 5
 
   const [formData, setFormData] = useState({
     name: '',
-    age: '',
+    date_of_birth: '',
     city: '',
     province: '',
     about: '',
@@ -49,6 +53,12 @@ const ProfileSetup = () => {
 
   const [avatar, setAvatar] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [confirmedAge, setConfirmedAge] = useState(false)
+  const [marketingOptIn, setMarketingOptIn] = useState(false)
+
+  const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL as string
 
   const toggleInterest = (interest: string) => {
     if (loading) return
@@ -101,20 +111,11 @@ const ProfileSetup = () => {
     if (step >= totalSteps) return
     if (step === 1) {
       const name = formData.name.trim()
-      const age = formData.age.trim()
       const city = formData.city.trim()
-      if (!name || !age || !city || !formData.province) {
+      if (!name || !formData.date_of_birth || !city || !formData.province) {
         toast({
           title: 'Please fill out all required fields',
-          description: 'Name, age, city, and province are required.',
-          variant: 'destructive',
-        })
-        return
-      }
-      if (isNaN(Number(age)) || Number(age) < 0) {
-        toast({
-          title: 'Invalid age',
-          description: 'Please enter a valid non-negative number for age.',
+          description: 'Name, date of birth, city, and province are required.',
           variant: 'destructive',
         })
         return
@@ -167,10 +168,17 @@ const ProfileSetup = () => {
 
   const handleSubmit = async () => {
     if (loading) return
-    // required field validation done in handleNext, so we can assume all data is valid at this point
+    if (!agreedToTerms || !confirmedAge) {
+      toast({
+        title: 'Please accept all required agreements',
+        description: 'You must agree to the Terms and Conditions, Privacy Policy, and confirm your age.',
+        variant: 'destructive',
+      })
+      return
+    }
     const profileData = new FormData()
     profileData.append('name', formData.name)
-    profileData.append('age', formData.age)
+    profileData.append('date_of_birth', formData.date_of_birth)
     profileData.append('city', formData.city)
     profileData.append('province', formData.province)
     profileData.append('about', formData.about)
@@ -181,6 +189,9 @@ const ProfileSetup = () => {
     if (avatar) {
       profileData.append('avatar', avatar)
     }
+    profileData.append('accepted_terms', 'true')
+    profileData.append('accepted_privacy_policy', 'true')
+    profileData.append('marketing_emails_opt_in', String(marketingOptIn))
 
     try {
       setLoading(true)
@@ -195,12 +206,21 @@ const ProfileSetup = () => {
           id: res.data.id,
           name: res.data.name,
           age: res.data.age,
+          date_of_birth: res.data.date_of_birth,
           city: res.data.city,
           province: res.data.province,
           about: res.data.about,
           avatarUrl: res.data.avatar_url,
           interests: res.data.interests,
           children_age_ranges: res.data.children,
+          isAdmin: res.data.is_admin ?? false,
+          preferences: {
+            marketing_emails_opt_in: res.data.preferences?.marketing_emails_opt_in ?? marketingOptIn,
+          },
+          legal_acceptances: {
+            terms: true,
+            privacy_policy: true,
+          },
         },
         accessToken,
       })
@@ -279,19 +299,40 @@ const ProfileSetup = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="age">Age</Label>
-                <Input
-                  id="age"
-                  type="number"
-                  placeholder="Your age"
-                  min={0}
-                  value={formData.age}
-                  onChange={(e) =>
-                    setFormData({ ...formData, age: e.target.value })
-                  }
-                  className="rounded-lg"
-                  disabled={loading}
-                />
+                <Label>Date of Birth</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start rounded-lg font-normal"
+                      disabled={loading}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {formData.date_of_birth ? (
+                        format(parseISO(formData.date_of_birth), 'MMMM d, yyyy')
+                      ) : (
+                        <span className="text-muted-foreground">Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.date_of_birth ? parseISO(formData.date_of_birth) : undefined}
+                      onSelect={(date) =>
+                        setFormData({
+                          ...formData,
+                          date_of_birth: date ? format(date, 'yyyy-MM-dd') : '',
+                        })
+                      }
+                      disabled={(date) => date > new Date()}
+                      captionLayout="dropdown"
+                      fromYear={1900}
+                      toYear={new Date().getFullYear()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">
@@ -539,6 +580,79 @@ const ProfileSetup = () => {
                   Remove
                 </Button>
               )}
+            </div>
+          </div>
+        )}
+
+        {step === 5 && (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-heading font-semibold text-foreground">
+                One last step
+              </h2>
+              <p className="text-muted-foreground">
+                Please review and accept the following before creating your profile.
+              </p>
+            </div>
+
+            <div className="space-y-5">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="terms"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
+                  disabled={loading}
+                  className="mt-0.5"
+                />
+                <label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
+                  I agree to the{' '}
+                  <a
+                    href={`${WEBSITE_BASE_URL}/terms`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4"
+                  >
+                    Terms and Conditions
+                  </a>{' '}
+                  and{' '}
+                  <a
+                    href={`${WEBSITE_BASE_URL}/privacy`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4"
+                  >
+                    Privacy Policy
+                  </a>
+                  . <span className="text-destructive">*</span>
+                </label>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="age"
+                  checked={confirmedAge}
+                  onCheckedChange={(checked) => setConfirmedAge(!!checked)}
+                  disabled={loading}
+                  className="mt-0.5"
+                />
+                <label htmlFor="age" className="text-sm leading-relaxed cursor-pointer">
+                  I confirm I am 18 years of age or older.{' '}
+                  <span className="text-destructive">*</span>
+                </label>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="marketing"
+                  checked={marketingOptIn}
+                  onCheckedChange={(checked) => setMarketingOptIn(!!checked)}
+                  disabled={loading}
+                  className="mt-0.5"
+                />
+                <label htmlFor="marketing" className="text-sm leading-relaxed cursor-pointer text-muted-foreground">
+                  I'd like to receive occasional emails about new features, events, and updates from Next Level Dads. I can unsubscribe at any time.
+                </label>
+              </div>
             </div>
           </div>
         )}

@@ -7,7 +7,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
 import axiosPublic from '@/api/axiosPublic'
-import axiosPrivate from '@/api/axiosPrivate'
+import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useAuth } from '../contexts/AuthContext'
 import validator from 'validator'
@@ -43,16 +43,17 @@ const Login = () => {
       return
     }
     setIsLoading(true)
+    let accessToken: string | null = null
     try {
       const res = await axiosPublic.post(
         '/api/auth/login',
         { email: trimmedEmail, password },
         { timeout: TIMEOUT_LENGTH_MS },
       )
-      const accessToken = res.data.access_token
-      setAuth({ user: null, accessToken }) // user profile data will be fetched in a separate call after this
+      accessToken = res.data.access_token
+      setAccessToken(accessToken)
 
-      // fetch user profile
+      // fetch user profile before committing auth state
       const userRes = await axiosPrivate.get('/api/users/me', {
         timeout: TIMEOUT_LENGTH_MS,
       })
@@ -61,12 +62,21 @@ const Login = () => {
           id: userRes.data.id,
           name: userRes.data.name,
           age: userRes.data.age,
+          date_of_birth: userRes.data.date_of_birth,
           city: userRes.data.city,
           province: userRes.data.province,
           about: userRes.data.about,
           avatarUrl: userRes.data.avatar_url,
           interests: userRes.data.interests,
           children_age_ranges: userRes.data.children,
+          isAdmin: userRes.data.is_admin ?? false,
+          preferences: {
+            marketing_emails_opt_in: userRes.data.preferences?.marketing_emails_opt_in ?? false,
+          },
+          legal_acceptances: {
+            terms: userRes.data.legal_acceptances?.terms ?? false,
+            privacy_policy: userRes.data.legal_acceptances?.privacy_policy ?? false,
+          },
         },
         accessToken,
       })
@@ -77,10 +87,12 @@ const Login = () => {
       navigate(ROUTES.DISCOVER)
     } catch (err: any) {
       if (err.response?.status === 404) {
-        // user exists but profile not set up
+        // user exists but profile not set up — commit token so SetupRoute allows access
+        setAuth({ user: null, accessToken })
         navigate(ROUTES.SETUP)
         return
       }
+      setAccessToken(null)
       toast({
         title: 'Login failed',
         description:

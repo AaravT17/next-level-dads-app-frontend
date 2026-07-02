@@ -14,6 +14,14 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
+export function getAccessToken(): string | null {
+  return accessToken
+}
+
+export function getAuthCallbacks(): AuthCallbacks | null {
+  return authCallbacks
+}
+
 export function registerAuthCallbacks(callbacks: AuthCallbacks) {
   authCallbacks = callbacks
 }
@@ -36,12 +44,11 @@ axiosPrivate.interceptors.response.use(
           {},
           { withCredentials: true },
         )
-        accessToken = res.data.access_token
-        authCallbacks?.onTokenRefresh(accessToken)
-        error.config.headers['Authorization'] = `Bearer ${accessToken}`
+        const newToken = res.data.access_token
+        authCallbacks?.onTokenRefresh(newToken)
+        error.config.headers['Authorization'] = `Bearer ${newToken}`
         return axiosPrivate(error.config)
       } catch {
-        accessToken = null
         authCallbacks?.onAuthFailure()
         return Promise.reject(error)
       }

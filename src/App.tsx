@@ -6,7 +6,10 @@ import { queryClient } from '@/lib/queryClient'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ROUTES } from '@/lib/routes'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { PublicRoute, ProtectedRoute, SetupRoute } from '@/components/RouteWrappers'
+import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
+import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
+import { LegalAcceptancesModal } from '@/components/LegalAcceptancesModal'
+import { ChatProvider } from '@/contexts/ChatContext'
 
 import Welcome from './pages/Welcome'
 import Login from './pages/Login'
@@ -18,9 +21,9 @@ import ProfileSetup from './pages/ProfileSetup'
 import Match from './pages/Match'
 import Chats from './pages/Chats'
 import Chat from './pages/Chat'
+import ChatManage from './pages/ChatManage'
 import Discover from './pages/Discover'
 import Groups from './pages/Groups'
-import CommunityDetail from './pages/CommunityDetail'
 import Members from './pages/Members'
 import MyProfile from './pages/MyProfile'
 import ProfileDetail from './pages/ProfileDetail'
@@ -28,12 +31,18 @@ import Connections from './pages/Connections'
 import Requests from './pages/Requests'
 import EventDetail from './pages/EventDetail'
 import NotFound from './pages/NotFound'
+import CommunitiesPage from './features/communities/pages/CommunitiesPage'
+import CommunityDetailPage from './features/communities/pages/CommunityDetailPage'
+import ConversationDetailPage from './features/communities/pages/ConversationDetailPage'
+import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
 
 const AppContent = () => {
   return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <ModerationNotifier />
+      <LegalAcceptancesModal />
       <BrowserRouter>
         <Routes>
           {/* Public Routes - redirect to app if authenticated */}
@@ -91,8 +100,16 @@ const AppContent = () => {
 
           {/* Communities */}
           <Route
+            path="/communities"
+            element={<ProtectedRoute><CommunitiesPage /></ProtectedRoute>}
+          />
+          <Route
             path="/communities/:communityId"
-            element={<ProtectedRoute><CommunityDetail /></ProtectedRoute>}
+            element={<ProtectedRoute><CommunityDetailPage /></ProtectedRoute>}
+          />
+          <Route
+            path="/communities/:communityId/conversations/:conversationId"
+            element={<ProtectedRoute><ConversationDetailPage /></ProtectedRoute>}
           />
           <Route
             path="/communities/:communityId/members"
@@ -125,16 +142,12 @@ const AppContent = () => {
             element={<ProtectedRoute><Chats /></ProtectedRoute>}
           />
           <Route
-            path="/chats/individual/:id"
+            path="/chats/:id"
             element={<ProtectedRoute><Chat /></ProtectedRoute>}
           />
           <Route
-            path="/chats/group/:id"
-            element={<ProtectedRoute><Chat /></ProtectedRoute>}
-          />
-          <Route
-            path="/chats/community/:id"
-            element={<ProtectedRoute><Chat /></ProtectedRoute>}
+            path="/chats/:id/manage"
+            element={<ProtectedRoute><ChatManage /></ProtectedRoute>}
           />
 
           {/* Profile */}
@@ -155,6 +168,12 @@ const AppContent = () => {
             element={<ProtectedRoute><Requests /></ProtectedRoute>}
           />
 
+          {/* Admin */}
+          <Route
+            path={ROUTES.ADMIN}
+            element={<AdminRoute><AdminDashboardPage /></AdminRoute>}
+          />
+
           {/* Catch-all */}
           <Route
             path="*"
@@ -169,7 +188,9 @@ const AppContent = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <AppContent />
+      <ChatProvider>
+        <AppContent />
+      </ChatProvider>
     </AuthProvider>
   </QueryClientProvider>
 )

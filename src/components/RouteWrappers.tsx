@@ -1,6 +1,7 @@
-import { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { ReactNode, useEffect, useRef, useState } from 'react'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useChat } from '@/contexts/ChatContext'
 import { ROUTES } from '@/lib/routes'
 
 /**
@@ -31,6 +32,72 @@ function LoadingSpinner() {
   return (
     <div className="flex h-screen w-full items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>
+  )
+}
+
+function ConnectionBanner() {
+  const { isReconnecting, isFailed, reconnect } = useChat()
+  const [showReconnected, setShowReconnected] = useState(false)
+  const wasReconnectingRef = useRef(false)
+
+  useEffect(() => {
+    if (isReconnecting) {
+      wasReconnectingRef.current = true
+    } else if (wasReconnectingRef.current && !isFailed) {
+      // Transitioned from reconnecting → success
+      wasReconnectingRef.current = false
+      setShowReconnected(true)
+      const timer = setTimeout(() => setShowReconnected(false), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [isReconnecting, isFailed])
+
+  if (showReconnected) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-green-600 text-white text-sm text-center py-2">
+        Reconnected
+      </div>
+    )
+  }
+
+  if (isReconnecting) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-white text-sm text-center py-2">
+        Attempting to reconnect...
+      </div>
+    )
+  }
+
+  if (isFailed) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground text-sm py-2 flex items-center justify-center gap-3">
+        <span>Connection lost</span>
+        <button onClick={reconnect} className="underline font-semibold">
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  return null
+}
+
+function DobBanner() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  if (!user || user.date_of_birth !== null) return null
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-primary text-primary-foreground text-sm py-2 flex items-center justify-center gap-2">
+      <span>Please add your date of birth to complete your profile.</span>
+      <button
+        onClick={() => navigate(ROUTES.PROFILE)}
+        className="underline font-semibold"
+      >
+        Update now
+      </button>
     </div>
   )
 }
@@ -67,7 +134,13 @@ export function ProtectedRoute({ children }: RouteWrapperProps) {
     )
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <ConnectionBanner />
+      <DobBanner />
+      {children}
+    </>
+  )
 }
 
 /**
@@ -96,6 +169,33 @@ export function PublicRoute({ children }: RouteWrapperProps) {
         replace
       />
     )
+  }
+
+  return <>{children}</>
+}
+
+/**
+ * AdminRoute - Requires full auth AND is_admin === true.
+ *
+ * Behavior:
+ * - While loading: Shows spinner
+ * - Not authenticated: Redirects to /
+ * - Authenticated but not admin: Redirects to /discover
+ * - Authenticated admin: Renders children
+ */
+export function AdminRoute({ children }: RouteWrapperProps) {
+  const { user, accessToken, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
+
+  if (!accessToken || !user) {
+    return <Navigate to={ROUTES.WELCOME} replace />
+  }
+
+  if (!user.isAdmin) {
+    return <Navigate to={ROUTES.DISCOVER} replace />
   }
 
   return <>{children}</>

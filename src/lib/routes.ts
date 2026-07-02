@@ -15,9 +15,8 @@
  * ├── /groups/:tab (My Groups - communities, events)
  * │   └── /groups/:groupId/members (Group Members)
  * ├── /chats (Chats List)
- * │   ├── /chats/individual/:id (Individual Chat)
- * │   ├── /chats/group/:id (Private Group Chat)
- * │   └── /chats/community/:id (Community Chat)
+ * │   ├── /chats/:id (Chat)
+ * │   └── /chats/:id/manage (Group Chat Management)
  * ├── /profiles/:id (Profile Detail)
  * ├── /profile (Own Profile)
  * ├── /connections (Connections)
@@ -59,17 +58,19 @@ export const ROUTES = {
   GROUPS_COMMUNITIES: '/groups/communities',
   GROUPS_EVENTS: '/groups/events',
 
-  // Chats (typed routes)
+  // Chats
   CHATS: '/chats',
-  CHAT_INDIVIDUAL: '/chats/individual/:id',
-  CHAT_GROUP: '/chats/group/:id',
-  CHAT_COMMUNITY: '/chats/community/:id',
+  CHAT: '/chats/:id',
+  CHAT_MANAGE: '/chats/:id/manage',
 
   // Profile
   PROFILE: '/profile',
   PROFILES: '/profiles',
   CONNECTIONS: '/connections',
   REQUESTS: '/requests',
+
+  // Admin
+  ADMIN: '/admin',
 } as const
 
 // ============================================
@@ -107,6 +108,12 @@ export const communityDetail = (communityId: number | string) =>
   `/communities/${communityId}` as const
 
 /**
+ * Get route for a conversation within a community
+ */
+export const conversationDetail = (communityId: string, conversationId: string) =>
+  `/communities/${communityId}/conversations/${conversationId}` as const
+
+/**
  * Get route for community members
  */
 export const communityMembers = (communityId: number | string) =>
@@ -119,37 +126,19 @@ export const groupMembers = (groupId: string) =>
   `/groups/${groupId}/members` as const
 
 // ============================================
-// Chat Route Helpers (typed routes, no query params for type)
+// Chat Route Helpers
 // ============================================
 
 /**
- * Get route for individual (1:1) chat
+ * Get route for a chat
  */
-export const individualChat = (id: string, from?: string) => {
-  const params = new URLSearchParams()
-  if (from) params.set('from', from)
-  const queryString = params.toString()
-  return queryString ? `/chats/individual/${id}?${queryString}` : `/chats/individual/${id}`
-}
+export const chatManage = (id: string) => `/chats/${id}/manage` as const
 
-/**
- * Get route for private group chat
- */
-export const groupChat = (id: string, from?: string) => {
+export const chat = (id: string, from?: string) => {
   const params = new URLSearchParams()
   if (from) params.set('from', from)
   const queryString = params.toString()
-  return queryString ? `/chats/group/${id}?${queryString}` : `/chats/group/${id}`
-}
-
-/**
- * Get route for community chat
- */
-export const communityChat = (id: number | string, from?: 'discover' | 'groups') => {
-  const params = new URLSearchParams()
-  if (from) params.set('from', from)
-  const queryString = params.toString()
-  return queryString ? `/chats/community/${id}?${queryString}` : `/chats/community/${id}`
+  return queryString ? `/chats/${id}?${queryString}` : `/chats/${id}`
 }
 
 // ============================================
@@ -167,7 +156,6 @@ export const profileDetail = (id: string) =>
 // ============================================
 export type DiscoverTab = 'dads' | 'communities' | 'events'
 export type GroupsTab = 'communities' | 'events'
-export type ChatType = 'individual' | 'group' | 'community'
 
 // ============================================
 // Navigation Defaults
