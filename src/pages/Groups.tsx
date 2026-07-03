@@ -20,6 +20,7 @@ import { communityDetail } from '@/lib/routes'
 import logo from '@/assets/logo.png'
 import { cn } from '@/lib/utils'
 import { ROUTES } from '@/lib/routes'
+import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import {
   TIMEOUT_LENGTH_MS,
@@ -112,10 +113,12 @@ const Groups = () => {
       handleCreateCommunityOpenChange(false)
       navigate(communityDetail(res.data.id))
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: 'Error',
-        description: 'Failed to create community. Please try again.',
+        description: axios.isAxiosError(error) && error.response?.status === 429
+          ? 'Community creation limit reached. Please try again later.'
+          : 'Failed to create community. Please try again.',
         variant: 'destructive',
       })
     },

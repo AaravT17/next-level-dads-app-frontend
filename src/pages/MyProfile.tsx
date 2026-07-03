@@ -48,6 +48,7 @@ import avatarDefaultGrey from '@/assets/avatar-default-grey.png'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
 import { useAuth } from '@/contexts/AuthContext'
+import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import {
   TIMEOUT_LENGTH_MS,
@@ -181,10 +182,12 @@ const MyProfile = () => {
         description: 'Profile updated successfully.',
       })
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: 'Error',
-        description: 'Failed to update profile. Please try again.',
+        description: axios.isAxiosError(error) && error.response?.status === 429
+          ? 'Profile update limit reached. Please try again later.'
+          : 'Failed to update profile. Please try again.',
         variant: 'destructive',
       })
     },
@@ -221,11 +224,13 @@ const MyProfile = () => {
         description: 'Avatar updated successfully.',
       })
     },
-    onError: () => {
+    onError: (error) => {
       setAvatarPreview(null)
       toast({
         title: 'Error',
-        description: 'Failed to upload avatar. Please try again.',
+        description: axios.isAxiosError(error) && error.response?.status === 429
+          ? 'Avatar upload limit reached. Please try again later.'
+          : 'Failed to upload avatar. Please try again.',
         variant: 'destructive',
       })
     },

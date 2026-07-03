@@ -31,6 +31,7 @@ import {
 } from '@/types/chats'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChat } from '@/contexts/ChatContext'
+import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, MESSAGES_PAGE_LIMIT } from '@/config/constants'
 import {
@@ -316,8 +317,12 @@ const Chat = () => {
       // Scroll to bottom
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     },
-    onError: () => {
-      toast.error('Failed to send message.')
+    onError: (error) => {
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        toast.error('Too many messages sent. Please slow down.')
+      } else {
+        toast.error('Failed to send message.')
+      }
     },
   })
 

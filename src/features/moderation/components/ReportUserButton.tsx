@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Flag, Loader2 } from 'lucide-react'
+import axios from 'axios'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -40,8 +41,12 @@ export function ReportUserButton({ userId, userName, className }: ReportUserButt
           setReason('')
           toast.success('Report submitted — our team will review this user.')
         },
-        onError: () => {
-          toast.error('Could not submit your report. Please try again.')
+        onError: (error) => {
+          if (axios.isAxiosError(error) && error.response?.status === 429) {
+            toast.error('Report limit reached. Please try again later.')
+          } else {
+            toast.error('Could not submit your report. Please try again.')
+          }
         },
       },
     )

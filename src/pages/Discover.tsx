@@ -31,6 +31,8 @@ import {
 import logo from '@/assets/logo.png'
 import { cn } from '@/lib/utils'
 import { ROUTES } from '@/lib/routes'
+import axios from 'axios'
+import { toast } from 'sonner'
 import axiosPrivate from '@/api/axiosPrivate'
 import {
   TIMEOUT_LENGTH_MS,
@@ -242,6 +244,7 @@ const Discover = () => {
     data: dadsData,
     isLoading: dadsLoading,
     isError: dadsError,
+    error: dadsQueryError,
     fetchNextPage: fetchNextDads,
     hasNextPage: hasNextDads,
     isFetchingNextPage: isFetchingNextDads,
@@ -266,6 +269,7 @@ const Discover = () => {
     data: communitiesData,
     isLoading: communitiesLoading,
     isError: communitiesError,
+    error: communitiesQueryError,
     fetchNextPage: fetchNextCommunities,
     hasNextPage: hasNextCommunities,
     isFetchingNextPage: isFetchingNextCommunities,
@@ -291,6 +295,7 @@ const Discover = () => {
     data: eventsData,
     isLoading: eventsLoading,
     isError: eventsError,
+    error: eventsQueryError,
     fetchNextPage: fetchNextEvents,
     hasNextPage: hasNextEvents,
     isFetchingNextPage: isFetchingNextEvents,
@@ -390,6 +395,25 @@ const Discover = () => {
     observer.observe(sentinel)
     return () => observer.disconnect()
   }, [hasNextEvents, isFetchingNextEvents, fetchNextEvents])
+
+  // Show toast on 429 for discover queries without wiping the UI
+  useEffect(() => {
+    if (axios.isAxiosError(dadsQueryError) && dadsQueryError.response?.status === 429) {
+      toast.error('Too many requests. Please slow down.')
+    }
+  }, [dadsQueryError])
+
+  useEffect(() => {
+    if (axios.isAxiosError(communitiesQueryError) && communitiesQueryError.response?.status === 429) {
+      toast.error('Too many requests. Please slow down.')
+    }
+  }, [communitiesQueryError])
+
+  useEffect(() => {
+    if (axios.isAxiosError(eventsQueryError) && eventsQueryError.response?.status === 429) {
+      toast.error('Too many requests. Please slow down.')
+    }
+  }, [eventsQueryError])
 
   // Sync input fields with URL params when navigating back
   useEffect(() => {
@@ -866,7 +890,7 @@ const Discover = () => {
                   <div className="flex justify-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : dadsError ? (
+                ) : dadsError && !(axios.isAxiosError(dadsQueryError) && dadsQueryError.response?.status === 429) ? (
                   <div className="text-center py-12">
                     <p className="text-muted-foreground">
                       Failed to load profiles. Please try again.
@@ -944,7 +968,7 @@ const Discover = () => {
                   <div className="flex justify-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : communitiesError ? (
+                ) : communitiesError && !(axios.isAxiosError(communitiesQueryError) && communitiesQueryError.response?.status === 429) ? (
                   <div className="text-center py-12">
                     <p className="text-muted-foreground">
                       Failed to load communities. Please try again.
@@ -1066,7 +1090,7 @@ const Discover = () => {
                   <div className="flex justify-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : eventsError ? (
+                ) : eventsError && !(axios.isAxiosError(eventsQueryError) && eventsQueryError.response?.status === 429) ? (
                   <div className="text-center py-12">
                     <p className="text-muted-foreground">
                       Failed to load events. Please try again.

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
+import axios from 'axios'
 import { toast } from 'sonner'
 import { ArrowLeft, Loader2, MessageCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -112,7 +113,13 @@ const ConversationDetailPage = () => {
           reset()
           setReplyOpen(false)
         },
-        onError: (error) => handlePostError(error, 'reply'),
+        onError: (error) => {
+          if (axios.isAxiosError(error) && error.response?.status === 429) {
+            toast.error('Too many messages sent. Please slow down.')
+          } else {
+            handlePostError(error, 'reply')
+          }
+        },
       },
     )
   }
@@ -311,7 +318,7 @@ const ConversationDetailPage = () => {
               {notice && (
                 <p className="text-xs text-destructive text-center">{notice}</p>
               )}
-              {createMessage.isError && !isBanned && (
+              {createMessage.isError && !isBanned && !(axios.isAxiosError(createMessage.error) && createMessage.error.response?.status === 429) && (
                 <p className="text-xs text-destructive text-center">
                   Failed to send reply. Please try again.
                 </p>

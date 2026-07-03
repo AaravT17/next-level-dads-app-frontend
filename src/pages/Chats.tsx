@@ -19,6 +19,7 @@ import { Search, Users, Plus, Check, Loader2 } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { chat } from '@/lib/routes'
 import { toast } from 'sonner'
+import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT, CHATS_PAGE_LIMIT } from '@/config/constants'
 import { Chat, ChatsCursor } from '@/types/chats'
@@ -231,8 +232,12 @@ const Chats = () => {
       handleDialogClose(false)
       navigate(chat(data.id))
     },
-    onError: () => {
-      toast.error('Failed to create chat. Please try again.')
+    onError: (error) => {
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        toast.error('Too many chats created. Please slow down.')
+      } else {
+        toast.error('Failed to create chat. Please try again.')
+      }
     },
   })
 
