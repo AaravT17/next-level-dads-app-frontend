@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import axios from 'axios'
+import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -27,7 +29,7 @@ export function ConversationComposer({
   onSuccess,
   onCancel,
 }: ConversationComposerProps) {
-  const { mutate, isPending, isError } = useCreateConversation(communityId)
+  const { mutate, isPending, isError, error } = useCreateConversation(communityId)
   const { isBanned, notice, handlePostError } = useModerationBan()
   const {
     register,
@@ -47,7 +49,13 @@ export function ConversationComposer({
         reset()
         onSuccess?.(conversation.id)
       },
-      onError: (error) => handlePostError(error, 'conversation'),
+      onError: (error) => {
+        if (axios.isAxiosError(error) && error.response?.status === 429) {
+          toast.error('Post creation limit reached. Please try again later.')
+        } else {
+          handlePostError(error, 'conversation')
+        }
+      },
     })
   }
 
@@ -132,7 +140,7 @@ export function ConversationComposer({
           {notice && (
             <p className="text-xs text-destructive text-center">{notice}</p>
           )}
-          {isError && !isBanned && (
+          {isError && !isBanned && !(axios.isAxiosError(error) && error.response?.status === 429) && (
             <p className="text-xs text-destructive text-center">
               Failed to post. Please try again.
             </p>

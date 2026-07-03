@@ -145,6 +145,12 @@ const DadCard = ({
         err.response.data?.connection_status
       ) {
         updateStatusInCache(err.response.data.connection_status)
+      } else if (err.response?.status === 429) {
+        toast({
+          title: 'Error',
+          description: 'Connection request limit reached. Please try again later.',
+          variant: 'destructive',
+        })
       } else {
         toast({
           title: 'Error',
@@ -241,12 +247,20 @@ const DadCard = ({
     onSuccess: (data) => {
       navigate(chat(data.id))
     },
-    onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to open chat. Please try again.',
-        variant: 'destructive',
-      })
+    onError: (err: AxiosError) => {
+      if (err.response?.status === 429) {
+        toast({
+          title: 'Error',
+          description: 'Too many chats created. Please slow down.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to open chat. Please try again.',
+          variant: 'destructive',
+        })
+      }
     },
   })
 

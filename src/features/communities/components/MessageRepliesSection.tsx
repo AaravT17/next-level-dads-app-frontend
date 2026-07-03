@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import axios from 'axios'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -173,7 +174,13 @@ export function MessageRepliesSection({
           reset()
           setComposing(false)
         },
-        onError: (error) => handlePostError(error, 'reply'),
+        onError: (error) => {
+          if (axios.isAxiosError(error) && error.response?.status === 429) {
+            toast.error('Too many messages sent. Please slow down.')
+          } else {
+            handlePostError(error, 'reply')
+          }
+        },
       },
     )
   }
@@ -228,7 +235,7 @@ export function MessageRepliesSection({
             </Button>
           </div>
           {notice && <p className="text-xs text-destructive">{notice}</p>}
-          {createReply.isError && !isBanned && (
+          {createReply.isError && !isBanned && !(axios.isAxiosError(createReply.error) && createReply.error.response?.status === 429) && (
             <p className="text-xs text-destructive">Failed to send. Please try again.</p>
           )}
         </form>
