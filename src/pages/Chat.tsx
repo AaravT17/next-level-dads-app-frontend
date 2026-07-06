@@ -51,7 +51,8 @@ import { toast } from 'sonner'
 
 const Chat = () => {
   const { user } = useAuth()
-  const { registerMessageHandler, sendWsMessage } = useChat()
+  const { registerMessageHandler, registerReconnectHandler, sendWsMessage } =
+    useChat()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { id } = useParams<{ id: string }>()
@@ -84,6 +85,8 @@ const Chat = () => {
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
   const isAtBottomRef = useRef<boolean>(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollBehaviorRef = useRef<'smooth' | 'instant' | null>('instant')
+  const hasInitialisedRef = useRef(false)
 
   // ============================================
   // Chat metadata query
@@ -138,6 +141,8 @@ const Chat = () => {
   // On initial load: cache is already oldest-first, init state directly
   useEffect(() => {
     if (!messagesLoaded || !initialMessages) return
+    if (hasInitialisedRef.current) return
+    hasInitialisedRef.current = true
     setMessages(initialMessages)
 
     // Cursor points to the oldest loaded message (index 0 in oldest-first)
@@ -153,12 +158,14 @@ const Chat = () => {
     }
   }, [messagesLoaded, initialMessages])
 
-  // Scroll to bottom on initial load
+  // Scroll to bottom after initial load, reconnect, or sending a message
   useEffect(() => {
-    if (messagesLoaded && messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView()
+    if (scrollBehaviorRef.current && messages.length > 0) {
+      const behavior = scrollBehaviorRef.current
+      scrollBehaviorRef.current = null
+      messagesEndRef.current?.scrollIntoView({ behavior })
     }
-  }, [messagesLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [messages])
 
   // ============================================
   // Bottom sentinel — isAtBottom tracking
@@ -277,6 +284,13 @@ const Chat = () => {
     return unregister
   }, [chatId, registerMessageHandler])
 
+  useEffect(() => {
+    return registerReconnectHandler(() => {
+      hasInitialisedRef.current = false
+      scrollBehaviorRef.current = 'instant'
+    })
+  }, [registerReconnectHandler])
+
   // ============================================
   // Send message
   // ============================================
@@ -313,9 +327,8 @@ const Chat = () => {
           .catch(() => {})
       }
       updateMessagesCache(queryClient, chatId, newMsg)
+      scrollBehaviorRef.current = 'smooth'
       setMessages((prev) => insertMessage(prev, newMsg))
-      // Scroll to bottom
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     },
     onError: (error) => {
       if (axios.isAxiosError(error) && error.response?.status === 429) {
@@ -417,6 +430,22 @@ const Chat = () => {
     }
   }
 
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditContent('')
+  }
+
+  const handleEditSubmit = (msg: Message) => {
+    if (editContent.trim() && editContent.trim() !== msg.content) {
+      editMessage.mutate({
+        messageId: msg.id,
+        newContent: editContent.trim(),
+      })
+    } else {
+      cancelEdit()
+    }
+  }
+
   const handleScrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     setUnreadCount(0)
@@ -432,7 +461,7 @@ const Chat = () => {
   // ============================================
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-dvh bg-background flex flex-col">
       {/* Header */}
       <div className="bg-card border-b border-border shrink-0">
         <div className="max-w-md mx-auto px-6 py-4">
@@ -525,23 +554,17 @@ const Chat = () => {
                   )}
 
                   {isEditing ? (
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-0 items-center">
                       <Input
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault()
-                            if (editContent.trim()) {
-                              editMessage.mutate({
-                                messageId: msg.id,
-                                newContent: editContent.trim(),
-                              })
-                            }
+                            handleEditSubmit(msg)
                           }
                           if (e.key === 'Escape') {
-                            setEditingId(null)
-                            setEditContent('')
+                            cancelEdit()
                           }
                         }}
                         className="rounded-xl text-sm"
@@ -550,24 +573,25 @@ const Chat = () => {
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => {
-                          if (editContent.trim()) {
-                            editMessage.mutate({
-                              messageId: msg.id,
-                              newContent: editContent.trim(),
-                            })
-                          }
-                        }}
+                        onClick={() => handleEditSubmit(msg)}
                         disabled={editMessage.isPending}
-                        className="shrink-0"
+                        className="shrink-0 h-7 w-7"
                       >
-                        <Send className="w-4 h-4" />
+                        <Send className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={cancelEdit}
+                        className="shrink-0 h-7 w-7"
+                      >
+                        <X className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   ) : (
                     <div className="relative">
                       <div
-                        className={`rounded-2xl px-4 py-2 ${
+                        className={`rounded-2xl px-4 py-2 w-fit ${
                           isSelf
                             ? 'bg-gradient-gold text-foreground'
                             : 'bg-card text-foreground border border-border'

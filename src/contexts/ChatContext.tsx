@@ -62,6 +62,7 @@ type WsEvent =
 
 interface ChatContextType {
   registerMessageHandler: (chatId: string, handler: MessageHandler) => () => void
+  registerReconnectHandler: (handler: () => void) => () => void
   sendWsMessage: (data: object) => void
   isReconnecting: boolean
   isFailed: boolean
@@ -93,6 +94,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const hasConnectedOnceRef = useRef<boolean>(false)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const messageHandlerRef = useRef<{ chatId: string; handler: MessageHandler } | null>(null)
+  const reconnectHandlerRef = useRef<(() => void) | null>(null)
   const currentChatIdRef = useRef<string | null>(null)
   const shouldReconnectRef = useRef<boolean>(false)
   // Mirrors isFailed for synchronous reads inside the visibilitychange listener
@@ -104,6 +106,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return () => {
       messageHandlerRef.current = null
       currentChatIdRef.current = null
+    }
+  }, [])
+
+  const registerReconnectHandler = useCallback((handler: () => void) => {
+    reconnectHandlerRef.current = handler
+    return () => {
+      reconnectHandlerRef.current = null
     }
   }, [])
 
@@ -127,6 +136,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (hasConnectedOnceRef.current) {
         queryClient.invalidateQueries({ queryKey: ['chats'] })
         if (currentChatIdRef.current) {
+          reconnectHandlerRef.current?.()
           queryClient.invalidateQueries({ queryKey: ['chats', currentChatIdRef.current] })
           queryClient.invalidateQueries({ queryKey: ['messages', currentChatIdRef.current] })
           queryClient.invalidateQueries({ queryKey: ['participants', currentChatIdRef.current] })
@@ -301,7 +311,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [user?.id, hasAcceptedLegal, connect, reconnect])
 
   return (
-    <ChatContext.Provider value={{ registerMessageHandler, sendWsMessage, isReconnecting, isFailed, reconnect }}>
+    <ChatContext.Provider value={{ registerMessageHandler, registerReconnectHandler, sendWsMessage, isReconnecting, isFailed, reconnect }}>
       {children}
     </ChatContext.Provider>
   )
