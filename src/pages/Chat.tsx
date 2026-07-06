@@ -591,7 +591,7 @@ const Chat = () => {
                   ) : (
                     <div className="relative">
                       <div
-                        className={`rounded-2xl px-4 py-2 ${
+                        className={`rounded-2xl px-4 py-2 w-fit ${
                           isSelf
                             ? 'bg-gradient-gold text-foreground'
                             : 'bg-card text-foreground border border-border'
