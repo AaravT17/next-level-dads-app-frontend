@@ -366,12 +366,18 @@ const Chat = () => {
     onSuccess: (data) => {
       setEditingId(null)
       setEditContent('')
-      updateChatPreviewOnEdit(queryClient, data)
-      patchMessageInCache(queryClient, chatId, data)
+      const patch = {
+        id: data.id,
+        chat_id: chatId,
+        content: data.content,
+        edited_at: data.edited_at,
+      }
+      updateChatPreviewOnEdit(queryClient, patch)
+      patchMessageInCache(queryClient, chatId, patch)
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === data.id
-            ? { ...m, content: data.content, edited_at: data.edited_at }
+          m.id === patch.id
+            ? { ...m, content: patch.content, edited_at: patch.edited_at }
             : m,
         ),
       )
@@ -591,7 +597,7 @@ const Chat = () => {
                   ) : (
                     <div className="relative">
                       <div
-                        className={`rounded-2xl px-4 py-2 w-fit ${
+                        className={`rounded-2xl px-4 py-2 w-fit max-w-xs ${
                           isSelf
                             ? 'bg-gradient-gold text-foreground'
                             : 'bg-card text-foreground border border-border'
