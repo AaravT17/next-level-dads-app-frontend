@@ -560,39 +560,67 @@ const Chat = () => {
                   )}
 
                   {isEditing ? (
-                    <div className="flex gap-0 items-center">
-                      <Input
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault()
-                            handleEditSubmit(msg)
-                          }
-                          if (e.key === 'Escape') {
-                            cancelEdit()
-                          }
-                        }}
-                        className="rounded-xl text-sm"
-                        autoFocus
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleEditSubmit(msg)}
-                        disabled={editMessage.isPending}
-                        className="shrink-0 h-7 w-7"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={cancelEdit}
-                        className="shrink-0 h-7 w-7"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
+                    <div className="flex flex-col gap-1">
+                      <div className="rounded-2xl px-4 py-2 w-fit max-w-xs bg-muted border border-border text-foreground">
+                        {msg.reply_to && !msg.is_deleted && (
+                          <div className="mb-1.5 pl-2 border-l-2 border-muted-foreground/40">
+                            {msg.reply_to.is_deleted ? (
+                              <p className="text-xs text-muted-foreground italic">
+                                Message deleted
+                              </p>
+                            ) : (
+                              <>
+                                <p className="text-xs font-medium text-muted-foreground truncate">
+                                  {msg.reply_to.sender_name ?? 'Unknown'}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {msg.reply_to.content}
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          ref={(el) => {
+                            if (el) {
+                              el.setSelectionRange(el.value.length, el.value.length)
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault()
+                              handleEditSubmit(msg)
+                            }
+                            if (e.key === 'Escape') {
+                              cancelEdit()
+                            }
+                          }}
+                          className="text-sm bg-transparent resize-none focus:outline-none block"
+                          style={{ fieldSizing: 'content' } as React.CSSProperties}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="flex gap-0 justify-end">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEditSubmit(msg)}
+                          disabled={editMessage.isPending}
+                          className="shrink-0 h-7 w-7"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={cancelEdit}
+                          className="shrink-0 h-7 w-7"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="relative">
