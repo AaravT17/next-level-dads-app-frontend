@@ -71,6 +71,9 @@ export const ROUTES = {
 
   // Admin
   ADMIN: '/admin',
+  ADMIN_ORGANIZATIONS: '/admin/organizations',
+  ADMIN_MESSAGING: '/admin/messaging',
+  ADMIN_MODERATION: '/admin/moderation',
 } as const
 
 // ============================================

@@ -35,6 +35,9 @@ import CommunitiesPage from './features/communities/pages/CommunitiesPage'
 import CommunityDetailPage from './features/communities/pages/CommunityDetailPage'
 import ConversationDetailPage from './features/communities/pages/ConversationDetailPage'
 import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
+import { AdminDashboardLayout } from './features/admin/components/AdminDashboardLayout'
+import { AdminOverviewPage } from './features/admin/pages/AdminOverviewPage'
+import { OrganizationsPage } from './features/organizations/OrganizationsPage'
 
 const AppContent = () => {
   return (
@@ -169,10 +172,32 @@ const AppContent = () => {
           />
 
           {/* Admin */}
+
+          <Route
+            path={ROUTES.ADMIN}
+            element={<AdminRoute><AdminDashboardLayout /></AdminRoute>}
+          >
+            <Route index element={<AdminOverviewPage />} />
+
+            <Route
+              path="organizations"
+              element={<OrganizationsPage />}
+            />
+
+            <Route
+              path="moderation"
+              element={<AdminDashboardPage />}
+            />
+          </Route>
+          
+          {/* Delete this later 
+          
           <Route
             path={ROUTES.ADMIN}
             element={<AdminRoute><AdminDashboardPage /></AdminRoute>}
           />
+          */}
+          
 
           {/* Catch-all */}
           <Route
