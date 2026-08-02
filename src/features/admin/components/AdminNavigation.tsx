@@ -18,6 +18,10 @@ const adminNavigationItems: AdminNavigationItem[] =[
         label: 'Organizations',
         to: ROUTES.ADMIN_ORGANIZATIONS,
     },
+    { 
+        label: 'Partner Messaging',
+        to: ROUTES.ADMIN_MESSAGING,
+    },
     {
         label: 'Moderation Center',
         to: ROUTES.ADMIN_MODERATION,

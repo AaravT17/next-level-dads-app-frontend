@@ -74,6 +74,7 @@ export const ROUTES = {
   ADMIN_ORGANIZATIONS: '/admin/organizations',
   ADMIN_MESSAGING: '/admin/messaging',
   ADMIN_MODERATION: '/admin/moderation',
+  ADMIN_ORGANIZATION_DETAIL: '/admin/organizations/:organizationId',
 } as const
 
 // ============================================
@@ -127,6 +128,15 @@ export const communityMembers = (communityId: number | string) =>
  */
 export const groupMembers = (groupId: string) =>
   `/groups/${groupId}/members` as const
+
+// ============================================
+// Admin Route Helpers
+// ============================================
+
+/**Get route for an organization detail page in the Admin Dashboard. */
+
+export const adminOrganizationDetail = (organizationId: string) =>
+  `/admin/organizations/${organizationId}` as const
 
 // ============================================
 // Chat Route Helpers
