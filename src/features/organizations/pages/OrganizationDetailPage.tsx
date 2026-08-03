@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom"
-import { useOrganization } from "../hooks/useOrganization"
+import { useOrganization } from "../hooks/useOrganization"  
+import { OrganizationDecision } from "../components/OrganizationDecision"
 
 export function OrganizationDetailPage() {
     const { organizationId } = useParams<{ organizationId: string }>()
@@ -19,6 +20,7 @@ export function OrganizationDetailPage() {
     }
 
     return (
+        // Turn 1st divs into ApplicationDetail components.
         <section className="space-y-6">
             <header>
                 <h1 className="text-2xl font-semibold">{organization.name}</h1>
@@ -32,6 +34,8 @@ export function OrganizationDetailPage() {
                 <p><strong>Location:</strong>{' '}{organization.city}, {organization.province}</p>
                 <p><strong>Description:</strong>{' '}{organization.description}</p>
             </div>
+
+            <OrganizationDecision organizationId={organization.id} status={organization.status} />
         </section>  
     )
 }

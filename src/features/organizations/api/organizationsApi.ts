@@ -1,6 +1,6 @@
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
-import type { OrganizationDetail, OrganizationSummary } from '@/features/organizations/types/organizations'
+import type { OrganizationDetail, OrganizationSummary, OrganizationDecisionStatus } from '@/features/organizations/types/organizations'
 
 const requestConfig = {
     timeout: TIMEOUT_LENGTH_MS, 
@@ -15,7 +15,7 @@ export const organizationsApi = {
         axiosPrivate.get<OrganizationDetail>(`/api/organizations/${organizationId}`, requestConfig)
                     .then((response) => response.data),
 
-    approveOrganization: (organizationId: string) =>
-        axiosPrivate.patch<OrganizationDetail>(`/api/organizations/${organizationId}/decision`, { status: 'approved' }, requestConfig,)
+    decideOrganization: (organizationId: string, status: OrganizationDecisionStatus) =>
+        axiosPrivate.patch<OrganizationDetail>(`/api/organizations/${organizationId}/decision`, { status }, requestConfig,)
                     .then((response) => response.data)
 }

@@ -1,5 +1,7 @@
 export type OrganizationStatus = 'pending' | 'approved' | 'rejected'
 
+export type OrganizationDecisionStatus = 'approved' | 'rejected'
+
 export type ApplicationAnswers = Record<string, string>
 
 export interface OrganizationSummary {
