@@ -9,6 +9,9 @@ import type {
   AdminUserReport,
   AdminUserContext,
   ContentType,
+  OrganizationEvent,
+  OrganizationEventDecisionRequest,
+  OrganizationEventDecisionResponse,
 } from '../types/admin'
 
 const t = { timeout: TIMEOUT_LENGTH_MS }
@@ -64,4 +67,21 @@ export const adminApi = {
 
   liftBan: (banId: string) =>
     axiosPrivate.delete(`/api/admin/bans/${banId}`, t),
+
+  getOrganizationEvent: (eventId: string) =>
+    axiosPrivate
+      .get<OrganizationEvent>(`/api/organizations-events/${eventId}`, t)
+      .then((r) => r.data),
+
+  decideOrganizationEvent: (
+    eventId: string,
+    payload: OrganizationEventDecisionRequest,
+  ) =>
+    axiosPrivate
+      .patch<OrganizationEventDecisionResponse>(
+        `/api/organizations-events/${eventId}/decision`,
+        payload,
+        t,
+      )
+      .then((r) => r.data),
 }

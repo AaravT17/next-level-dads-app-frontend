@@ -71,6 +71,7 @@ export const ROUTES = {
 
   // Admin
   ADMIN: '/admin',
+  ADMIN_ORGANIZATION_EVENT: '/admin/organization-events/:eventId,'
 } as const
 
 // ============================================
@@ -94,6 +95,12 @@ export const dadDetail = (id: string) =>
  */
 export const eventDetail = (eventId: number | string) =>
   `/events/${eventId}` as const
+
+/**
+ * Get route for admin organization event approval page
+ */
+export const adminOrganizationEvent = (eventId: number | string) =>
+  '/admin/organization-event/${eventId}' as const
 
 /**
  * Get route for a specific groups tab
@@ -164,3 +171,5 @@ export const DEFAULTS = {
   DISCOVER_TAB: 'dads' as DiscoverTab,
   GROUPS_TAB: 'communities' as GroupsTab,
 }
+
+

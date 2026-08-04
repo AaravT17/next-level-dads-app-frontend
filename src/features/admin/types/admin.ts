@@ -1,6 +1,7 @@
 export type ReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'actioned'
 export type ModerationLayer = 'profanity' | 'hate_speech' | 'report'
 export type ContentType = 'conversation' | 'message' | 'reply'
+export type OrganizationEventStatus = 'pending' | 'approved' | 'denied'
 
 export interface AdminContentReport {
   id: string
@@ -108,4 +109,44 @@ export interface AdminUserContext {
     avatar_url: string | null
   }
   activity: AdminUserActivity[]
+}
+
+export interface OrganizationEventAdminNotes {
+  text: string
+  created_by?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface OrganizationEvent {
+  id: string
+  name: string
+  description: string | null
+  type: 'local' | 'virtual'
+  starts_at: string
+  ends_at: string | null
+  location: string
+  latitude: number | null
+  longitude: number | null
+  hosted_by_org_id: string | null
+  contact_email: string | null
+  contact_phone: string | null
+  price_cad: number | string | null
+  created_by: string | null
+  created_at: string
+  app_status: OrganizationEventStatus | string
+  admin_notes: OrganizationEventAdminNotes | null
+}
+
+export interface OrganizationEventDecisionRequest {
+  status: OrganizationEventStatus
+  admin_notes?: string | null
+  decision_message?: string | null
+}
+
+export interface OrganizationEventDecisionResponse {
+  id: string
+  app_status: OrganizationEventStatus | string
+  admin_notes: OrganizationEventAdminNotes | null
+  decision_message?: string | null
 }
