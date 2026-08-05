@@ -25,6 +25,13 @@ export interface OrganizationDetail extends OrganizationSummary {
     contact_email: string
     contact_phone: string | null
     application_answers: ApplicationAnswers
-    notes: Record<string, unknown>[]
+    notes: InternalNote[]
     approved_at: string | null
+}
+
+export interface InternalNote {
+  id: string
+  submitted_by: string
+  content: string
+  submitted_at: string
 }

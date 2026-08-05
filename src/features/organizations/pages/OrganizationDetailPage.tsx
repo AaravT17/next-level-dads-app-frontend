@@ -1,10 +1,13 @@
 import { useParams } from "react-router-dom"
 import { useOrganization } from "../hooks/useOrganization"  
-import { OrganizationDecision } from "../components/OrganizationDecision"
+import { OrganizationDecisionSection } from "../components/OrganizationDecisionSection"
+import { InternalNotesSection } from "../components/InternalNotesSection"
+import { useState } from "react"
 
 export function OrganizationDetailPage() {
     const { organizationId } = useParams<{ organizationId: string }>()
     const { data: organization, isLoading, isError, error } = useOrganization(organizationId)
+    const [hasUnsavedNotes, setHasUnsavedNotes] = useState(false)
 
     if (isLoading) {
         return <p>Loading...</p>
@@ -35,7 +38,18 @@ export function OrganizationDetailPage() {
                 <p><strong>Description:</strong>{' '}{organization.description}</p>
             </div>
 
-            <OrganizationDecision organizationId={organization.id} status={organization.status} />
+            <InternalNotesSection
+                organizationId={organization.id}
+                notes={organization.notes}
+                status={organization.status}
+                onDirtyChange={setHasUnsavedNotes}
+            />
+
+            <OrganizationDecisionSection 
+                organizationId={organization.id} 
+                status={organization.status} 
+                disabled={hasUnsavedNotes}
+            />
         </section>  
     )
 }
