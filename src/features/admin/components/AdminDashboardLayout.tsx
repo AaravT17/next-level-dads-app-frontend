@@ -6,7 +6,7 @@ export function AdminDashboardLayout() {
     
 <div className="min-h-screen bg-background">
     <header className="border-b border-border bg-card px-6 py-4">
-        <h1 className="text-lg font-semibold">Admin Dashboard placeholder-header</h1>
+        <h1 className="text-lg font-semibold">Admin Dashboard</h1>
     </header>
 
     <div className="flex min-h-[calc(100vh-65px)]">

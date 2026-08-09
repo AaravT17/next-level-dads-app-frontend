@@ -40,6 +40,7 @@ import { AdminOverviewPage } from './features/admin/pages/AdminOverviewPage'
 import { OrganizationsPage } from './features/organizations/pages/OrganizationsPage'
 import { OrganizationDetailPage } from './features/organizations/pages/OrganizationDetailPage'
 import { OrganizationChatsPage } from './features/organization-chats/pages/OrganizationChatsPage'
+import { OrganizationChatDetailPage } from './features/organization-chats/pages/OrganizationChatDetailPage'
 
 const AppContent = () => {
   return (
@@ -195,6 +196,11 @@ const AppContent = () => {
               path="messaging"
               element={<OrganizationChatsPage />}
             />
+
+            <Route
+              path="messaging/:chatId"
+              element={<OrganizationChatDetailPage />}
+             />
 
             <Route
               path="moderation"
