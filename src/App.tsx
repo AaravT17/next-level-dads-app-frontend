@@ -36,6 +36,7 @@ import CommunityDetailPage from './features/communities/pages/CommunityDetailPag
 import ConversationDetailPage from './features/communities/pages/ConversationDetailPage'
 import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
 import { OrganizationEventApprovalPage } from './features/admin/pages/OrganizationEventApprovalPage'
+import { AdminEventsPage } from './features/admin/pages/AdminEventsPage'
 
 const AppContent = () => {
   return (
@@ -169,19 +170,27 @@ const AppContent = () => {
             element={<ProtectedRoute><Requests /></ProtectedRoute>}
           />
 
-          {/* Admin */}
+         {/* Admin */}
           <Route
             path={ROUTES.ADMIN}
-            element={<AdminRoute><AdminDashboardPage /></AdminRoute>}
+            element={
+              <AdminRoute>
+                <AdminDashboardPage />
+              </AdminRoute>}
           />
+          <Route
+            path={ROUTES.ADMIN_EVENTS}
+            element={
+              <AdminRoute>
+                <AdminEventsPage />
+              </AdminRoute>}
+            />
           <Route
             path={ROUTES.ADMIN_ORGANIZATION_EVENT}
             element={
               <AdminRoute>
                 <OrganizationEventApprovalPage />
-              </AdminRoute>
-              
-            }
+              </AdminRoute>}
           />
 
           {/* Catch-all */}

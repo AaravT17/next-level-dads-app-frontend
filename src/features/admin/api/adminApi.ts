@@ -12,6 +12,7 @@ import type {
   OrganizationEvent,
   OrganizationEventDecisionRequest,
   OrganizationEventDecisionResponse,
+  AdminEventsListResponse,
 } from '../types/admin'
 
 const t = { timeout: TIMEOUT_LENGTH_MS }
@@ -84,4 +85,28 @@ export const adminApi = {
         t,
       )
       .then((r) => r.data),
+
+  getAdminEvents: (params?: {
+    search?: string
+    region?: string
+    organization?: string
+    format?: string
+    category?: string
+    status?: string
+  }) => {
+    const query = new URLSearchParams()
+    if (params?.search) query.set('search', params.search)
+    if (params?.region) query.set('region', params.region)
+    if (params?.organization) query.set('organization', params.organization)
+    if (params?.format) query.set('format', params.format)
+    if (params?.category) query.set('category', params.category)
+    if (params?.status) query.set('status', params.status)
+
+    return axiosPrivate
+      .get<AdminEventsListResponse>(
+        `/api/organizations-events${query.toString() ? `?${query}` : ''}`,
+        t,
+      )
+      .then((r) => r.data)
+  },
 }

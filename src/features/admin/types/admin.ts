@@ -1,7 +1,7 @@
 export type ReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'actioned'
 export type ModerationLayer = 'profanity' | 'hate_speech' | 'report'
 export type ContentType = 'conversation' | 'message' | 'reply'
-export type OrganizationEventStatus = 'pending' | 'approved' | 'denied'
+export type OrganizationEventStatus = 'pending' | 'approved' | 'rejected'
 
 export interface AdminContentReport {
   id: string
@@ -149,4 +149,42 @@ export interface OrganizationEventDecisionResponse {
   app_status: OrganizationEventStatus | string
   admin_notes: OrganizationEventAdminNotes | null
   decision_message?: string | null
+}
+
+export type AdminEventFormat = 'online' | 'in_person' | 'hybrid' | 'in-person'
+export type AdminEventCategory =
+  | 'Parenting'
+  | 'Wellness'
+  | 'Recreation'
+  | 'Support Group'
+  | 'Education'
+  | 'Community Meetup'
+
+export type AdminEventListStatus = 'pending' | 'approved' | 'needs_changes' | 'denied'
+
+export interface AdminEventsMetrics {
+  total_rsvps_active: number
+  dads_attended_completed: number
+  event_attendance_rate: number
+  repeat_attendee_rate: number
+}
+
+export interface AdminEventListItem {
+  id: string
+  name: string
+  organization_name: string
+  event_date: string
+  rsvps: number
+  attended: number
+  attendance_rate: number
+  status: AdminEventListStatus | string
+  region?: string | null
+  format?: AdminEventFormat | string | null
+  category?: AdminEventCategory | string | null
+}
+
+export interface AdminEventsListResponse {
+  metrics: AdminEventsMetrics
+  events: AdminEventListItem[]
+  organizations: string[]
 }

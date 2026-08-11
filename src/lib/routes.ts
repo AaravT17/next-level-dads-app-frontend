@@ -71,7 +71,8 @@ export const ROUTES = {
 
   // Admin
   ADMIN: '/admin',
-  ADMIN_ORGANIZATION_EVENT: '/admin/organization-events/:eventId,'
+  ADMIN_ORGANIZATION_EVENT: '/admin/organization-events/:eventId',
+  ADMIN_EVENTS: '/admin/events',
 } as const
 
 // ============================================
@@ -100,7 +101,12 @@ export const eventDetail = (eventId: number | string) =>
  * Get route for admin organization event approval page
  */
 export const adminOrganizationEvent = (eventId: number | string) =>
-  '/admin/organization-event/${eventId}' as const
+  `/admin/organization-events/${eventId}` as const
+
+/**
+ * Get route for admin events landing page
+ */
+export const adminEvents = () => '/admin/events' as const
 
 /**
  * Get route for a specific groups tab
