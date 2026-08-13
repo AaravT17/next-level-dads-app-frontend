@@ -177,10 +177,29 @@ export function AdminEventsPage() {
         organization === 'All Organizations' ||
         event.organization_name === organization
 
-      const matchesFormat =
-        format === 'All Formats' ||
-        event.format?.split('_').join(' ').toLowerCase() ===
-          format.toLowerCase()
+      const matchesFormat = (() => {
+        if (format === 'All Formats') return true
+        
+        const eventFormat = (event.format ?? '').toLowerCase()
+        const selected = format.toLocaleLowerCase()
+        
+        if (selected === 'online') {
+          return eventFormat === 'virtual' || eventFormat === 'online'
+        }
+        if (selected === 'in person') {
+          return (
+            eventFormat === 'local' ||
+            eventFormat === 'in_person' ||
+            eventFormat === 'in-person'
+          )
+        }
+        if (selected === 'hybrid') {
+          return eventFormat === 'hybrid'
+        }
+
+        return eventFormat === selected
+      })()
+
 
       const matchesCategory =
         category === 'All Categories' || event.category === category
