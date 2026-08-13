@@ -180,17 +180,17 @@ const AppContent = () => {
           />
           <Route
             path={ROUTES.ADMIN_EVENTS}
-            element={<AdminEventsPage/>
-              /*<AdminRoute>
+            element={
+              <AdminRoute>
                 <AdminEventsPage />
-              </AdminRoute>*/}
+              </AdminRoute>}
             />
           <Route
             path={ROUTES.ADMIN_ORGANIZATION_EVENT}
-            element={<OrganizationEventApprovalPage/>
-              /*<AdminRoute>
+            element={
+              <AdminRoute>
                 <OrganizationEventApprovalPage />
-              </AdminRoute>*/}
+              </AdminRoute>}
           />
 
           {/* Catch-all */}
