@@ -84,3 +84,15 @@ export const DISCOVER_DADS_FILTERS_AGE_RANGES = [
   '50-59',
   '60+',
 ]
+
+// TODO: Add Online / National once remote organization location representation is defined in the data model.
+export const ADMIN_REGION_OPTIONS = [
+  { label: 'Toronto, ON', city: 'Toronto', province: 'ON' },
+  { label: 'Calgary, AB', city: 'Calgary', province: 'AB' },
+  { label: 'Ottawa, ON', city: 'Ottawa', province: 'ON' },
+  { label: 'Halifax, NS', city: 'Halifax', province: 'NS' },
+  { label: 'Waterloo, ON', city: 'Waterloo', province: 'ON' },
+  { label: 'Mississauga, ON', city: 'Mississauga', province: 'ON' },
+  { label: 'Vancouver, BC', city: 'Vancouver', province: 'BC' },
+  { label: 'Montreal, QC', city: 'Montreal', province: 'QC' },
+] as const

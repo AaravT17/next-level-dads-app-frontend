@@ -38,7 +38,7 @@ import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
 import { AdminDashboardLayout } from './features/admin/components/AdminDashboardLayout'
 import { AdminOverviewPage } from './features/admin/pages/AdminOverviewPage'
 import { OrganizationsPage } from './features/organizations/pages/OrganizationsPage'
-import { OrganizationDetailPage } from './features/organizations/pages/OrganizationDetailPage'
+import { ApplicationDetailPage } from './features/organizations/pages/ApplicationDetailPage'
 import { OrganizationChatsPage } from './features/organization-chats/pages/OrganizationChatsPage'
 import { OrganizationChatDetailPage } from './features/organization-chats/pages/OrganizationChatDetailPage'
 
@@ -189,7 +189,7 @@ const AppContent = () => {
 
             <Route
               path="organizations/:organizationId"
-              element={<OrganizationDetailPage />}
+              element={<ApplicationDetailPage />}
             />
 
             <Route

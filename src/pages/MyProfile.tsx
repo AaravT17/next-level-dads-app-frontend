@@ -883,7 +883,7 @@ const MyProfile = () => {
                 onClick={() => navigate(ROUTES.ADMIN)}
               >
                 <Shield className="w-4 h-4 mr-2" />
-                Moderation Dashboard
+                Admin Dashboard
               </Button>
             )}
 

@@ -1,11 +1,23 @@
+import type { ApplicationFilters, OrganizationListFilters } from '@/features/organizations/types/organizations'
+
 export const organizationKeys = {
     all: ['organizations'] as const,
 
-lists: () => [...organizationKeys.all, 'list'] as const,
+    applications: () =>
+        [...organizationKeys.all, 'applications'] as const,
 
-list: (status?: string) => [...organizationKeys.lists(), { status }] as const,
+    applicationList: (filters: ApplicationFilters = {}) =>
+        [...organizationKeys.applications(), filters] as const,
 
-details: () => [...organizationKeys.all, 'detail'] as const,
+    activePartners: (filters: OrganizationListFilters = {}) =>
+        [...organizationKeys.all, 'active-partners', filters] as const,
 
-detail: (organizationId: string) => [...organizationKeys.details(), organizationId] as const
+    actionItems: () =>
+        [...organizationKeys.all, 'action-items'] as const,
+
+    details: () =>
+        [...organizationKeys.all, 'detail'] as const,
+
+    detail: (organizationId: string) =>
+        [...organizationKeys.details(), organizationId] as const,
 }

@@ -1,16 +1,58 @@
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
-import type { OrganizationDetail, OrganizationSummary, OrganizationDecisionStatus, InternalNote } from '@/features/organizations/types/organizations'
+import type { 
+    OrganizationDetail, 
+    OrganizationListFilters, 
+    ApplicationFilters,
+    OrganizationDecisionStatus, 
+    InternalNote, 
+    ApplicationRow, 
+    ActivePartnerRow, 
+    OrganizationActionItem } from '@/features/organizations/types/organizations'
 
 const requestConfig = {
     timeout: TIMEOUT_LENGTH_MS, 
 }
 
 export const organizationsApi = {
-    getOrganizations: () =>
-        axiosPrivate.get<OrganizationSummary[]>('/api/organizations', requestConfig)
+    getApplications: ({
+        status,
+        search,
+        city,
+        province,
+    }: ApplicationFilters = {}) =>
+    axiosPrivate
+        .get<ApplicationRow[]>('/api/organizations/applications', {
+            ...requestConfig,
+            params: {
+                status,
+                search,
+                city,
+                province,
+            },
+        })
+        .then((response) => response.data),
+
+    getActivePartners: ({
+        search,
+        city,
+        province,
+    }: OrganizationListFilters = {}) =>
+        axiosPrivate
+            .get<ActivePartnerRow[]>('/api/organizations/active', {
+                ...requestConfig,
+                params: {
+                    search,
+                    city,
+                    province,
+                },
+            })
+            .then((response) => response.data),
+
+    getActionItems: () =>
+        axiosPrivate.get<OrganizationActionItem[]>('/api/organizations/action-items', requestConfig)
                     .then((response) => response.data),
-    
+
     getOrganization: (organizationId: string) =>
         axiosPrivate.get<OrganizationDetail>(`/api/organizations/${organizationId}`, requestConfig)
                     .then((response) => response.data),

@@ -20,8 +20,17 @@ export function useOrganizationDecision() {
                 organizationKeys.detail(updatedOrganization.id),
                 updatedOrganization)
 
-            queryClient.invalidateQueries({queryKey: organizationKeys.lists(),
+             queryClient.invalidateQueries({
+                queryKey: organizationKeys.applications(),
             })
-        },
+
+            queryClient.invalidateQueries({
+                queryKey: organizationKeys.activePartners(),
+            })
+
+            queryClient.invalidateQueries({
+                queryKey: organizationKeys.actionItems(),
+            })
+        }
     })
 }

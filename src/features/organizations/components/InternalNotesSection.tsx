@@ -56,7 +56,8 @@ export function InternalNotesSection({
               className="rounded-md border p-3"
             >
               <p className="text-sm text-muted-foreground">
-                Admin ·{' '} {new Date(note.submitted_at).toLocaleString()}
+                {note.submitted_by_name ?? 'Admin'} ·{' '}
+                {new Date(note.submitted_at).toLocaleString()}
               </p>
 
               <p className="mt-2 whitespace-pre-wrap">{note.content}</p>

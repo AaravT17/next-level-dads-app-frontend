@@ -45,7 +45,7 @@ export function OrganizationDecisionSection({
             Approve
         </Button>
 
-        <Button
+         <Button
           type="button"
           variant="destructive"
           disabled={decisionsDisabled}
