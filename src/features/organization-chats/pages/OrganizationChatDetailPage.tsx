@@ -1,9 +1,12 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useState, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
-
 import { organizationChatsApi } from '@/features/organization-chats/api/organizationChatsApi'
 import type { Message, OrganizationChat } from '@/features/organization-chats/types/organizationChats'
 import { ROUTES } from '@/lib/routes'
+import { format } from 'date-fns'
+import { useAuth } from '@/contexts/AuthContext'
+
+// TODO: Add message pagination for long-running organization conversations.
 
 export function OrganizationChatDetailPage() {
   const { chatId } = useParams<{ chatId: string }>()
@@ -14,6 +17,11 @@ export function OrganizationChatDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { user } = useAuth()
+
+  const formatMessageTime = (createdAt: string) =>
+    format(new Date(createdAt), 'MMM d, h:mm a')
 
   useEffect(() => {
     if (!chatId) return
@@ -29,7 +37,7 @@ export function OrganizationChatDetailPage() {
         ])
 
         setChat(chatData)
-        setMessages(messagesData)
+        setMessages([...messagesData].reverse())
       } catch (err) {
         console.error('Failed to load organization messages:', err)
         setError('Unable to load this conversation.')
@@ -40,6 +48,11 @@ export function OrganizationChatDetailPage() {
 
     void loadMessages()
   }, [chatId])
+
+  // Keep newest message in view.
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+}, [messages])
 
   async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -60,7 +73,7 @@ export function OrganizationChatDetailPage() {
       const updatedMessages =
         await organizationChatsApi.getMessages(chatId)
 
-      setMessages(updatedMessages)
+      setMessages([...updatedMessages].reverse())
     } catch (err) {
       console.error('Failed to send organization message:', err)
       setError('Unable to send message.')
@@ -100,53 +113,51 @@ export function OrganizationChatDetailPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((message) => (
-                <article
-                  key={message.id}
-                  className="rounded-lg border p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <p className="font-semibold">
-                      {message.sender_name ?? 'Unknown sender'}
-                    </p>
+              {messages.map((message) => {
+                const isOwn = message.sender_id === user?.id
 
-                    <time
-                      className="text-xs text-muted-foreground"
-                      dateTime={message.created_at}
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`flex max-w-[70%] flex-col ${
+                        isOwn ? 'items-end' : 'items-start'
+                      }`}
                     >
-                      {new Date(message.created_at).toLocaleString()}
-                    </time>
-                  </div>
-
-                  <p className="mt-2 whitespace-pre-wrap">
-                    {message.is_deleted
-                      ? 'Message deleted'
-                      : message.content}
-                  </p>
-
-                  {message.subject && (
-                    <div className="mt-3 rounded border p-2 text-sm">
-                      <p>
-                        <strong>Subject type:</strong>{' '}
-                        {message.subject.type ?? 'Unknown'}
-                      </p>
-
-                      {message.subject.id && (
-                        <p>
-                          <strong>Subject ID:</strong>{' '}
-                          {message.subject.id}
+                      {!isOwn && (
+                        <p className="mb-1 px-2 text-xs font-medium text-muted-foreground">
+                          {message.sender_name ?? 'Unknown sender'}
                         </p>
                       )}
-                    </div>
-                  )}
 
-                  {message.edited_at && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Edited
-                    </p>
-                  )}
-                </article>
-              ))}
+                      <div
+                        className={`w-fit rounded-2xl px-4 py-2 ${
+                          isOwn
+                            ? 'bg-primary text-primary-foreground'
+                            : 'border border-border bg-muted text-foreground'
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap text-sm">
+                          {message.is_deleted
+                            ? 'Message deleted'
+                            : message.content}
+                        </p>
+                      </div>
+
+                      <time
+                        className="mt-1 px-2 text-xs text-muted-foreground"
+                        dateTime={message.created_at}
+                      >
+                        {formatMessageTime(message.created_at)}
+                      </time>
+                    </div>
+                  </div>
+                )
+              })}
+
+              <div ref={messagesEndRef} />
             </div>
           )}
 

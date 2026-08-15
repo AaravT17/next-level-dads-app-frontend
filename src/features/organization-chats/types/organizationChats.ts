@@ -1,3 +1,5 @@
+import type { OrganizationStatus } from '@/features/organizations/types/organizations'
+
 export interface MessageSubject {
   type?: string;
   id?: string;
@@ -21,6 +23,7 @@ export interface ChatListItem {
   id: string;
   organization_id: string;
   organization_name: string;
+  organization_status: OrganizationStatus;
   updated_at: string;
   last_message: Message | null;
 }

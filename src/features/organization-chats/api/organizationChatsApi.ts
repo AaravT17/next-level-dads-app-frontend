@@ -20,6 +20,10 @@ export const organizationChatsApi = {
   axiosPrivate.get<OrganizationChat>(`/api/organization-chats/${chatId}`, requestConfig)
               .then((response) => response.data),
 
+  getChatByOrganization: (organizationId: string) =>
+    axiosPrivate.get<OrganizationChat>(`/api/organization-chats/organizations/${organizationId}/chat`, requestConfig)
+                .then((response) => response.data),
+
   getMessages: (chatId: string) =>
     axiosPrivate.get<Message[]>(`/api/organization-chats/${chatId}/messages`, requestConfig)
                 .then((response) => response.data),

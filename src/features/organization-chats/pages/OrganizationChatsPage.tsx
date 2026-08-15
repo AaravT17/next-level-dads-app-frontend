@@ -1,22 +1,56 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { organizationChatsApi } from '@/features/organization-chats/api/organizationChatsApi'
 import type { ChatListItem } from '@/features/organization-chats/types/organizationChats'
-import { adminOrganizationChatDetail } from '@/lib/routes'
+import { adminChatDetail } from '@/lib/routes'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { format, isToday, isYesterday } from 'date-fns'
+
+// TODO: Add conversation search
 
 export function OrganizationChatsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const organizationId = searchParams.get('org_id')
 
   const [chats, setChats] = useState<ChatListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const getInitials = (name: string) =>
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+
+    const formatChatTime = (isoString: string) => {
+      const date = new Date(isoString)
+
+      if (isToday(date)) return format(date, 'h:mm a')
+      if (isYesterday(date)) return 'Yesterday'
+      return format(date, 'MMM d')
+  }
+
   useEffect(() => {
-    async function loadChats() {
+    async function loadPage() {
       try {
         setIsLoading(true)
         setError(null)
 
+        // If an organization ID was supplied, find its chat and redirect to the normal chat-detail route.
+        if (organizationId) {
+          const chat =
+            await organizationChatsApi.getChatByOrganization(organizationId)
+
+          navigate(adminChatDetail(chat.id), { replace: true })
+          return
+        }
+
+        // Else, load the regular messaging inbox.
         const data = await organizationChatsApi.getChats()
         setChats(data)
       } catch (err) {
@@ -26,9 +60,8 @@ export function OrganizationChatsPage() {
         setIsLoading(false)
       }
     }
-
-    void loadChats()
-  }, [])
+    void loadPage()
+  }, [organizationId, navigate])
 
   if (isLoading) {
     return <p>Loading conversations...</p>
@@ -55,46 +88,60 @@ export function OrganizationChatsPage() {
             <button
               key={chat.id}
               type="button"
-              onClick={() => navigate(adminOrganizationChatDetail(chat.id))}
+              onClick={() => navigate(adminChatDetail(chat.id))}
               className="block w-full rounded-lg border p-4 text-left"
             >
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-semibold">
-                    {chat.organization_name}
-                  </h3>
+                <div className="flex items-start gap-4">
+                  <Avatar>
+                    <AvatarFallback>
+                      {getInitials(chat.organization_name)}
+                    </AvatarFallback>
+                  </Avatar>
 
-                  {chat.last_message ? (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium">
-                        {chat.last_message.sender_name ?? 'Unknown sender'}
-                      </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">
+                        {chat.organization_name}
+                      </h3>
 
-                      <p className="text-sm text-muted-foreground">
-                        {chat.last_message.is_deleted
-                          ? 'Message deleted'
-                          : chat.last_message.content}
-                      </p>
-
-                      {chat.last_message.subject && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Subject:{' '}
-                          {chat.last_message.subject.type ?? 'Attached item'}
-                        </p>
+                      {chat.organization_status === 'pending' && (
+                        <Badge variant="secondary">Pending</Badge>
                       )}
                     </div>
-                  ) : (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      No messages yet
-                    </p>
-                  )}
+
+                    {chat.last_message ? (
+                      <div className="mt-2">
+                        <p className="text-sm font-medium">
+                          {chat.last_message.sender_name ?? 'Unknown sender'}
+                        </p>
+
+                        <p className="text-sm text-muted-foreground">
+                          {chat.last_message.is_deleted
+                            ? 'Message deleted'
+                            : chat.last_message.content}
+                        </p>
+
+                        {chat.last_message.subject && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Subject:{' '}
+                            {chat.last_message.subject.type ?? 'Attached item'}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        No messages yet
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <time
                   className="shrink-0 text-xs text-muted-foreground"
                   dateTime={chat.updated_at}
                 >
-                  {new Date(chat.updated_at).toLocaleString()}
+                  {formatChatTime(chat.updated_at)}
                 </time>
               </div>
             </button>

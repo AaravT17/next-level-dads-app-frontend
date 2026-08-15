@@ -138,13 +138,13 @@ export const groupMembers = (groupId: string) =>
 export const adminOrganizationDetail = (organizationId: string) =>
   `/admin/organizations/${organizationId}` as const
 
-/** Get route for an organization chat via chat ID in the Admin Dashboard. */
+/** Get route for an organization chat when the chat ID is already known. */
 
-export const adminOrganizationChatDetail = (chatId: string) =>
+export const adminChatDetail = (chatId: string) =>
   `/admin/messaging/${chatId}` as const
 
-/** Get route for an organization chat via organization IDin the Admin Dashboard. */
-export const adminOrganizationChat = (organizationId: string) =>
+/** Get route for an organization's chat when only the organization ID is known. */
+export const adminChatByOrganization = (organizationId: string) =>
   `/admin/messaging?org_id=${organizationId}` as const
 
 // ============================================

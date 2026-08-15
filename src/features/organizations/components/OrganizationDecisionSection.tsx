@@ -3,6 +3,7 @@ import type { OrganizationStatus } from '../types/organizations'
 import { useOrganizationDecision } from '../hooks/useOrganizationDecision'
 import { ROUTES } from '@/lib/routes'
 import { useNavigate } from 'react-router-dom'
+import { adminChatByOrganization } from '@/lib/routes'
 
 interface OrganizationDecisionProps {
   organizationId: string
@@ -16,6 +17,9 @@ export function OrganizationDecisionSection({
  }: OrganizationDecisionProps) {
   const { mutate: decideOrganization, isPending, isError, error } = useOrganizationDecision()
   const navigate = useNavigate()
+  const handleMessage = (organizationId: string) => {
+    navigate(adminChatByOrganization(organizationId))
+  }
   const handleDecision = ( 
     status: 'approved' | 'rejected') => {
             decideOrganization({organizationId, status},
@@ -51,6 +55,10 @@ export function OrganizationDecisionSection({
           disabled={decisionsDisabled}
           onClick={() => handleDecision('rejected')}>
             Reject
+        </Button>
+
+        <Button onClick={() => handleMessage(organizationId)}>
+          Request Info
         </Button>
       </div>
 

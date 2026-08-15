@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
-import { adminOrganizationChat } from '@/lib/routes'
+import { adminChatByOrganization } from '@/lib/routes'
 
 interface ActivePartnersCardProps {
     activePartners: ActivePartnerRow[],
@@ -20,7 +20,7 @@ export function ActivePartnersCard({
 }: ActivePartnersCardProps) {
     const navigate = useNavigate()
     const handleMessage = (partnerId: string) => {
-        navigate(adminOrganizationChat(partnerId))
+        navigate(adminChatByOrganization(partnerId))
     }
 
     const getInitials = (name: string) =>

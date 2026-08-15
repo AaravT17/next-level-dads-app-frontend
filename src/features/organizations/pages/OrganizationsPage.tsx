@@ -60,8 +60,8 @@ export function OrganizationsPage() {
         })
     }
 
-    {/* totalinPipeline returns # of pending and approved organizations.
-    TODO: If number of pending and approved orgs > current limit pagination/dataset limit of 50 per request, implement count endpoint or metadata*/}
+    // totalinPipeline returns # of pending and approved organizations.
+    // TODO: If number of pending and approved orgs > current limit pagination/dataset limit of 50 per request, implement count endpoint or metadata
     const {
         data: allPendingApplications = [],
     } = useApplications({status: 'pending'})

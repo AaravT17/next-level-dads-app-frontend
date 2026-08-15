@@ -1,23 +1,31 @@
 import { Outlet } from 'react-router-dom';
-import { AdminNavigation } from './AdminNavigation';
+import { AdminSidebar } from './AdminSidebar';
+import { useState } from 'react';
+import { AdminHeader } from './AdminHeader';
 
 export function AdminDashboardLayout() {
-  return (
-    
-<div className="min-h-screen bg-background">
-    <header className="border-b border-border bg-card px-6 py-4">
-        <h1 className="text-lg font-semibold">Admin Dashboard</h1>
-    </header>
+    const [sidebarOpen, setSidebarOpen] = useState(true)
 
-    <div className="flex min-h-[calc(100vh-65px)]">
-        <aside className="w-64 border-r border-border bg-card p-4">
-            <AdminNavigation />
-        </aside>
+    return (
+        
+        <div className="flex min-h-screen bg-background">
+            {/* Left side: sidebar */}
+             {sidebarOpen && (
+                <aside className="w-64 shrink-0 border-r border-border bg-card">
+                    <AdminSidebar />
+                </aside>
+            )}
 
-        <main className="flex-1 p-6">
-            <Outlet />
-        </main>
-    </div>
-</div>
-  )
+            {/* Right side: header + page */}
+            <div className="flex min-w-0 flex-1 flex-col flex-col">
+                <AdminHeader
+                    onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+                />
+
+                <main className="flex-1 overflow-auto px-10 py-8">
+                    <Outlet />
+                </main>
+            </div>
+        </div>
+    )
 }
