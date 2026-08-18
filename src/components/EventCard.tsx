@@ -4,6 +4,7 @@ import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query
 import { AxiosError } from 'axios'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
+import { formatEventDate, formatEventTime, formatPrice } from '@/utils/format'
 import { Card, CardContent } from './ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { eventDetail } from '@/lib/routes'
@@ -130,29 +131,6 @@ const EventCard = ({
     unregisterFromEvent.mutate()
   }
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-CA', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
-
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr)
-    return date.toLocaleTimeString('en-CA', {
-      hour: 'numeric',
-      minute: '2-digit',
-    })
-  }
-
-  const formatPrice = (price: string) => {
-    const numPrice = Number(price)
-    if (numPrice === 0) return 'Free'
-    return `$${numPrice.toFixed(2)}`
-  }
-
   return (
     <Card
       className="overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer"
@@ -177,13 +155,13 @@ const EventCard = ({
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="w-4 h-4 shrink-0" />
-            <span>{formatDate(starts_at)}</span>
+            <span>{formatEventDate(starts_at)}</span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="w-4 h-4 shrink-0" />
             <span>
-              {formatTime(starts_at)}
-              {ends_at && ` - ${formatTime(ends_at)}`}
+              {formatEventTime(starts_at)}
+              {ends_at && ` - ${formatEventTime(ends_at)}`}
             </span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">

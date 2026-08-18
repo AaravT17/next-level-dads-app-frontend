@@ -67,6 +67,16 @@ export const ROUTES = {
 
   // Admin
   ADMIN: '/admin',
+
+  /**
+   * Where an authenticated user lands.
+   *
+   * Named separately so auth logic never compares against a tab route.
+   * RouteWrappers previously used ROUTES.DISCOVER as its "authenticated"
+   * sentinel, which would have kept type-checking but silently misbehaved the
+   * moment that route was renamed.
+   */
+  HOME_AFTER_AUTH: '/discover/dads',
 } as const
 
 // ============================================

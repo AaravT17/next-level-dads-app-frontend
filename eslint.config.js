@@ -20,7 +20,9 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-unused-vars": "off",
+      // Was "off". Stripping per-page shells during the UI rework leaves
+      // orphaned imports behind; this catches them without failing the build.
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
 
       // --- UI rework guard rails ---------------------------------------
       // Design tokens live in src/index.css. Inline hex bypasses them and is

@@ -59,6 +59,19 @@ All colors MUST be HSL.
     --shadow-md: 0 4px 16px -4px hsl(30 30% 25% / 0.15);
     --shadow-lg: 0 8px 24px -6px hsl(30 30% 25% / 0.2);
 
+    /* Status - warm-tuned so banners sit in the palette, not on top of it */
+    --success: 145 40% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 75% 48%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Ambient field behind the app frame on wide screens.
+       Deliberately several steps darker than --background so the app column
+       reads as a surface lifted off it rather than a stripe of the same beige. */
+    --app-ambient:
+      radial-gradient(50rem 34rem at 50% 0%, hsl(40 55% 55% / 0.18), transparent 65%),
+      linear-gradient(160deg, hsl(35 26% 79%) 0%, hsl(32 22% 71%) 100%);
+
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -77,5 +90,29 @@ All colors MUST be HSL.
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Poppins', system-ui, -apple-system, sans-serif;
     font-weight: 600;
+  }
+
+  /* One rule covers the ~50 raw <button> elements that never had a focus
+     style. Buttons routed through the shadcn <Button> keep their own ring. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Spinners are exempt: a frozen spinner reads as a hung UI, so they are
+     slowed rather than stopped. See components/feedback/Spinner.tsx. */
+  *:not(.motion-safe-spin),
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .motion-safe-spin {
+    animation-duration: 1.6s !important;
   }
 }

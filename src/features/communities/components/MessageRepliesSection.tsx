@@ -4,6 +4,7 @@ import axios from 'axios'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { initials, formatRelative } from '@/utils/format'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import type { MessageReply } from '@/types/communities'
@@ -28,25 +29,6 @@ interface MessageRepliesSectionProps {
 
 interface ReplyFormValues {
   body: string
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso)
-  const diff = Date.now() - d.getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return d.toLocaleDateString()
-}
-
-function initials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 }
 
 function ReplyItem({
@@ -95,7 +77,7 @@ function ReplyItem({
           ) : (
             <span className="text-xs font-semibold text-foreground">Anonymous</span>
           )}
-          <span className="text-xs text-muted-foreground">{formatTime(reply.created_at)}</span>
+          <span className="text-xs text-muted-foreground">{formatRelative(reply.created_at)}</span>
         </div>
         {reply.has_pending_report && !reply.is_deleted ? (
           <div className="mt-2">

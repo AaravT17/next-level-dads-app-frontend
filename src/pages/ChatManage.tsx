@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, Search, Loader2, Shield, ShieldOff, UserMinus, UserPlus, LogOut, Pencil, Check, X } from 'lucide-react'
+import { PageContainer } from '@/components/layout/PageContainer'
 import { toast } from 'sonner'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, PARTICIPANTS_PAGE_LIMIT } from '@/config/constants'
@@ -310,10 +311,10 @@ const ChatManage = () => {
   const groupName = chatData?.name ?? 'Group'
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-md mx-auto px-6 py-4 flex items-center gap-4">
+    <div className="flex-1 min-h-0 bg-background flex flex-col">
+      {/* Header. Kept custom rather than AppBar: the title is inline-editable. */}
+      <div className="shrink-0 bg-card border-b border-border">
+        <div className="px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
             className="text-muted-foreground"
@@ -378,7 +379,7 @@ const ChatManage = () => {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-6 py-6 space-y-6">
+      <PageContainer className="space-y-6 animate-fade-in">
 
         {/* Add participants (admin only) */}
         {isAdmin && (
@@ -538,7 +539,7 @@ const ChatManage = () => {
             </>
           )}
         </Button>
-      </div>
+      </PageContainer>
     </div>
   )
 }

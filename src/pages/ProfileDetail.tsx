@@ -3,13 +3,16 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
-import BottomNav from '@/components/BottomNav'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
+import { ErrorState } from '@/components/feedback/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { MapPin, Calendar, ArrowLeft, Loader2 } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { MapPin, Calendar } from 'lucide-react'
 import { getStageDisplayLabel } from '@/utils/users'
+import { initials } from '@/utils/format'
 import { chat } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import { useToast } from '@/hooks/use-toast'
@@ -104,14 +107,6 @@ const ProfileDetail = () => {
       updateProfileInLists(profile)
     }
   }, [profile])
-
-  const initials = profile
-    ? profile.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-    : ''
 
   const handleBack = () => {
     navigate(-1)
@@ -397,101 +392,33 @@ const ProfileDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b border-border px-6 py-5 relative">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-          <div className="flex items-center justify-center h-full">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-heading font-semibold text-foreground">
-                Profile
-              </h1>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Profile" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <CenteredSpinner label="Loading profile" />
+        </PageContainer>
+      </>
     )
   }
 
   if (isError || !profile) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b border-border px-6 py-5 relative">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-          <div className="flex items-center justify-center h-full">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-heading font-semibold text-foreground">
-                Profile
-              </h1>
-            </div>
-          </div>
-        </div>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            Failed to load profile. Please try again.
-          </p>
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Profile" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <ErrorState noun="this profile" />
+        </PageContainer>
+      </>
     )
   }
 
   // Discover context: Card-based layout with Connect button (DadDetail style)
   if (isFromDiscover) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b border-border px-6 py-5 relative">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
+      <>
+        <AppBar title="Profile" leading="back" onBack={handleBack} />
 
-          <div className="flex items-center justify-center h-full">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-heading font-semibold text-foreground">
-                Profile
-              </h1>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-md mx-auto px-6 py-6">
+        <PageContainer className="animate-fade-in">
           <Card className="overflow-hidden shadow-md">
             <CardContent className="p-6 space-y-4">
               {/* Avatar and basic info */}
@@ -504,7 +431,7 @@ const ProfileDetail = () => {
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-semibold text-xl flex-shrink-0 aspect-square">
-                    {initials}
+                    {initials(profile?.name)}
                   </div>
                 )}
 
@@ -560,41 +487,17 @@ const ProfileDetail = () => {
               <div className="mt-4">{renderButtons()}</div>
             </CardContent>
           </Card>
-        </div>
-
-        <BottomNav />
-      </div>
+        </PageContainer>
+      </>
     )
   }
 
   // Default context: Full-width layout without Connect button (ProfileDetail style)
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="bg-card border-b border-border px-6 py-5 relative">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
+    <>
+      <AppBar title="Profile" leading="back" onBack={handleBack} />
 
-        <div className="flex items-center justify-center h-full">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              className="rounded-full"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-2xl font-heading font-semibold text-foreground">
-              Profile
-            </h1>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-6 py-8 space-y-6 animate-fade-in">
+      <PageContainer className="space-y-6 animate-fade-in">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="w-32 h-32 rounded-lg overflow-hidden border-4 border-primary/20">
             {profile.avatar_url ? (
@@ -605,7 +508,7 @@ const ProfileDetail = () => {
               />
             ) : (
               <div className="w-full h-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-2xl">
-                {initials}
+                {initials(profile?.name)}
               </div>
             )}
           </div>
@@ -674,10 +577,8 @@ const ProfileDetail = () => {
             <ReportUserButton userId={id} userName={profile.name} />
           </div>
         )}
-      </div>
-
-      <BottomNav />
-    </div>
+      </PageContainer>
+    </>
   )
 }
 

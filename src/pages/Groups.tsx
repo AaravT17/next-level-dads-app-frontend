@@ -1,7 +1,10 @@
-import { useState, useMemo, useRef, useEffect, useCallback, useLayoutEffect } from 'react'
-import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect, useCallback, useLayoutEffect } from 'react'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import BottomNav from '@/components/BottomNav'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { TabBar } from '@/components/layout/TabBar'
+import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import CommunityCard from '@/components/CommunityCard'
 import EventCard from '@/components/EventCard'
 import { Button } from '@/components/ui/button'
@@ -17,8 +20,6 @@ import {
 import { Search, X, Loader2, RefreshCw, Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { communityDetail } from '@/lib/routes'
-import logo from '@/assets/logo.png'
-import { cn } from '@/lib/utils'
 import { ROUTES } from '@/lib/routes'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -196,52 +197,6 @@ const Groups = () => {
   const events = useMemo(() => eventsData?.pages.flat() ?? [], [eventsData])
 
   // infinite scroll sentinels
-  const communitiesSentinelRef = useRef<HTMLDivElement>(null)
-  const eventsSentinelRef = useRef<HTMLDivElement>(null)
-
-  // communities infinite scroll
-  useEffect(() => {
-    const sentinel = communitiesSentinelRef.current
-    if (!sentinel) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          hasNextCommunities &&
-          !isFetchingNextCommunities
-        ) {
-          fetchNextCommunities()
-        }
-      },
-      { threshold: 0.1 },
-    )
-
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextCommunities, isFetchingNextCommunities, fetchNextCommunities])
-
-  // events infinite scroll
-  useEffect(() => {
-    const sentinel = eventsSentinelRef.current
-    if (!sentinel) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          hasNextEvents &&
-          !isFetchingNextEvents
-        ) {
-          fetchNextEvents()
-        }
-      },
-      { threshold: 0.1 },
-    )
-
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextEvents, isFetchingNextEvents, fetchNextEvents])
 
   // Sync input fields with URL params when navigating back
   useEffect(() => {
@@ -305,45 +260,19 @@ const Groups = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
-        <div className="text-center">
-          <h1 className="text-2xl font-heading font-semibold text-foreground">
-            Groups
-          </h1>
-        </div>
-      </div>
+    <>
+      <AppBar title="Groups" />
 
-      <div className="max-w-md mx-auto px-6 py-6">
+      <TabBar
+        ariaLabel="Groups sections"
+        items={[
+          { label: 'Communities', to: ROUTES.GROUPS_COMMUNITIES, isActive: tab === 'communities' },
+          { label: 'Events', to: ROUTES.GROUPS_EVENTS, isActive: tab === 'events' },
+        ]}
+      />
+
+      <PageContainer className="animate-fade-in">
         <div className="w-full">
-          <div className="w-full grid grid-cols-2 bg-card border-b border-border h-12 mb-2">
-            <Link
-              to={ROUTES.GROUPS_COMMUNITIES}
-              className={cn(
-                'inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all',
-                tab === 'communities' &&
-                  'border-b-2 border-primary text-foreground',
-                tab !== 'communities' && 'text-muted-foreground',
-              )}
-            >
-              Communities
-            </Link>
-            <Link
-              to={ROUTES.GROUPS_EVENTS}
-              className={cn(
-                'inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all',
-                tab === 'events' && 'border-b-2 border-primary text-foreground',
-                tab !== 'events' && 'text-muted-foreground',
-              )}
-            >
-              Events
-            </Link>
-          </div>
 
           {tab === 'communities' && (
             <div className="space-y-4 animate-fade-in">
@@ -460,15 +389,12 @@ const Groups = () => {
                         {...community}
                       />
                     ))}
-                    <div
-                      ref={communitiesSentinelRef}
-                      className="h-4"
+                    <InfiniteSentinel
+                      hasNextPage={hasNextCommunities}
+                      isFetchingNextPage={isFetchingNextCommunities}
+                      fetchNextPage={fetchNextCommunities}
+                      noun="communities"
                     />
-                    {isFetchingNextCommunities && (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="text-center py-12">
@@ -538,15 +464,12 @@ const Groups = () => {
                         {...event}
                       />
                     ))}
-                    <div
-                      ref={eventsSentinelRef}
-                      className="h-4"
+                    <InfiniteSentinel
+                      hasNextPage={hasNextEvents}
+                      isFetchingNextPage={isFetchingNextEvents}
+                      fetchNextPage={fetchNextEvents}
+                      noun="events"
                     />
-                    {isFetchingNextEvents && (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="text-center py-12">
@@ -570,10 +493,8 @@ const Groups = () => {
             </div>
           )}
         </div>
-      </div>
-
-      <BottomNav />
-    </div>
+      </PageContainer>
+    </>
   )
 }
 

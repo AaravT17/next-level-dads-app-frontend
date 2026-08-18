@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import BottomNav from '@/components/BottomNav'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
@@ -45,7 +46,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import avatarDefaultGrey from '@/assets/avatar-default-grey.png'
-import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
 import { useAuth } from '@/contexts/AuthContext'
 import axios from 'axios'
@@ -454,22 +454,10 @@ const MyProfile = () => {
   const displayAvatar = avatarPreview || user.avatarUrl || avatarDefaultGrey
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="bg-card border-b border-border px-6 py-5 relative">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
+    <>
+      <AppBar title="Profile" />
 
-        <div className="flex items-center justify-center h-full">
-          <h1 className="text-2xl font-heading font-semibold text-foreground">
-            Profile
-          </h1>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-6 py-8 space-y-6 animate-fade-in">
+      <PageContainer className="space-y-6 animate-fade-in">
         {/* Avatar section - always interactive */}
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="relative">
@@ -948,7 +936,7 @@ const MyProfile = () => {
             Community Guidelines
           </a>
         </div>
-      </div>
+      </PageContainer>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
@@ -970,9 +958,7 @@ const MyProfile = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <BottomNav />
-    </div>
+    </>
   )
 }
 

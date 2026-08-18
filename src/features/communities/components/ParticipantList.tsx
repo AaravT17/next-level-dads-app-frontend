@@ -1,18 +1,10 @@
 import { Link } from 'react-router-dom'
 import type { ConversationParticipant } from '@/types/communities'
 import { profileDetail } from '@/lib/routes'
+import { initials } from '@/utils/format'
 
 interface ParticipantListProps {
   participants: ConversationParticipant[]
-}
-
-function initials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 }
 
 export function ParticipantList({ participants }: ParticipantListProps) {

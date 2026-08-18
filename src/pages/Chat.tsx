@@ -23,6 +23,8 @@ import {
   X,
 } from 'lucide-react'
 import { chatManage } from '@/lib/routes'
+import { UserAvatar } from '@/components/media/UserAvatar'
+import { formatClock } from '@/utils/format'
 import {
   type ChatType,
   type Message,
@@ -451,20 +453,15 @@ const Chat = () => {
     setUnreadCount(0)
   }
 
-  const formatTime = (isoString: string) => {
-    const date = new Date(isoString)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-
   // ============================================
   // Render
   // ============================================
 
   return (
-    <div className="h-dvh bg-background flex flex-col">
+    <div className="flex-1 min-h-0 bg-background flex flex-col">
       {/* Header */}
       <div className="bg-card border-b border-border shrink-0">
-        <div className="max-w-md mx-auto px-6 py-4">
+        <div className="px-6 py-4">
           <div className="flex items-center gap-4">
             <button
               onClick={handleBack}
@@ -490,10 +487,7 @@ const Chat = () => {
               </button>
             ) : (
               <>
-                <Avatar className="w-10 h-10 shrink-0">
-                  <AvatarImage src={avatarUrl ?? undefined} />
-                  <AvatarFallback>{displayName[0] ?? '?'}</AvatarFallback>
-                </Avatar>
+                <UserAvatar name={displayName} src={avatarUrl} size="sm" />
                 <div className="flex-1">
                   <h1 className="text-lg font-heading font-semibold text-foreground">
                     {displayName}
@@ -508,7 +502,7 @@ const Chat = () => {
       {/* Messages */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 max-w-md mx-auto w-full px-6 py-4 overflow-y-auto relative"
+        className="flex-1 min-h-0 w-full px-6 py-4 overflow-y-auto relative"
       >
         {/* Top sentinel — triggers loading older messages */}
         <div
@@ -687,7 +681,7 @@ const Chat = () => {
                   )}
 
                   <span className="text-xs text-muted-foreground mt-1">
-                    {formatTime(msg.created_at)}
+                    {formatClock(msg.created_at)}
                     {msg.edited_at && !msg.is_deleted && (
                       <span className="ml-1 opacity-60">edited</span>
                     )}
@@ -708,7 +702,7 @@ const Chat = () => {
 
       {/* Down arrow + unread badge */}
       {!isAtBottom && (
-        <div className="absolute bottom-24 right-6 max-w-md">
+        <div className="absolute bottom-24 right-6">
           <button
             onClick={handleScrollToBottom}
             className="relative bg-card border border-border rounded-full p-2 shadow-md text-muted-foreground hover:text-foreground"
@@ -726,7 +720,7 @@ const Chat = () => {
       {/* Input */}
       <div className="bg-card border-t border-border shrink-0">
         {replyingTo && (
-          <div className="max-w-md mx-auto px-6 pt-3 flex items-start gap-2">
+          <div className="px-6 pt-3 flex items-start gap-2">
             <div className="flex-1 pl-2 border-l-2 border-primary min-w-0">
               <p className="text-xs font-medium text-primary">
                 Replying to {replyingTo.sender_name}
@@ -743,7 +737,7 @@ const Chat = () => {
             </button>
           </div>
         )}
-        <div className="max-w-md mx-auto px-6 py-4">
+        <div className="px-6 py-4">
           <div className="flex gap-2">
             <Input
               placeholder="Type a message..."

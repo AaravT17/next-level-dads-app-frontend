@@ -10,6 +10,7 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
 import { getStageDisplayLabel } from '@/utils/users'
+import { initials } from '@/utils/format'
 import { profileDetail, chat } from '@/lib/routes'
 import { useToast } from '@/hooks/use-toast'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -51,12 +52,6 @@ const DadCard = ({
   }
 
   const listContext = getListContext()
-
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
 
   const handleCardClick = () => {
     navigate(profileDetail(id))
@@ -385,7 +380,7 @@ const DadCard = ({
             />
           ) : (
             <div className="w-20 h-20 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-semibold text-lg flex-shrink-0 aspect-square">
-              {initials}
+              {initials(name)}
             </div>
           )}
 

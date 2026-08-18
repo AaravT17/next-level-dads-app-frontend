@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { initials, formatAdminDate } from '@/utils/format'
 import {
   Dialog,
   DialogContent,
@@ -75,27 +76,8 @@ const TYPE_LABEL: Record<ContentType, string> = {
   reply: 'reply',
 }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
 function isMessageType(type: ContentType) {
   return type === 'message' || type === 'reply'
-}
-
-function initials(name: string | null) {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 }
 
 function TargetBadge() {
@@ -137,7 +119,7 @@ function ReportRow({
             <p className="line-clamp-2 text-sm text-muted-foreground">{item.detail}</p>
           )}
         </div>
-        <span className="shrink-0 text-xs text-muted-foreground">{formatDate(item.date)}</span>
+        <span className="shrink-0 text-xs text-muted-foreground">{formatAdminDate(item.date)}</span>
       </div>
     </button>
   )
@@ -268,7 +250,7 @@ function ContentContext({ item }: { item: Extract<QueueItem, { contentId: string
             <Badge variant="secondary">post</Badge>
             {postIsTarget && <TargetBadge />}
           </div>
-          <span className="text-xs text-muted-foreground">{formatDate(conversation.created_at)}</span>
+          <span className="text-xs text-muted-foreground">{formatAdminDate(conversation.created_at)}</span>
         </div>
         <h3 className="line-clamp-2 text-base font-semibold leading-snug">{conversation.title}</h3>
         <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/85">{conversation.body}</p>
@@ -303,7 +285,7 @@ function ContentContext({ item }: { item: Extract<QueueItem, { contentId: string
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold">{message.author_name ?? 'Anonymous'}</span>
-                  <span className="text-xs text-muted-foreground">{formatDate(message.created_at)}</span>
+                  <span className="text-xs text-muted-foreground">{formatAdminDate(message.created_at)}</span>
                   {message.is_target && <TargetBadge />}
                   {message.is_focus && !message.is_target && (
                     <Badge variant="secondary" className="shrink-0">
@@ -338,7 +320,7 @@ function ContentContext({ item }: { item: Extract<QueueItem, { contentId: string
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex flex-wrap items-center gap-2">
                             <span className="text-xs font-semibold">{reply.author_name ?? 'Anonymous'}</span>
-                            <span className="text-xs text-muted-foreground">{formatDate(reply.created_at)}</span>
+                            <span className="text-xs text-muted-foreground">{formatAdminDate(reply.created_at)}</span>
                             {reply.is_target && <TargetBadge />}
                           </div>
                           <p className="whitespace-pre-wrap text-sm leading-relaxed">{reply.body}</p>
@@ -415,7 +397,7 @@ function UserContext({ item }: { item: Extract<QueueItem, { userId: string }> })
               <Badge variant="secondary">
                 {activity.activity_type === 'post' ? 'post' : 'comment'}
               </Badge>
-              <span className="text-xs text-muted-foreground">{formatDate(activity.created_at)}</span>
+              <span className="text-xs text-muted-foreground">{formatAdminDate(activity.created_at)}</span>
             </div>
             <p className="line-clamp-1 text-sm font-medium">{activity.context_title}</p>
             <p className="mt-2 whitespace-pre-wrap text-sm">{activity.text}</p>

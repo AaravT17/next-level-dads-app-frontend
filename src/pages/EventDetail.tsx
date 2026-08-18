@@ -4,9 +4,9 @@ import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/r
 import { AxiosError } from 'axios'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { formatEventDate, formatEventTime, formatPrice } from '@/utils/format'
 import { Card, CardContent } from '@/components/ui/card'
 import {
-  ArrowLeft,
   Calendar,
   Clock,
   MapPin,
@@ -14,10 +14,11 @@ import {
   User,
   Mail,
   Phone,
-  Loader2,
 } from 'lucide-react'
-import logo from '@/assets/logo.png'
-import BottomNav from '@/components/BottomNav'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
+import { EmptyState } from '@/components/feedback/EmptyState'
 import { useToast } from '@/hooks/use-toast'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
@@ -28,29 +29,6 @@ async function fetchEvent(id: string): Promise<Event> {
     timeout: TIMEOUT_LENGTH_MS,
   })
   return res.data
-}
-
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-const formatTime = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
-const formatPrice = (price: string) => {
-  const numPrice = Number(price)
-  if (numPrice === 0) return 'Free'
-  return `$${numPrice.toFixed(2)}`
 }
 
 const EventDetail = () => {
@@ -235,80 +213,37 @@ const EventDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">
-            Event Details
-          </h1>
-        </div>
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Event Details" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <CenteredSpinner label="Loading event" />
+        </PageContainer>
+      </>
     )
   }
 
   if (isError || !event) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
+      <>
+        <AppBar title="Event Not Found" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <EmptyState
+            title="This event could not be found."
+            description="It may have been removed or the link may be out of date."
+            action={{ label: 'Go back', onClick: handleBack }}
           />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">
-            Event Not Found
-          </h1>
-        </div>
-        <div className="max-w-md mx-auto px-6 py-6 text-center">
-          <p className="text-muted-foreground mb-4">
-            This event could not be found.
-          </p>
-          <Button
-            onClick={handleBack}
-            variant="outline"
-            className="rounded-full"
-          >
-            Go Back
-          </Button>
-        </div>
-        <BottomNav />
-      </div>
+        </PageContainer>
+      </>
     )
   }
 
   const hostDisplay = getHostDisplay()
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
-        <h1 className="text-2xl font-heading font-semibold text-foreground">
-          Event Details
-        </h1>
-      </div>
+    <>
+      <AppBar title="Event Details" leading="back" onBack={handleBack} />
 
-      <div className="max-w-md mx-auto px-6 py-6">
-        <Button
-          variant="ghost"
-          onClick={handleBack}
-          className="mb-4 -ml-2 text-muted-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-
+      <PageContainer className="animate-fade-in">
         <Card className="overflow-hidden shadow-lg">
           <CardContent className="p-6 space-y-6">
             {/* Header */}
@@ -337,7 +272,7 @@ const EventDetail = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Date</p>
                   <p className="text-sm font-medium text-foreground">
-                    {formatDate(event.starts_at)}
+                    {formatEventDate(event.starts_at)}
                   </p>
                 </div>
               </div>
@@ -347,8 +282,8 @@ const EventDetail = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Time</p>
                   <p className="text-sm font-medium text-foreground">
-                    {formatTime(event.starts_at)}
-                    {event.ends_at && ` - ${formatTime(event.ends_at)}`}
+                    {formatEventTime(event.starts_at)}
+                    {event.ends_at && ` - ${formatEventTime(event.ends_at)}`}
                   </p>
                 </div>
               </div>
@@ -432,10 +367,8 @@ const EventDetail = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-
-      <BottomNav />
-    </div>
+      </PageContainer>
+    </>
   )
 }
 

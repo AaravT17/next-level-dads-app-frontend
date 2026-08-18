@@ -1,18 +1,20 @@
 import {
   useState,
   useMemo,
-  useRef,
   useEffect,
   useCallback,
   useLayoutEffect,
 } from 'react'
-import { useParams, Link, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import {
   useInfiniteQuery,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import BottomNav from '@/components/BottomNav'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { TabBar } from '@/components/layout/TabBar'
+import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import CommunityCard from '@/components/CommunityCard'
 import DadCard from '@/components/DadCard'
 import EventCard from '@/components/EventCard'
@@ -28,8 +30,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import logo from '@/assets/logo.png'
-import { cn } from '@/lib/utils'
 import { ROUTES } from '@/lib/routes'
 import axios from 'axios'
 import { toast } from 'sonner'
@@ -330,71 +330,9 @@ const Discover = () => {
   const events = useMemo(() => eventsData?.pages.flat() ?? [], [eventsData])
 
   // infinite scroll sentinels
-  const dadsSentinelRef = useRef<HTMLDivElement>(null)
-  const communitiesSentinelRef = useRef<HTMLDivElement>(null)
-  const eventsSentinelRef = useRef<HTMLDivElement>(null)
 
-  // dads infinite scroll
-  useEffect(() => {
-    const sentinel = dadsSentinelRef.current
-    if (!sentinel) return
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextDads && !isFetchingNextDads) {
-          fetchNextDads()
-        }
-      },
-      { threshold: 0.1 },
-    )
 
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextDads, isFetchingNextDads, fetchNextDads])
-
-  // communities infinite scroll
-  useEffect(() => {
-    const sentinel = communitiesSentinelRef.current
-    if (!sentinel) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          hasNextCommunities &&
-          !isFetchingNextCommunities
-        ) {
-          fetchNextCommunities()
-        }
-      },
-      { threshold: 0.1 },
-    )
-
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextCommunities, isFetchingNextCommunities, fetchNextCommunities])
-
-  // events infinite scroll
-  useEffect(() => {
-    const sentinel = eventsSentinelRef.current
-    if (!sentinel) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          hasNextEvents &&
-          !isFetchingNextEvents
-        ) {
-          fetchNextEvents()
-        }
-      },
-      { threshold: 0.1 },
-    )
-
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextEvents, isFetchingNextEvents, fetchNextEvents])
 
   // Show toast on 429 for discover queries without wiping the UI
   useEffect(() => {
@@ -605,55 +543,20 @@ const Discover = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
-        <div className="text-center">
-          <h1 className="text-2xl font-heading font-semibold text-foreground">
-            Discover
-          </h1>
-        </div>
-      </div>
+    <>
+      <AppBar title="Discover" />
 
-      <div className="max-w-md mx-auto px-6 py-6">
+      <TabBar
+        ariaLabel="Discover sections"
+        items={[
+          { label: 'Dads', to: ROUTES.DISCOVER_DADS, isActive: tab === 'dads' },
+          { label: 'Communities', to: ROUTES.DISCOVER_COMMUNITIES, isActive: tab === 'communities' },
+          { label: 'Events', to: ROUTES.DISCOVER_EVENTS, isActive: tab === 'events' },
+        ]}
+      />
+
+      <PageContainer className="animate-fade-in">
         <div className="w-full">
-          <div className="w-full grid grid-cols-3 bg-card border-b border-border h-12 mb-2">
-            <Link
-              to={ROUTES.DISCOVER_DADS}
-              className={cn(
-                'inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all',
-                tab === 'dads' && 'border-b-2 border-primary text-foreground',
-                tab !== 'dads' && 'text-muted-foreground',
-              )}
-            >
-              Dads
-            </Link>
-            <Link
-              to={ROUTES.DISCOVER_COMMUNITIES}
-              className={cn(
-                'inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all',
-                tab === 'communities' &&
-                  'border-b-2 border-primary text-foreground',
-                tab !== 'communities' && 'text-muted-foreground',
-              )}
-            >
-              Communities
-            </Link>
-            <Link
-              to={ROUTES.DISCOVER_EVENTS}
-              className={cn(
-                'inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all',
-                tab === 'events' && 'border-b-2 border-primary text-foreground',
-                tab !== 'events' && 'text-muted-foreground',
-              )}
-            >
-              Events
-            </Link>
-          </div>
 
           {tab === 'dads' && (
             <div className="space-y-4 animate-fade-in">
@@ -904,15 +807,12 @@ const Discover = () => {
                         {...profile}
                       />
                     ))}
-                    <div
-                      ref={dadsSentinelRef}
-                      className="h-4"
+                    <InfiniteSentinel
+                      hasNextPage={hasNextDads}
+                      isFetchingNextPage={isFetchingNextDads}
+                      fetchNextPage={fetchNextDads}
+                      noun="dads"
                     />
-                    {isFetchingNextDads && (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="text-center py-12">
@@ -982,15 +882,12 @@ const Discover = () => {
                         {...community}
                       />
                     ))}
-                    <div
-                      ref={communitiesSentinelRef}
-                      className="h-4"
+                    <InfiniteSentinel
+                      hasNextPage={hasNextCommunities}
+                      isFetchingNextPage={isFetchingNextCommunities}
+                      fetchNextPage={fetchNextCommunities}
+                      noun="communities"
                     />
-                    {isFetchingNextCommunities && (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="text-center py-12">
@@ -1104,15 +1001,12 @@ const Discover = () => {
                         {...event}
                       />
                     ))}
-                    <div
-                      ref={eventsSentinelRef}
-                      className="h-4"
+                    <InfiniteSentinel
+                      hasNextPage={hasNextEvents}
+                      isFetchingNextPage={isFetchingNextEvents}
+                      fetchNextPage={fetchNextEvents}
+                      noun="events"
                     />
-                    {isFetchingNextEvents && (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="text-center py-12">
@@ -1136,10 +1030,8 @@ const Discover = () => {
             </div>
           )}
         </div>
-      </div>
-
-      <BottomNav />
-    </div>
+      </PageContainer>
+    </>
   )
 }
 

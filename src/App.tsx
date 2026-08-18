@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ROUTES } from '@/lib/routes'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 import { LegalAcceptancesModal } from '@/components/LegalAcceptancesModal'
 import { ChatProvider } from '@/contexts/ChatContext'
@@ -43,126 +45,66 @@ const AppContent = () => {
       <LegalAcceptancesModal />
       <BrowserRouter>
         <Routes>
-          {/* Public Routes - redirect to app if authenticated */}
-          <Route
-            path={ROUTES.WELCOME}
-            element={<PublicRoute><Welcome /></PublicRoute>}
-          />
-          <Route
-            path={ROUTES.LOGIN}
-            element={<PublicRoute><Login /></PublicRoute>}
-          />
-          <Route
-            path={ROUTES.REGISTER}
-            element={<PublicRoute><Register /></PublicRoute>}
-          />
-          <Route
-            path={ROUTES.FORGOT_PASSWORD}
-            element={<PublicRoute><ForgotPassword /></PublicRoute>}
-          />
-          {/* Auth utility pages - always accessible regardless of auth state */}
-          <Route
-            path={ROUTES.RESET_PASSWORD}
-            element={<ResetPassword />}
-          />
-          <Route
-            path={ROUTES.VERIFY_EMAIL}
-            element={<VerifyEmail />}
-          />
+          {/* Public - redirect to the app if already authenticated */}
+          <Route element={<PublicRoute />}>
+            <Route path={ROUTES.WELCOME} element={<Welcome />} />
+            <Route path={ROUTES.LOGIN} element={<Login />} />
+            <Route path={ROUTES.REGISTER} element={<Register />} />
+            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+          </Route>
 
-          {/* Profile Setup - requires token but no user profile yet */}
-          <Route
-            path={ROUTES.SETUP}
-            element={<SetupRoute><ProfileSetup /></SetupRoute>}
-          />
+          {/* Auth utilities - reachable in any auth state */}
+          <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
+          <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmail />} />
 
-          {/* Discover (tabbed) */}
-          <Route
-            path={ROUTES.DISCOVER}
-            element={<ProtectedRoute><Navigate to={ROUTES.DISCOVER_DADS} replace /></ProtectedRoute>}
-          />
-          <Route
-            path="/discover/dads/:id"
-            element={<ProtectedRoute><ProfileDetail /></ProtectedRoute>}
-          />
-          <Route
-            path="/discover/:tab"
-            element={<ProtectedRoute><Discover /></ProtectedRoute>}
-          />
+          {/* Setup - has a token but no profile yet */}
+          <Route element={<SetupRoute />}>
+            <Route path={ROUTES.SETUP} element={<ProfileSetup />} />
+          </Route>
 
-          {/* Communities */}
-          <Route
-            path="/communities"
-            element={<ProtectedRoute><CommunitiesPage /></ProtectedRoute>}
-          />
-          <Route
-            path="/communities/:communityId"
-            element={<ProtectedRoute><CommunityDetailPage /></ProtectedRoute>}
-          />
-          <Route
-            path="/communities/:communityId/conversations/:conversationId"
-            element={<ProtectedRoute><ConversationDetailPage /></ProtectedRoute>}
-          />
+          {/* Protected */}
+          <Route element={<ProtectedRoute />}>
+            {/* Standard screens, with primary navigation */}
+            <Route element={<AppLayout variant="tabs" />}>
+              <Route path={ROUTES.DISCOVER} element={<Navigate to={ROUTES.DISCOVER_DADS} replace />} />
+              <Route path="/discover/dads/:id" element={<ProfileDetail />} />
+              <Route path="/discover/:tab" element={<Discover />} />
 
-          {/* Events */}
-          <Route
-            path="/events/:eventId"
-            element={<ProtectedRoute><EventDetail /></ProtectedRoute>}
-          />
+              <Route path="/communities" element={<CommunitiesPage />} />
+              <Route path="/communities/:communityId" element={<CommunityDetailPage />} />
+              <Route
+                path="/communities/:communityId/conversations/:conversationId"
+                element={<ConversationDetailPage />}
+              />
 
-          {/* My Groups (tabbed) */}
-          <Route
-            path={ROUTES.GROUPS}
-            element={<ProtectedRoute><Navigate to={ROUTES.GROUPS_COMMUNITIES} replace /></ProtectedRoute>}
-          />
-          <Route
-            path="/groups/:tab"
-            element={<ProtectedRoute><Groups /></ProtectedRoute>}
-          />
+              <Route path="/events/:eventId" element={<EventDetail />} />
 
-          {/* Chats */}
-          <Route
-            path={ROUTES.CHATS}
-            element={<ProtectedRoute><Chats /></ProtectedRoute>}
-          />
-          <Route
-            path="/chats/:id"
-            element={<ProtectedRoute><Chat /></ProtectedRoute>}
-          />
-          <Route
-            path="/chats/:id/manage"
-            element={<ProtectedRoute><ChatManage /></ProtectedRoute>}
-          />
+              <Route path={ROUTES.GROUPS} element={<Navigate to={ROUTES.GROUPS_COMMUNITIES} replace />} />
+              <Route path="/groups/:tab" element={<Groups />} />
 
-          {/* Profile */}
-          <Route
-            path={ROUTES.PROFILE}
-            element={<ProtectedRoute><MyProfile /></ProtectedRoute>}
-          />
-          <Route
-            path="/profiles/:id"
-            element={<ProtectedRoute><ProfileDetail /></ProtectedRoute>}
-          />
-          <Route
-            path={ROUTES.CONNECTIONS}
-            element={<ProtectedRoute><Connections /></ProtectedRoute>}
-          />
-          <Route
-            path={ROUTES.REQUESTS}
-            element={<ProtectedRoute><Requests /></ProtectedRoute>}
-          />
+              <Route path={ROUTES.CHATS} element={<Chats />} />
+
+              <Route path={ROUTES.PROFILE} element={<MyProfile />} />
+              <Route path="/profiles/:id" element={<ProfileDetail />} />
+              <Route path={ROUTES.CONNECTIONS} element={<Connections />} />
+              <Route path={ROUTES.REQUESTS} element={<Requests />} />
+            </Route>
+
+            {/* Full-height screens that own their chrome */}
+            <Route element={<AppLayout variant="immersive" />}>
+              <Route path="/chats/:id" element={<Chat />} />
+              <Route path="/chats/:id/manage" element={<ChatManage />} />
+            </Route>
+          </Route>
 
           {/* Admin */}
-          <Route
-            path={ROUTES.ADMIN}
-            element={<AdminRoute><AdminDashboardPage /></AdminRoute>}
-          />
+          <Route element={<AdminRoute />}>
+            <Route element={<AppLayout variant="tabs" />}>
+              <Route path={ROUTES.ADMIN} element={<AdminDashboardPage />} />
+            </Route>
+          </Route>
 
-          {/* Catch-all */}
-          <Route
-            path="*"
-            element={<NotFound />}
-          />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
@@ -170,13 +112,15 @@ const AppContent = () => {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <ChatProvider>
-        <AppContent />
-      </ChatProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ChatProvider>
+          <AppContent />
+        </ChatProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 )
 
 export default App
