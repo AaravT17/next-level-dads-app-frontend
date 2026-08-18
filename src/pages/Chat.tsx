@@ -1,7 +1,7 @@
 // TODO: Add date separators between messages (e.g. "Today", "Yesterday", specific dates) so users can orient
 // themselves in longer conversations — currently messages only show time, no date context.
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   useQuery,
   useMutation,
@@ -22,7 +22,7 @@ import {
   Reply,
   X,
 } from 'lucide-react'
-import { groupsTab, chatManage } from '@/lib/routes'
+import { chatManage } from '@/lib/routes'
 import {
   type ChatType,
   type Message,
@@ -56,10 +56,8 @@ const Chat = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { id } = useParams<{ id: string }>()
-  const [searchParams] = useSearchParams()
 
   const chatId = id || ''
-  const from = searchParams.get('from')
 
   // ============================================
   // Local state
@@ -429,11 +427,7 @@ const Chat = () => {
   }
 
   const handleBack = () => {
-    if (from === 'groups') {
-      navigate(groupsTab('communities'))
-    } else {
-      navigate(-1)
-    }
+    navigate(-1)
   }
 
   const cancelEdit = () => {

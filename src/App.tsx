@@ -18,13 +18,11 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import VerifyEmail from './pages/VerifyEmail'
 import ProfileSetup from './pages/ProfileSetup'
-import Match from './pages/Match'
 import Chats from './pages/Chats'
 import Chat from './pages/Chat'
 import ChatManage from './pages/ChatManage'
 import Discover from './pages/Discover'
 import Groups from './pages/Groups'
-import Members from './pages/Members'
 import MyProfile from './pages/MyProfile'
 import ProfileDetail from './pages/ProfileDetail'
 import Connections from './pages/Connections'
@@ -78,12 +76,6 @@ const AppContent = () => {
             element={<SetupRoute><ProfileSetup /></SetupRoute>}
           />
 
-          {/* Protected Routes - require full authentication */}
-          <Route
-            path={ROUTES.MATCH}
-            element={<ProtectedRoute><Match /></ProtectedRoute>}
-          />
-
           {/* Discover (tabbed) */}
           <Route
             path={ROUTES.DISCOVER}
@@ -111,10 +103,6 @@ const AppContent = () => {
             path="/communities/:communityId/conversations/:conversationId"
             element={<ProtectedRoute><ConversationDetailPage /></ProtectedRoute>}
           />
-          <Route
-            path="/communities/:communityId/members"
-            element={<ProtectedRoute><Members /></ProtectedRoute>}
-          />
 
           {/* Events */}
           <Route
@@ -130,10 +118,6 @@ const AppContent = () => {
           <Route
             path="/groups/:tab"
             element={<ProtectedRoute><Groups /></ProtectedRoute>}
-          />
-          <Route
-            path="/groups/:groupId/members"
-            element={<ProtectedRoute><Members /></ProtectedRoute>}
           />
 
           {/* Chats */}

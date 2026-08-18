@@ -7,13 +7,10 @@
  * Route Structure:
  * ├── / (Welcome)
  * ├── /setup (Profile Setup)
- * ├── /match (Match Screen)
  * ├── /discover/:tab (Discover - dads, communities, events)
  * │   └── /discover/dads/:id (Profile from Discover)
  * ├── /communities/:communityId (Community Detail)
- * │   └── /communities/:communityId/members (Community Members)
  * ├── /groups/:tab (My Groups - communities, events)
- * │   └── /groups/:groupId/members (Group Members)
  * ├── /chats (Chats List)
  * │   ├── /chats/:id (Chat)
  * │   └── /chats/:id/manage (Group Chat Management)
@@ -36,7 +33,6 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   VERIFY_EMAIL: '/verify-email',
   SETUP: '/setup',
-  MATCH: '/match',
 
   // Discover (tabbed)
   DISCOVER: '/discover',
@@ -113,18 +109,6 @@ export const communityDetail = (communityId: number | string) =>
 export const conversationDetail = (communityId: string, conversationId: string) =>
   `/communities/${communityId}/conversations/${conversationId}` as const
 
-/**
- * Get route for community members
- */
-export const communityMembers = (communityId: number | string) =>
-  `/communities/${communityId}/members` as const
-
-/**
- * Get route for private group members (normalized pattern)
- */
-export const groupMembers = (groupId: string) =>
-  `/groups/${groupId}/members` as const
-
 // ============================================
 // Chat Route Helpers
 // ============================================
@@ -134,12 +118,7 @@ export const groupMembers = (groupId: string) =>
  */
 export const chatManage = (id: string) => `/chats/${id}/manage` as const
 
-export const chat = (id: string, from?: string) => {
-  const params = new URLSearchParams()
-  if (from) params.set('from', from)
-  const queryString = params.toString()
-  return queryString ? `/chats/${id}?${queryString}` : `/chats/${id}`
-}
+export const chat = (id: string) => `/chats/${id}` as const
 
 // ============================================
 // Profile Route Helpers
