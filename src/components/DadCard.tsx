@@ -1,4 +1,5 @@
-import { MapPin } from 'lucide-react'
+import { MapPin, MessageCircle, UserMinus, UserPlus, Check, X, Clock } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   useMutation,
@@ -7,6 +8,8 @@ import {
 } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import { Button } from './ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
+import { cn } from '@/lib/utils'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
 import { getStageDisplayLabel } from '@/utils/users'
@@ -256,91 +259,116 @@ const DadCard = ({
     removeConnection.isPending ||
     createChat.isPending
 
+  /**
+   * Round icon actions, pinned to the card's top-right.
+   *
+   * These stay circular against the otherwise squared-off system on purpose:
+   * a circle here is a *shape*, not a rounded rectangle pretending to be one,
+   * which is the same reason avatars and count badges kept their radius.
+   *
+   * Icon-only, so every one carries a label and a tooltip — the meaning of
+   * "unconnect" or "ignore" is not obvious from a glyph alone.
+   */
+  const IconAction = ({
+    label,
+    icon: Icon,
+    onClick,
+    variant = 'default',
+    disabled,
+  }: {
+    label: string
+    icon: LucideIcon
+    onClick: () => void
+    variant?: 'default' | 'outline' | 'muted'
+    disabled?: boolean
+  }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          size="icon"
+          variant={variant === 'outline' ? 'outline' : 'default'}
+          aria-label={label}
+          disabled={disabled}
+          className={cn(
+            // 44px — the standard touch-target size, and enough presence for
+            // Connect to read as the primary action on the browse screen.
+            'h-11 w-11 rounded-full shrink-0',
+            variant === 'muted' && 'bg-muted text-muted-foreground hover:bg-muted',
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClick()
+          }}
+        >
+          <Icon className="w-5 h-5" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
+
   const renderButtons = () => {
     if (connection_status === 'blocked') return null
 
     if (connection_status === 'connected') {
       return (
-        <div className="flex gap-2">
-          <Button
-            className="flex-1 rounded-full font-semibold"
-            onClick={(e) => {
-              e.stopPropagation()
-              handleChat()
-            }}
-          >
-            Chat
-          </Button>
-          <Button
-            className="flex-1 rounded-full font-semibold"
+        <div className="flex shrink-0 items-center gap-2">
+          <IconAction label="Message" icon={MessageCircle} onClick={handleChat} />
+          <IconAction
+            label="Remove connection"
+            icon={UserMinus}
             variant="outline"
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleUnconnect()
-            }}
-          >
-            Unconnect
-          </Button>
+            onClick={handleUnconnect}
+          />
         </div>
       )
     }
 
     if (connection_status === 'pending_incoming') {
       return (
-        <div className="flex gap-2">
-          <Button
-            className="flex-1 rounded-full font-semibold"
+        <div className="flex shrink-0 items-center gap-2">
+          <IconAction
+            label="Accept request"
+            icon={Check}
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleAccept()
-            }}
-          >
-            Accept
-          </Button>
-          <Button
-            className="flex-1 rounded-full font-semibold"
+            onClick={handleAccept}
+          />
+          <IconAction
+            label="Ignore request"
+            icon={X}
             variant="outline"
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleIgnore()
-            }}
-          >
-            Ignore
-          </Button>
+            onClick={handleIgnore}
+          />
         </div>
       )
     }
 
     if (connection_status === 'pending_outgoing') {
       return (
-        <Button
-          className="w-full rounded-full font-semibold bg-muted text-muted-foreground hover:bg-muted"
-          disabled={isLoading}
-          onClick={(e) => {
-            e.stopPropagation()
-            handleCancelRequest()
-          }}
-        >
-          Requested
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <IconAction
+            label="Cancel request"
+            icon={Clock}
+            variant="muted"
+            disabled={isLoading}
+            onClick={handleCancelRequest}
+          />
+        </div>
       )
     }
 
     // connection_status === null
     return (
-      <Button
-        className="w-full rounded-full font-semibold"
-        disabled={isLoading}
-        onClick={(e) => {
-          e.stopPropagation()
-          handleConnect()
-        }}
-      >
-        Connect
-      </Button>
+      <div className="flex shrink-0 items-center gap-2">
+        <IconAction
+          label={`Connect with ${name}`}
+          icon={UserPlus}
+          disabled={isLoading}
+          onClick={handleConnect}
+        />
+      </div>
     )
   }
 
@@ -364,7 +392,7 @@ const DadCard = ({
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-subhead font-heading font-semibold text-foreground">
+            <h3 className="text-subhead font-heading font-semibold text-foreground truncate">
               {name}, {age ?? '—'}
             </h3>
             <div className="flex items-center gap-1 text-caption text-muted-foreground mt-0.5">
@@ -378,13 +406,15 @@ const DadCard = ({
                 <Badge
                   key={child}
                   variant="soft"
-                  className="rounded-full text-caption"
+                  className="rounded-md text-caption"
                 >
                   {getStageDisplayLabel(child)}
                 </Badge>
               ))}
             </div>
           </div>
+
+          {renderButtons()}
         </div>
 
         <p className="text-foreground text-body leading-relaxed">{about}</p>
@@ -394,14 +424,12 @@ const DadCard = ({
             <Badge
               key={interest}
               variant="interest"
-              className="rounded-full text-caption"
+              className="rounded-md text-caption"
             >
               {interest}
             </Badge>
           ))}
         </div>
-
-        {renderButtons()}
       </CardContent>
     </Card>
   )

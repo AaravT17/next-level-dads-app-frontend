@@ -270,7 +270,7 @@ const DadsPage = () => {
         placeholder="Search dads..."
         value={dadSearchQuery}
         onChange={(e) => setDadSearchQuery(e.target.value)}
-        className="pl-10 pr-10 rounded-full"
+        className="pl-10 pr-10 rounded-md"
       />
       {dadSearchQuery && (
         <button
@@ -291,7 +291,7 @@ const DadsPage = () => {
         <SheetTrigger asChild>
           <Button
             variant="outline"
-            className="rounded-full"
+            className="rounded-md"
           >
             <SlidersHorizontal className="w-4 h-4 mr-2" />
             Filters
@@ -325,7 +325,7 @@ const DadsPage = () => {
                         ? 'default'
                         : 'outline'
                     }
-                    className="cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-md"
                     onClick={() =>
                       togglePendingChildrenAge(stage.value)
                     }
@@ -351,7 +351,7 @@ const DadsPage = () => {
                     <Badge
                       key={interest}
                       variant="default"
-                      className="cursor-pointer rounded-full"
+                      className="cursor-pointer rounded-md"
                       onClick={() => togglePendingInterest(interest)}
                     >
                       {interest} ✕
@@ -430,7 +430,7 @@ const DadsPage = () => {
                         ? 'default'
                         : 'outline'
                     }
-                    className="cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-md"
                     onClick={() =>
                       togglePendingLocation(province.value)
                     }
@@ -457,7 +457,7 @@ const DadsPage = () => {
                         ? 'default'
                         : 'outline'
                     }
-                    className="cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-md"
                     onClick={() => togglePendingDadAge(range)}
                   >
                     {range}
@@ -517,7 +517,7 @@ const DadsPage = () => {
         }
       >
         {(items) => (
-          <ul role="list" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <ul role="list" className="grid gap-4 sm:grid-cols-2">
             {items.map((profile) => (
               <li key={profile.id}>
                 <DadCard {...profile} />
@@ -538,7 +538,7 @@ const DadsPage = () => {
     <div className="pt-4 flex justify-center">
       <Button
         variant="outline"
-        className="w-full sm:w-auto sm:px-8 rounded-full"
+        className="w-full sm:w-auto sm:px-8 rounded-md"
         onClick={handleRefreshDads}
       >
         <RefreshCw className="w-4 h-4 mr-2" />

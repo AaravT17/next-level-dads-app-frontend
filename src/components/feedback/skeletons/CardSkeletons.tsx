@@ -17,8 +17,8 @@ export function DadCardSkeleton() {
           <Skeleton className="h-4 w-1/2" />
           <Skeleton className="h-3 w-1/3" />
           <div className="flex gap-2 pt-2">
-            <Skeleton className="h-5 w-16 rounded-full" />
-            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-md" />
+            <Skeleton className="h-5 w-20 rounded-md" />
           </div>
         </div>
       </CardContent>
@@ -63,7 +63,7 @@ export function ChatRowSkeleton() {
 }
 
 /** Mirrors the grid the real lists use from sm upward. */
-const CARD_GRID = 'space-y-0 grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+const CARD_GRID = 'space-y-0 grid gap-4 sm:grid-cols-2'
 
 export const DadListSkeleton = () => (
   <ListSkeleton count={6} item={<DadCardSkeleton />} className={CARD_GRID} />
