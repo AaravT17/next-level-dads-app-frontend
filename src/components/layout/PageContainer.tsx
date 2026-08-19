@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { useScrollRestoration } from '@/hooks/useScrollRestoration'
 import { CONTENT_WIDTH, type ContentWidth } from './contentWidth'
 
 export type PageContainerProps = {
@@ -21,9 +22,13 @@ export function PageContainer({
   scroll = true,
   width = 'default',
 }: PageContainerProps) {
+  const ref = useRef<HTMLElement>(null)
+  useScrollRestoration(ref)
+
   return (
     <main
       id="main"
+      ref={ref}
       className={cn('flex-1 min-h-0', scroll && 'overflow-y-auto overscroll-contain')}
     >
       <div className={cn(CONTENT_WIDTH[width], 'px-4 sm:px-6 py-6', className)}>{children}</div>
