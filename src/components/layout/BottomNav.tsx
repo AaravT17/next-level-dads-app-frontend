@@ -4,7 +4,8 @@ import { useNavItems } from './useNavItems'
 import { NavBadge } from './NavBadge'
 
 /**
- * Mobile navigation. Hidden from lg upward, where SideNav takes over.
+ * Primary navigation at every width — the bar spans the screen rather than
+ * handing over to a side rail on desktop.
  *
  * A flex sibling of the scroll region rather than `fixed`, so no page needs
  * padding to clear it.
@@ -15,7 +16,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="lg:hidden shrink-0 bg-card border-t border-border pb-[env(safe-area-inset-bottom)]"
+      className="shrink-0 bg-card border-t border-border pb-[env(safe-area-inset-bottom)]"
     >
       <ul role="list" className="flex items-stretch h-16">
         {items.map((item) => {

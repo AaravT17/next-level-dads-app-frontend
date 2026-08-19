@@ -28,9 +28,9 @@ export type AppBarProps = {
  * The page header.
  *
  * Two layouts. On mobile it is a centred title with the logo at the leading
- * edge — the phone convention. From lg the logo moves to the side rail, so the
- * bar drops it and left-aligns the title against the content column, which is
- * how a desktop page header reads.
+ * edge — the phone convention. From lg the title left-aligns against the
+ * content column, which is how a desktop page header reads, and the logo stays
+ * at the leading edge since there is no side rail to carry it.
  */
 export function AppBar({
   title,
@@ -83,9 +83,12 @@ export function AppBar({
           <div aria-hidden />
         </div>
 
-        {/* Desktop: back · left-aligned title · actions. The rail owns the logo. */}
+        {/* Desktop: logo or back · left-aligned title · actions */}
         <div className="hidden lg:flex items-center gap-3 py-4">
-          {back}
+          {back ??
+            (leading === 'logo' ? (
+              <img src={logo} alt="" aria-hidden className="h-9 w-auto shrink-0" />
+            ) : null)}
           <div className="min-w-0 flex-1">
             <h1 className="font-heading text-title text-foreground truncate">{title}</h1>
             {subtitle ? (
