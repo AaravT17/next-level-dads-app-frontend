@@ -13,9 +13,10 @@
  * ├── /setup                  Profile setup
  * ├── /dads                   Browse dads
  * │   └── /dads/:id           A dad's profile
- * ├── /groups/:tab            Communities | Events, filtered by ?scope=joined|all
- * │   ├── /communities/:id                        Community detail
- * │   │   └── .../conversations/:conversationId   A post
+ * ├── /groups/:tab            Feed | Communities
+ * │   └── /communities/:id                        Community detail
+ * │       └── .../conversations/:conversationId   A post
+ * ├── /events                 Events, filtered by ?scope=joined|all
  * │   └── /events/:eventId                        Event detail
  * ├── /chats                  Chat list
  * │   ├── /chats/:id          A conversation
@@ -41,12 +42,15 @@ export const ROUTES = {
   DADS: '/dads',
   DAD_DETAIL: '/dads/:id',
 
-  // Groups
+  // Groups — feed and communities as sibling sections
   GROUPS: '/groups',
+  GROUPS_FEED: '/groups/feed',
   GROUPS_COMMUNITIES: '/groups/communities',
-  GROUPS_EVENTS: '/groups/events',
   COMMUNITY_DETAIL: '/communities/:communityId',
   CONVERSATION_DETAIL: '/communities/:communityId/conversations/:conversationId',
+
+  // Events
+  EVENTS: '/events',
   EVENT_DETAIL: '/events/:eventId',
 
   // Chats
@@ -78,8 +82,6 @@ export const ROUTES = {
 // ============================================
 // Types
 // ============================================
-export type GroupsTab = 'communities' | 'events'
-
 /** Whether a list shows only what you have joined, or everything. */
 export type GroupScope = 'joined' | 'all'
 
@@ -88,8 +90,15 @@ export type GroupScope = 'joined' | 'all'
 // ============================================
 export const dadDetail = (id: string) => `/dads/${id}` as const
 
-export const groupsTab = (tab: GroupsTab, scope?: GroupScope) =>
-  scope ? `/groups/${tab}?scope=${scope}` : `/groups/${tab}`
+export type GroupsTab = 'feed' | 'communities'
+
+/** Communities list, optionally scoped. */
+export const groups = (scope?: GroupScope) =>
+  scope ? `/groups/communities?scope=${scope}` : '/groups/communities'
+
+/** Events list, optionally scoped. */
+export const events = (scope?: GroupScope) =>
+  scope ? `/events?scope=${scope}` : '/events'
 
 export const communityDetail = (communityId: number | string) =>
   `/communities/${communityId}` as const
@@ -112,6 +121,5 @@ export const profileDetail = dadDetail
 // Defaults
 // ============================================
 export const DEFAULTS = {
-  GROUPS_TAB: 'communities' as GroupsTab,
   GROUP_SCOPE: 'joined' as GroupScope,
 }

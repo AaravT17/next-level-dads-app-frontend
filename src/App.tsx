@@ -3,7 +3,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClient'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ROUTES, dadDetail, groupsTab } from '@/lib/routes'
+import { ROUTES, dadDetail, groups, events } from '@/lib/routes'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -25,6 +25,7 @@ import { ChatsLayout, ChatsEmptyPane } from './pages/chats/ChatsLayout'
 import ChatManage from './pages/ChatManage'
 import DadsPage from './pages/DadsPage'
 import GroupsPage from './pages/GroupsPage'
+import EventsPage from './pages/EventsPage'
 import MyProfile from './pages/MyProfile'
 import YouPage from './pages/YouPage'
 import SettingsPage from './pages/SettingsPage'
@@ -70,11 +71,14 @@ const AppContent = () => {
               <Route path={ROUTES.DADS} element={<DadsPage />} />
               <Route path={ROUTES.DAD_DETAIL} element={<ProfileDetail />} />
 
-              {/* Groups */}
-              <Route path={ROUTES.GROUPS} element={<Navigate to={ROUTES.GROUPS_COMMUNITIES} replace />} />
+              {/* Groups — feed and communities as sibling tabs */}
+              <Route path={ROUTES.GROUPS} element={<Navigate to={ROUTES.GROUPS_FEED} replace />} />
               <Route path="/groups/:tab" element={<GroupsPage />} />
               <Route path={ROUTES.COMMUNITY_DETAIL} element={<CommunityDetailPage />} />
               <Route path={ROUTES.CONVERSATION_DETAIL} element={<ConversationDetailPage />} />
+
+              {/* Events */}
+              <Route path={ROUTES.EVENTS} element={<EventsPage />} />
               <Route path={ROUTES.EVENT_DETAIL} element={<EventDetail />} />
 
               {/* Chats — list only on mobile, list + thread from lg */}
@@ -120,16 +124,12 @@ const AppContent = () => {
           <Route path="/profiles/:id" element={<LegacyRedirect to={(p) => dadDetail(p.id!)} />} />
           <Route
             path="/discover/communities"
-            element={<LegacyRedirect to={() => groupsTab('communities', 'all')} />}
+            element={<LegacyRedirect to={() => groups('all')} />}
           />
-          <Route
-            path="/discover/events"
-            element={<LegacyRedirect to={() => groupsTab('events', 'all')} />}
-          />
-          <Route
-            path="/communities"
-            element={<LegacyRedirect to={() => groupsTab('communities', 'all')} />}
-          />
+          <Route path="/discover/events" element={<LegacyRedirect to={() => events('all')} />} />
+          <Route path="/communities" element={<LegacyRedirect to={() => groups('all')} />} />
+          {/* Events were a tab inside Groups until they became their own destination. */}
+          <Route path="/groups/events" element={<LegacyRedirect to={() => events()} />} />
           <Route path="/match" element={<LegacyRedirect to={() => ROUTES.DADS} />} />
           <Route path="/profile" element={<LegacyRedirect to={() => ROUTES.YOU} />} />
           <Route path="/connections" element={<LegacyRedirect to={() => ROUTES.CONNECTIONS} />} />

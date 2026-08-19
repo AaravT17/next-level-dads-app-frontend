@@ -1,12 +1,17 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MessageCircle, Heart, Users, Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { conversationDetail } from '@/lib/routes'
+import { communityDetail, conversationDetail } from '@/lib/routes'
 import type { Conversation } from '@/types/communities'
 import { PendingReportGate } from './PendingReportGate'
 
 interface ConversationCardProps {
   conversation: Conversation
+  /**
+   * Shown as an eyebrow above the title. Only the cross-community feed passes
+   * this — inside a community the source is already obvious from the page.
+   */
+  communityName?: string
 }
 
 function timeAgo(iso: string): string {
@@ -20,7 +25,7 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-export function ConversationCard({ conversation }: ConversationCardProps) {
+export function ConversationCard({ conversation, communityName }: ConversationCardProps) {
   const navigate = useNavigate()
 
   return (
@@ -31,6 +36,17 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
       }
     >
       <CardContent className="p-4 space-y-2">
+        {communityName && (
+          <Link
+            to={communityDetail(conversation.community_id)}
+            // The whole card opens the post, so the link has to claim its own click.
+            onClick={(e) => e.stopPropagation()}
+            className="inline-block text-overline uppercase text-primary hover:underline"
+          >
+            {communityName}
+          </Link>
+        )}
+
         {conversation.has_pending_report && !conversation.is_deleted ? (
           <PendingReportGate compact revealable={false}>
             <span />
