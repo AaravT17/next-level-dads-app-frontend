@@ -67,7 +67,6 @@ const Register = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
@@ -91,7 +90,7 @@ const Register = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="email"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Email
                 </label>
@@ -108,7 +107,7 @@ const Register = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="password"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Password
                 </label>
@@ -138,7 +137,7 @@ const Register = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="confirmPassword"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Confirm Password
                 </label>
@@ -169,20 +168,18 @@ const Register = () => {
                 type="submit"
                 size="lg"
                 className="w-full rounded-full font-semibold text-base shadow-md"
-                style={{ backgroundColor: '#D8A24A' }}
                 disabled={isLoading}
               >
                 Create Account
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-body text-muted-foreground">
               Already have an account?{' '}
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.LOGIN)}
-                className="font-semibold hover:underline"
-                style={{ color: '#D8A24A' }}
+                className="font-semibold text-primary hover:underline"
                 disabled={isLoading}
               >
                 Login

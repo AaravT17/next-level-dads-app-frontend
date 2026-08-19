@@ -386,7 +386,7 @@ const ProfileSetup = () => {
                   required
                   disabled={loading}
                 />
-                <div className="text-xs text-muted-foreground text-right">
+                <div className="text-caption text-muted-foreground text-right">
                   {formData.about.length}/{MAX_BIO_LENGTH}
                 </div>
               </div>
@@ -582,7 +582,7 @@ const ProfileSetup = () => {
                   disabled={loading}
                   className="mt-0.5"
                 />
-                <label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
+                <label htmlFor="terms" className="text-label leading-relaxed cursor-pointer">
                   I agree to the{' '}
                   <a
                     href={`${WEBSITE_BASE_URL}/terms`}
@@ -613,7 +613,7 @@ const ProfileSetup = () => {
                   disabled={loading}
                   className="mt-0.5"
                 />
-                <label htmlFor="age" className="text-sm leading-relaxed cursor-pointer">
+                <label htmlFor="age" className="text-label leading-relaxed cursor-pointer">
                   I confirm I am 18 years of age or older.{' '}
                   <span className="text-destructive">*</span>
                 </label>
@@ -627,7 +627,7 @@ const ProfileSetup = () => {
                   disabled={loading}
                   className="mt-0.5"
                 />
-                <label htmlFor="marketing" className="text-sm leading-relaxed cursor-pointer text-muted-foreground">
+                <label htmlFor="marketing" className="text-label leading-relaxed cursor-pointer text-muted-foreground">
                   I'd like to receive occasional emails about new features, events, and updates from Next Level Dads. I can unsubscribe at any time.
                 </label>
               </div>

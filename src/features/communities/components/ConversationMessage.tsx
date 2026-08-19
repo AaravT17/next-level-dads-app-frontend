@@ -39,13 +39,13 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
                 className="w-8 h-8 rounded-full object-cover"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-caption font-semibold">
                 {initials(author.name)}
               </div>
             )}
           </Link>
         ) : (
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-caption font-semibold">
             ?
           </div>
         )}
@@ -64,7 +64,7 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
           ) : (
             <span className="text-sm font-semibold text-foreground">Anonymous</span>
           )}
-          <span className="text-xs text-muted-foreground">
+          <span className="text-caption text-muted-foreground">
             {formatRelative(message.created_at)}
           </span>
         </div>

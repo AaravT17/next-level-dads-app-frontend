@@ -55,16 +55,16 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
 
         <div className="flex items-center justify-between gap-2">
           {conversation.author && (
-            <p className="text-xs text-muted-foreground">{conversation.author.name}</p>
+            <p className="text-caption text-muted-foreground">{conversation.author.name}</p>
           )}
           {!conversation.is_deleted && conversation.prompt_type && (
-            <span className="text-xs text-muted-foreground/70 bg-muted px-2.5 py-1 rounded-full ml-auto">
+            <span className="text-caption text-muted-foreground/70 bg-muted px-2.5 py-1 rounded-full ml-auto">
               {conversation.prompt_type}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground border-t border-border pt-2 mt-1">
+        <div className="flex items-center gap-4 text-caption text-muted-foreground border-t border-border pt-2 mt-1">
           <span className="flex items-center gap-1">
             <MessageCircle className="w-3.5 h-3.5" />
             {conversation.reply_count}

@@ -68,7 +68,7 @@ export function LegalAcceptancesModal() {
               disabled={isSubmitting}
               className="mt-0.5"
             />
-            <label htmlFor="modal-terms" className="text-sm leading-relaxed cursor-pointer">
+            <label htmlFor="modal-terms" className="text-label leading-relaxed cursor-pointer">
               I agree to the{' '}
               <a
                 href={`${WEBSITE_BASE_URL}/terms`}
@@ -89,7 +89,7 @@ export function LegalAcceptancesModal() {
               disabled={isSubmitting}
               className="mt-0.5"
             />
-            <label htmlFor="modal-privacy" className="text-sm leading-relaxed cursor-pointer">
+            <label htmlFor="modal-privacy" className="text-label leading-relaxed cursor-pointer">
               I agree to the{' '}
               <a
                 href={`${WEBSITE_BASE_URL}/privacy`}

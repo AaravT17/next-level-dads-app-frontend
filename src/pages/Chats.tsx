@@ -401,7 +401,6 @@ const Chats = () => {
                     onClick={handleCreateChat}
                     disabled={createChat.isPending}
                     className="w-full rounded-full"
-                    style={{ backgroundColor: '#D8A24A' }}
                   >
                     {createChat.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

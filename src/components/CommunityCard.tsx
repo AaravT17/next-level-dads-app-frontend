@@ -171,7 +171,7 @@ const CommunityCard = ({
       <CardContent className="p-6 space-y-4">
         <div>
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-lg font-heading font-semibold text-foreground mb-2">
+            <h3 className="text-subhead font-heading font-semibold text-foreground mb-2">
               {name}
             </h3>
             {role && (
@@ -181,7 +181,7 @@ const CommunityCard = ({
             )}
           </div>
           {description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-body text-muted-foreground leading-relaxed">
               {description}
             </p>
           )}

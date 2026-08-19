@@ -28,9 +28,9 @@ export default tseslint.config(
       // Design tokens live in src/index.css. Inline hex bypasses them and is
       // how ~50 stray colours accumulated before the rework. Use the Tailwind
       // token classes (bg-primary, text-foreground, ...) instead.
-      // TODO(phase-4): flip to "error" once the hex sweep lands.
+      // The sweep is done; colours live in src/index.css.
       "no-restricted-syntax": [
-        "warn",
+        "error",
         {
           selector:
             "JSXAttribute[name.name='style'] Property > Literal[value=/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/]",

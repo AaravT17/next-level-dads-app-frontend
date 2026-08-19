@@ -117,7 +117,6 @@ const Welcome = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in text-center px-6">
         <div className="flex justify-center mt-12 mb-8">
@@ -130,8 +129,7 @@ const Welcome = () => {
 
         <div className="space-y-3">
           <p
-            className="text-2xl font-semibold"
-            style={{ color: '#000000' }}
+            className="text-2xl font-semibold text-foreground"
           >
             Empowering Fathers.
             <br />

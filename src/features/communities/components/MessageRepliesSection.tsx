@@ -55,13 +55,13 @@ function ReplyItem({
               className="w-6 h-6 rounded-full object-cover"
             />
           ) : (
-            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-semibold">
+            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-caption font-semibold">
               {initials(author.name)}
             </div>
           )}
         </Link>
       ) : (
-        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-semibold shrink-0 mt-0.5">
+        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-caption font-semibold shrink-0 mt-0.5">
           ?
         </div>
       )}
@@ -70,19 +70,19 @@ function ReplyItem({
           {author ? (
             <Link
               to={profileDetail(author.id)}
-              className="text-xs font-semibold text-foreground hover:underline"
+              className="text-caption font-semibold text-foreground hover:underline"
             >
               {author.name}
             </Link>
           ) : (
-            <span className="text-xs font-semibold text-foreground">Anonymous</span>
+            <span className="text-caption font-semibold text-foreground">Anonymous</span>
           )}
-          <span className="text-xs text-muted-foreground">{formatRelative(reply.created_at)}</span>
+          <span className="text-caption text-muted-foreground">{formatRelative(reply.created_at)}</span>
         </div>
         {reply.has_pending_report && !reply.is_deleted ? (
           <div className="mt-2">
             <PendingReportGate compact>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
+              <p className="text-body whitespace-pre-wrap leading-relaxed text-foreground">
                 {reply.body}
               </p>
             </PendingReportGate>
@@ -188,7 +188,7 @@ export function MessageRepliesSection({
             })}
           />
           {errors.body && (
-            <p className="text-xs text-destructive">{errors.body.message}</p>
+            <p className="text-caption text-destructive">{errors.body.message}</p>
           )}
           <div className="flex gap-2">
             <Button
@@ -216,9 +216,9 @@ export function MessageRepliesSection({
               )}
             </Button>
           </div>
-          {notice && <p className="text-xs text-destructive">{notice}</p>}
+          {notice && <p className="text-caption text-destructive">{notice}</p>}
           {createReply.isError && !isBanned && !(axios.isAxiosError(createReply.error) && createReply.error.response?.status === 429) && (
-            <p className="text-xs text-destructive">Failed to send. Please try again.</p>
+            <p className="text-caption text-destructive">Failed to send. Please try again.</p>
           )}
         </form>
       ) : allowComposing ? (

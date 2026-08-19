@@ -12,7 +12,7 @@ export function ParticipantList({ participants }: ParticipantListProps) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+      <p className="text-caption font-medium text-muted-foreground uppercase tracking-wide">
         {participants.length} {participants.length === 1 ? 'dad' : 'dads'} talking
       </p>
       <div className="flex flex-wrap gap-2">
@@ -25,7 +25,7 @@ export function ParticipantList({ participants }: ParticipantListProps) {
                 className="w-7 h-7 rounded-full object-cover ring-2 ring-background"
               />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold ring-2 ring-background">
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-caption font-semibold ring-2 ring-background">
                 {initials(p.name)}
               </div>
             )}

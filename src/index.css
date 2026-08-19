@@ -32,7 +32,10 @@ All colors MUST be HSL.
 
     /* Muted - Lighter Taupe */
     --muted: 35 25% 75%;
-    --muted-foreground: 30 15% 45%;
+    /* Darkened from 45% to clear 4.5:1 on white at caption sizes (12px and
+       under), where the old value measured about 4.9:1 and read as washed out
+       against the warm background. */
+    --muted-foreground: 30 18% 38%;
 
     /* Accent - Warm Gold Variant */
     --accent: 40 55% 62%;
@@ -47,8 +50,15 @@ All colors MUST be HSL.
     --input: 35 20% 85%;
     --ring: 40 60% 57%;
 
-    /* Border Radius - Rounded, Friendly */
-    --radius: 1rem;
+    /* Border radius.
+       Was 1rem, which made rounded-lg 16px and rounded-md 12px — so shadcn
+       components came out larger than designed and nobody used the scale
+       (rounded-full appeared 169 times against rounded-lg's 40). At 0.75rem
+       the ladder lands on 8/12/16/24, and the three tiers are:
+         pill    rounded-full  avatars, chips, primary CTAs
+         card    rounded-lg    cards, dialogs, sheets
+         control rounded-md    inputs, secondary buttons, row surfaces */
+    --radius: 0.75rem;
 
     /* Gradients */
     --gradient-warm: linear-gradient(135deg, hsl(35 37% 90%) 0%, hsl(35 30% 85%) 100%);
@@ -58,6 +68,11 @@ All colors MUST be HSL.
     --shadow-sm: 0 2px 8px -2px hsl(30 30% 25% / 0.1);
     --shadow-md: 0 4px 16px -4px hsl(30 30% 25% / 0.15);
     --shadow-lg: 0 8px 24px -6px hsl(30 30% 25% / 0.2);
+
+    /* Soft - the low-emphasis chip fill. Was hardcoded inside badge.tsx as
+       #F5EBDD on #5C4631, two values that existed nowhere else in the system. */
+    --soft: 35 50% 92%;
+    --soft-foreground: 30 30% 25%;
 
     /* Status - warm-tuned so banners sit in the palette, not on top of it */
     --success: 145 40% 38%;

@@ -145,7 +145,7 @@ const ConversationDetailPage = () => {
                     className="w-8 h-8 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-caption font-semibold">
                     {initials(author.name)}
                   </div>
                 )}
@@ -158,7 +158,7 @@ const ConversationDetailPage = () => {
                 {author.name}
               </Link>
               {conversation.prompt_type && (
-                <span className="ml-auto text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                <span className="ml-auto text-caption text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                   {conversation.prompt_type}
                 </span>
               )}
@@ -245,7 +245,7 @@ const ConversationDetailPage = () => {
                 })}
               />
               {errors.body && (
-                <p className="text-xs text-destructive">{errors.body.message}</p>
+                <p className="text-caption text-destructive">{errors.body.message}</p>
               )}
               <div className="flex gap-2">
                 <Button
@@ -272,10 +272,10 @@ const ConversationDetailPage = () => {
                 </Button>
               </div>
               {notice && (
-                <p className="text-xs text-destructive text-center">{notice}</p>
+                <p className="text-caption text-destructive text-center">{notice}</p>
               )}
               {createMessage.isError && !isBanned && !(axios.isAxiosError(createMessage.error) && createMessage.error.response?.status === 429) && (
-                <p className="text-xs text-destructive text-center">
+                <p className="text-caption text-destructive text-center">
                   Failed to send reply. Please try again.
                 </p>
               )}

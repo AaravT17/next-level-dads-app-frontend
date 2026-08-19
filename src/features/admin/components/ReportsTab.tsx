@@ -108,18 +108,18 @@ function ReportRow({
               {item.label}
             </Badge>
             {item.kind !== 'filtered' && (
-              <span className="text-xs text-muted-foreground">pending report</span>
+              <span className="text-caption text-muted-foreground">pending report</span>
             )}
             {item.kind === 'filtered' && (
-              <span className="text-xs text-muted-foreground">auto-removed</span>
+              <span className="text-caption text-muted-foreground">auto-removed</span>
             )}
           </div>
-          <p className="text-sm font-medium text-foreground">{item.title}</p>
+          <p className="text-body font-medium text-foreground">{item.title}</p>
           {item.detail && (
-            <p className="line-clamp-2 text-sm text-muted-foreground">{item.detail}</p>
+            <p className="line-clamp-2 text-body text-muted-foreground">{item.detail}</p>
           )}
         </div>
-        <span className="shrink-0 text-xs text-muted-foreground">{formatAdminDate(item.date)}</span>
+        <span className="shrink-0 text-caption text-muted-foreground">{formatAdminDate(item.date)}</span>
       </div>
     </button>
   )
@@ -166,7 +166,7 @@ function ActionButtons({
 
   if (!isReport) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         This was auto-removed. Use the surrounding context to decide any follow-up.
       </p>
     )
@@ -210,7 +210,7 @@ function ContentContext({ item }: { item: Extract<QueueItem, { contentId: string
   }
 
   if (!query.data) {
-    return <p className="py-8 text-center text-sm text-muted-foreground">Context unavailable.</p>
+    return <p className="py-8 text-center text-body text-muted-foreground">Context unavailable.</p>
   }
 
   const { conversation, messages, replies } = query.data
@@ -250,11 +250,11 @@ function ContentContext({ item }: { item: Extract<QueueItem, { contentId: string
             <Badge variant="secondary">post</Badge>
             {postIsTarget && <TargetBadge />}
           </div>
-          <span className="text-xs text-muted-foreground">{formatAdminDate(conversation.created_at)}</span>
+          <span className="text-caption text-muted-foreground">{formatAdminDate(conversation.created_at)}</span>
         </div>
         <h3 className="line-clamp-2 text-base font-semibold leading-snug">{conversation.title}</h3>
-        <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/85">{conversation.body}</p>
-        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <p className="mt-2 whitespace-pre-wrap text-body text-foreground/85">{conversation.body}</p>
+        <div className="mt-3 flex items-center gap-2 text-caption text-muted-foreground">
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
             {initials(conversation.author_name)}
           </div>
@@ -277,7 +277,7 @@ function ContentContext({ item }: { item: Extract<QueueItem, { contentId: string
               )}
             >
               <div className="flex shrink-0 flex-col items-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-caption font-semibold text-primary-foreground">
                   {initials(message.author_name)}
                 </div>
                 <div className="mt-2 min-h-4 w-0.5 flex-1 rounded-full bg-border" />
@@ -285,7 +285,7 @@ function ContentContext({ item }: { item: Extract<QueueItem, { contentId: string
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold">{message.author_name ?? 'Anonymous'}</span>
-                  <span className="text-xs text-muted-foreground">{formatAdminDate(message.created_at)}</span>
+                  <span className="text-caption text-muted-foreground">{formatAdminDate(message.created_at)}</span>
                   {message.is_target && <TargetBadge />}
                   {message.is_focus && !message.is_target && (
                     <Badge variant="secondary" className="shrink-0">
@@ -293,7 +293,7 @@ function ContentContext({ item }: { item: Extract<QueueItem, { contentId: string
                     </Badge>
                   )}
                 </div>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.body}</p>
+                <p className="whitespace-pre-wrap text-body leading-relaxed">{message.body}</p>
                 {(repliesByMessage[message.id] ?? []).length > 0 && (
                   <button
                     type="button"
@@ -314,16 +314,16 @@ function ContentContext({ item }: { item: Extract<QueueItem, { contentId: string
                           reply.is_target && 'border-destructive bg-destructive/5 ring-1 ring-destructive/30',
                         )}
                       >
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-caption font-semibold text-muted-foreground">
                           {initials(reply.author_name)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-semibold">{reply.author_name ?? 'Anonymous'}</span>
-                            <span className="text-xs text-muted-foreground">{formatAdminDate(reply.created_at)}</span>
+                            <span className="text-caption font-semibold">{reply.author_name ?? 'Anonymous'}</span>
+                            <span className="text-caption text-muted-foreground">{formatAdminDate(reply.created_at)}</span>
                             {reply.is_target && <TargetBadge />}
                           </div>
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{reply.body}</p>
+                          <p className="whitespace-pre-wrap text-body leading-relaxed">{reply.body}</p>
                         </div>
                       </div>
                     ))}
@@ -353,7 +353,7 @@ function UserContext({ item }: { item: Extract<QueueItem, { userId: string }> })
   }
 
   if (!query.data) {
-    return <p className="py-8 text-center text-sm text-muted-foreground">Context unavailable.</p>
+    return <p className="py-8 text-center text-body text-muted-foreground">Context unavailable.</p>
   }
 
   return (
@@ -368,20 +368,20 @@ function UserContext({ item }: { item: Extract<QueueItem, { userId: string }> })
               <h3 className="text-base font-semibold">{query.data.user.name ?? 'unknown user'}</h3>
               <TargetBadge />
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-body text-muted-foreground">
               {[query.data.user.city, query.data.user.province].filter(Boolean).join(', ')}
             </p>
           </div>
         </div>
         {query.data.user.about && (
-          <p className="mt-3 whitespace-pre-wrap text-sm">{query.data.user.about}</p>
+          <p className="mt-3 whitespace-pre-wrap text-body">{query.data.user.about}</p>
         )}
       </section>
 
       <section className="space-y-3">
         <h3 className="text-sm font-semibold">All recent behavior</h3>
         {query.data.activity.length === 0 && (
-          <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+          <p className="rounded-lg border border-border p-4 text-body text-muted-foreground">
             No recent posts, messages, or replies found.
           </p>
         )}
@@ -397,10 +397,10 @@ function UserContext({ item }: { item: Extract<QueueItem, { userId: string }> })
               <Badge variant="secondary">
                 {activity.activity_type === 'post' ? 'post' : 'comment'}
               </Badge>
-              <span className="text-xs text-muted-foreground">{formatAdminDate(activity.created_at)}</span>
+              <span className="text-caption text-muted-foreground">{formatAdminDate(activity.created_at)}</span>
             </div>
-            <p className="line-clamp-1 text-sm font-medium">{activity.context_title}</p>
-            <p className="mt-2 whitespace-pre-wrap text-sm">{activity.text}</p>
+            <p className="line-clamp-1 text-body font-medium">{activity.context_title}</p>
+            <p className="mt-2 whitespace-pre-wrap text-body">{activity.text}</p>
           </div>
         ))}
       </section>

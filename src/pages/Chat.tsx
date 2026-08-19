@@ -479,17 +479,17 @@ const Chat = () => {
                   <Users className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-lg font-heading font-semibold text-foreground">
+                  <h1 className="text-subhead font-heading font-semibold text-foreground">
                     {displayName}
                   </h1>
-                  <p className="text-xs text-muted-foreground">Group</p>
+                  <p className="text-caption text-muted-foreground">Group</p>
                 </div>
               </button>
             ) : (
               <>
                 <UserAvatar name={displayName} src={avatarUrl} size="sm" />
                 <div className="flex-1">
-                  <h1 className="text-lg font-heading font-semibold text-foreground">
+                  <h1 className="text-subhead font-heading font-semibold text-foreground">
                     {displayName}
                   </h1>
                 </div>
@@ -542,7 +542,7 @@ const Chat = () => {
                   className={`flex flex-col ${isSelf ? 'items-end' : ''} max-w-xs`}
                 >
                   {!isSelf && isGroupChat && (
-                    <span className="text-xs text-muted-foreground mb-1">
+                    <span className="text-caption text-muted-foreground mb-1">
                       {msg.sender_name ?? 'Unknown'}
                     </span>
                   )}
@@ -553,15 +553,15 @@ const Chat = () => {
                         {msg.reply_to && !msg.is_deleted && (
                           <div className="mb-1.5 pl-2 border-l-2 border-muted-foreground/40">
                             {msg.reply_to.is_deleted ? (
-                              <p className="text-xs text-muted-foreground italic">
+                              <p className="text-caption text-muted-foreground italic">
                                 Message deleted
                               </p>
                             ) : (
                               <>
-                                <p className="text-xs font-medium text-muted-foreground truncate">
+                                <p className="text-caption font-medium text-muted-foreground truncate">
                                   {msg.reply_to.sender_name ?? 'Unknown'}
                                 </p>
-                                <p className="text-xs text-muted-foreground truncate">
+                                <p className="text-caption text-muted-foreground truncate">
                                   {msg.reply_to.content}
                                 </p>
                               </>
@@ -623,15 +623,15 @@ const Chat = () => {
                         {msg.reply_to && !msg.is_deleted && (
                           <div className="mb-1.5 pl-2 border-l-2 border-muted-foreground/40">
                             {msg.reply_to.is_deleted ? (
-                              <p className="text-xs text-muted-foreground italic">
+                              <p className="text-caption text-muted-foreground italic">
                                 Message deleted
                               </p>
                             ) : (
                               <>
-                                <p className="text-xs font-medium text-muted-foreground truncate">
+                                <p className="text-caption font-medium text-muted-foreground truncate">
                                   {msg.reply_to.sender_name ?? 'Unknown'}
                                 </p>
-                                <p className="text-xs text-muted-foreground truncate">
+                                <p className="text-caption text-muted-foreground truncate">
                                   {msg.reply_to.content}
                                 </p>
                               </>
@@ -680,7 +680,7 @@ const Chat = () => {
                     </div>
                   )}
 
-                  <span className="text-xs text-muted-foreground mt-1">
+                  <span className="text-caption text-muted-foreground mt-1">
                     {formatClock(msg.created_at)}
                     {msg.edited_at && !msg.is_deleted && (
                       <span className="ml-1 opacity-60">edited</span>
@@ -709,7 +709,7 @@ const Chat = () => {
           >
             <ChevronDown className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-semibold rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-caption font-semibold rounded-full w-4 h-4 flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -722,10 +722,10 @@ const Chat = () => {
         {replyingTo && (
           <div className="px-6 pt-3 flex items-start gap-2">
             <div className="flex-1 pl-2 border-l-2 border-primary min-w-0">
-              <p className="text-xs font-medium text-primary">
+              <p className="text-caption font-medium text-primary">
                 Replying to {replyingTo.sender_name}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-caption text-muted-foreground truncate">
                 {replyingTo.is_deleted ? 'Message deleted' : replyingTo.content}
               </p>
             </div>

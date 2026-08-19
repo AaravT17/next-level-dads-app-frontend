@@ -137,7 +137,7 @@ const CommunityDetailPage = () => {
               {community.member_count} members
             </span>
             {community.role && (
-              <Badge variant="soft" className="rounded-full text-xs">
+              <Badge variant="soft" className="rounded-full text-caption">
                 {community.role}
               </Badge>
             )}
@@ -175,7 +175,7 @@ const CommunityDetailPage = () => {
         {/* Conversations section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
-            <h2 className="text-lg font-heading font-semibold text-foreground">
+            <h2 className="text-subhead font-heading font-semibold text-foreground">
               Conversations
             </h2>
             {!composerOpen && (
@@ -212,7 +212,7 @@ const CommunityDetailPage = () => {
                   <button
                     key={w.value}
                     onClick={() => setTimeWindow(w.value)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    className={`px-3 py-1 rounded-full text-caption font-medium transition-colors ${
                       timeWindow === w.value
                         ? 'bg-foreground text-background'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -239,7 +239,7 @@ const CommunityDetailPage = () => {
             </div>
           ) : conversationsError ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 Failed to load conversations. Please try again.
               </p>
             </div>

@@ -264,7 +264,6 @@ const DadCard = ({
         <div className="flex gap-2">
           <Button
             className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
             onClick={(e) => {
               e.stopPropagation()
               handleChat()
@@ -292,7 +291,6 @@ const DadCard = ({
         <div className="flex gap-2">
           <Button
             className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
             disabled={isLoading}
             onClick={(e) => {
               e.stopPropagation()
@@ -319,8 +317,7 @@ const DadCard = ({
     if (connection_status === 'pending_outgoing') {
       return (
         <Button
-          className="w-full rounded-full font-semibold"
-          style={{ backgroundColor: '#9ca3af' }}
+          className="w-full rounded-full font-semibold bg-muted text-muted-foreground hover:bg-muted"
           disabled={isLoading}
           onClick={(e) => {
             e.stopPropagation()
@@ -336,7 +333,6 @@ const DadCard = ({
     return (
       <Button
         className="w-full rounded-full font-semibold"
-        style={{ backgroundColor: '#D8A24A' }}
         disabled={isLoading}
         onClick={(e) => {
           e.stopPropagation()
@@ -368,10 +364,10 @@ const DadCard = ({
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-heading font-semibold text-foreground">
+            <h3 className="text-subhead font-heading font-semibold text-foreground">
               {name}, {age ?? '—'}
             </h3>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+            <div className="flex items-center gap-1 text-caption text-muted-foreground mt-0.5">
               <MapPin className="w-3 h-3" />
               <span>
                 {city}, {province}
@@ -382,7 +378,7 @@ const DadCard = ({
                 <Badge
                   key={child}
                   variant="soft"
-                  className="rounded-full text-xs"
+                  className="rounded-full text-caption"
                 >
                   {getStageDisplayLabel(child)}
                 </Badge>
@@ -391,15 +387,14 @@ const DadCard = ({
           </div>
         </div>
 
-        <p className="text-foreground text-sm leading-relaxed">{about}</p>
+        <p className="text-foreground text-body leading-relaxed">{about}</p>
 
         <div className="flex flex-wrap gap-1.5">
           {interests.map((interest) => (
             <Badge
               key={interest}
-              variant="outline"
-              className="rounded-full text-xs"
-              style={{ borderColor: '#D8A24A', color: '#D8A24A' }}
+              variant="interest"
+              className="rounded-full text-caption"
             >
               {interest}
             </Badge>

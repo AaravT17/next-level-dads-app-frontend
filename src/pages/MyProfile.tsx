@@ -427,7 +427,7 @@ const MyProfile = () => {
                 >
                   Requests
                   {userStats.requests > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-caption font-semibold rounded-full h-5 w-5 flex items-center justify-center">
                       {userStats.requests}
                     </span>
                   )}
@@ -446,19 +446,19 @@ const MyProfile = () => {
                 <p className="text-2xl font-heading font-semibold text-primary">
                   {userStats.connections}
                 </p>
-                <p className="text-sm text-muted-foreground">Connections</p>
+                <p className="text-body text-muted-foreground">Connections</p>
               </div>
               <div>
                 <p className="text-2xl font-heading font-semibold text-primary">
                   {userStats.communities_joined}
                 </p>
-                <p className="text-sm text-muted-foreground">Communities</p>
+                <p className="text-body text-muted-foreground">Communities</p>
               </div>
               <div>
                 <p className="text-2xl font-heading font-semibold text-primary">
                   {userStats.events_registered_for}
                 </p>
-                <p className="text-sm text-muted-foreground">Events</p>
+                <p className="text-body text-muted-foreground">Events</p>
               </div>
             </div>
           </div>
@@ -578,7 +578,7 @@ const MyProfile = () => {
               <h3 className="font-semibold text-foreground mb-2">
                 Children's Age
               </h3>
-              <p className="text-sm text-muted-foreground mb-2">
+              <p className="text-body text-muted-foreground mb-2">
                 Select all that apply
               </p>
               <div className="flex flex-wrap gap-2">
@@ -601,7 +601,7 @@ const MyProfile = () => {
 
             <div>
               <h3 className="font-semibold text-foreground mb-3">Interests</h3>
-              <p className="text-sm text-muted-foreground mb-2">
+              <p className="text-body text-muted-foreground mb-2">
                 Select your interests
               </p>
               <div className="flex flex-wrap gap-2">

@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- viewport-fit=cover enables env(safe-area-inset-*), which the bottom nav
+         uses. maximum-scale / user-scalable were dropped: blocking pinch-zoom
+         is a WCAG 1.4.4 failure. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Next Level Dads - Find friendship, community, and belonging</title>
     <meta name="description" content="Connect with fathers nearby or with similar interests. Build genuine one-on-one friendships based on shared interests and life stages." />
     <meta name="author" content="Next Level Dads" />

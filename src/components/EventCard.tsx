@@ -109,7 +109,7 @@ const EventCard = ({
     >
       <CardContent className="p-6 space-y-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-lg font-heading font-semibold text-foreground">
+          <h3 className="text-subhead font-heading font-semibold text-foreground">
             {name}
           </h3>
           <Badge variant="outline" className="shrink-0">
@@ -118,7 +118,7 @@ const EventCard = ({
         </div>
 
         {description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-body text-muted-foreground line-clamp-2">
             {description}
           </p>
         )}

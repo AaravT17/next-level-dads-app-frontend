@@ -65,6 +65,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        soft: {
+          DEFAULT: "hsl(var(--soft))",
+          foreground: "hsl(var(--soft-foreground))",
+        },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
@@ -85,9 +89,10 @@ export default {
         'lg': 'var(--shadow-lg)',
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 0.25rem)",
-        sm: "calc(var(--radius) - 0.5rem)",
+        sm: "calc(var(--radius) - 0.25rem)",  /*  8px */
+        md: "var(--radius)",                  /* 12px */
+        lg: "calc(var(--radius) + 0.25rem)",  /* 16px */
+        xl: "calc(var(--radius) + 0.75rem)",  /* 24px */
       },
       transitionDuration: {
         fast: '120ms',

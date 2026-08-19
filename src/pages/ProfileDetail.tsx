@@ -303,7 +303,6 @@ const ProfileDetail = () => {
         <div className="flex gap-2">
           <Button
             className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
             onClick={handleChat}
           >
             Chat
@@ -325,7 +324,6 @@ const ProfileDetail = () => {
         <div className="flex gap-2">
           <Button
             className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
             disabled={isMutating}
             onClick={handleAccept}
           >
@@ -346,8 +344,7 @@ const ProfileDetail = () => {
     if (connection_status === 'pending_outgoing') {
       return (
         <Button
-          className="w-full rounded-full font-semibold"
-          style={{ backgroundColor: '#9ca3af' }}
+          className="w-full rounded-full font-semibold bg-muted text-muted-foreground hover:bg-muted"
           disabled={isMutating}
           onClick={handleCancelRequest}
         >
@@ -360,7 +357,6 @@ const ProfileDetail = () => {
     return (
       <Button
         className="w-full rounded-full font-semibold"
-        style={{ backgroundColor: '#D8A24A' }}
         disabled={isMutating}
         onClick={handleConnect}
       >

@@ -360,7 +360,7 @@ const ChatManage = () => {
             </div>
           ) : (
             <div className="flex items-center gap-2 flex-1">
-              <h1 className="text-lg font-heading font-semibold text-foreground">
+              <h1 className="text-subhead font-heading font-semibold text-foreground">
                 {groupName}
               </h1>
               {isAdmin && (
@@ -427,7 +427,6 @@ const ChatManage = () => {
                     onClick={() => addParticipants.mutate(selectedAddable)}
                     disabled={addParticipants.isPending}
                     className="w-full rounded-full"
-                    style={{ backgroundColor: '#D8A24A' }}
                   >
                     {addParticipants.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -441,7 +440,7 @@ const ChatManage = () => {
                 )}
               </div>
             ) : addSearch ? (
-              <p className="text-sm text-muted-foreground text-center py-2">No connections found</p>
+              <p className="text-body text-muted-foreground text-center py-2">No connections found</p>
             ) : null}
           </div>
         )}
@@ -468,14 +467,14 @@ const ChatManage = () => {
                     <AvatarFallback>{p.name[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground truncate">
+                    <p className="font-medium text-body text-foreground truncate">
                       {p.name}
                       {p.id === user?.id && (
                         <span className="ml-1 text-muted-foreground font-normal">(you)</span>
                       )}
                     </p>
                     {p.role === 'admin' && (
-                      <p className="text-xs text-primary">Admin</p>
+                      <p className="text-caption text-primary">Admin</p>
                     )}
                   </div>
 

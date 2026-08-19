@@ -312,7 +312,7 @@ const DadsPage = () => {
               <h3 className="text-sm font-semibold text-foreground">
                 Children's Age
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Select all that apply
               </p>
               <div className="flex gap-2 flex-wrap">
@@ -339,7 +339,7 @@ const DadsPage = () => {
               <h3 className="text-sm font-semibold text-foreground">
                 Interests
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Search and select interests
               </p>
 
@@ -417,7 +417,7 @@ const DadsPage = () => {
               <h3 className="text-sm font-semibold text-foreground">
                 Location
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Select all that apply
               </p>
               <div className="flex gap-2 flex-wrap">
@@ -444,7 +444,7 @@ const DadsPage = () => {
               <h3 className="text-sm font-semibold text-foreground">
                 Age
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Select all that apply
               </p>
               <div className="flex gap-2 flex-wrap">

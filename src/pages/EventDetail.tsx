@@ -222,8 +222,8 @@ const EventDetail = () => {
               <div className="flex items-center gap-3">
                 <Calendar className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Date</p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-caption text-muted-foreground">Date</p>
+                  <p className="text-body font-medium text-foreground">
                     {formatEventDate(event.starts_at)}
                   </p>
                 </div>
@@ -232,8 +232,8 @@ const EventDetail = () => {
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Time</p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-caption text-muted-foreground">Time</p>
+                  <p className="text-body font-medium text-foreground">
                     {formatEventTime(event.starts_at)}
                     {event.ends_at && ` - ${formatEventTime(event.ends_at)}`}
                   </p>
@@ -243,8 +243,8 @@ const EventDetail = () => {
               <div className="flex items-center gap-3">
                 <MapPin className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Location</p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-caption text-muted-foreground">Location</p>
+                  <p className="text-body font-medium text-foreground">
                     {event.location}
                   </p>
                 </div>
@@ -254,8 +254,8 @@ const EventDetail = () => {
                 <div className="flex items-start gap-3">
                   <User className="w-5 h-5 text-primary mt-0.5" />
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Hosted by</p>
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-caption text-muted-foreground">Hosted by</p>
+                    <p className="text-body font-medium text-foreground">
                       {hostDisplay}
                     </p>
                     {(event.contact_email || event.contact_phone) && (
@@ -263,7 +263,7 @@ const EventDetail = () => {
                         {event.contact_email && (
                           <a
                             href={`mailto:${event.contact_email}`}
-                            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                            className="flex items-center gap-2 text-caption text-muted-foreground hover:text-primary transition-colors"
                           >
                             <Mail className="w-3.5 h-3.5" />
                             {event.contact_email}
@@ -272,7 +272,7 @@ const EventDetail = () => {
                         {event.contact_phone && (
                           <a
                             href={`tel:${event.contact_phone}`}
-                            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                            className="flex items-center gap-2 text-caption text-muted-foreground hover:text-primary transition-colors"
                           >
                             <Phone className="w-3.5 h-3.5" />
                             {event.contact_phone}
@@ -291,7 +291,7 @@ const EventDetail = () => {
                 <p className="text-2xl font-bold text-foreground">
                   {formatPrice(event.price_cad)}
                 </p>
-                <p className="text-xs text-muted-foreground">Entry fee</p>
+                <p className="text-caption text-muted-foreground">Entry fee</p>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Users className="w-5 h-5" />
@@ -302,7 +302,7 @@ const EventDetail = () => {
             {/* Registration Status */}
             {event.is_attending && (
               <div className="bg-primary/10 rounded-lg p-4 text-center">
-                <p className="text-sm font-medium text-primary">
+                <p className="text-body font-medium text-primary">
                   You're registered for this event
                 </p>
               </div>

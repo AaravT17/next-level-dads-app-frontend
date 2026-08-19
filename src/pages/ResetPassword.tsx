@@ -112,7 +112,6 @@ const ResetPassword = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
@@ -135,17 +134,15 @@ const ResetPassword = () => {
                 <Button
                   size="lg"
                   className="w-full rounded-full font-semibold text-base shadow-md"
-                  style={{ backgroundColor: '#D8A24A' }}
                   onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
                 >
                   Request New Link
                 </Button>
-                <p className="text-center text-sm text-muted-foreground">
+                <p className="text-center text-body text-muted-foreground">
                   <button
                     type="button"
                     onClick={() => navigate(ROUTES.LOGIN)}
-                    className="font-semibold hover:underline"
-                    style={{ color: '#D8A24A' }}
+                    className="font-semibold text-primary hover:underline"
                   >
                     Back to Login
                   </button>
@@ -164,7 +161,7 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="newPassword"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   New Password
                 </label>
@@ -194,7 +191,7 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="confirmPassword"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Confirm Password
                 </label>
@@ -225,19 +222,17 @@ const ResetPassword = () => {
                 type="submit"
                 size="lg"
                 className="w-full rounded-full font-semibold text-base shadow-md"
-                style={{ backgroundColor: '#D8A24A' }}
                 disabled={isLoading || !sessionReady}
               >
                 {sessionReady ? 'Reset Password' : 'Loading...'}
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-body text-muted-foreground">
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.LOGIN)}
-                className="font-semibold hover:underline"
-                style={{ color: '#D8A24A' }}
+                className="font-semibold text-primary hover:underline"
                 disabled={isLoading}
               >
                 Back to Login
