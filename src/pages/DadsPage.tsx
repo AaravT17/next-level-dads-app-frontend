@@ -253,12 +253,13 @@ const DadsPage = () => {
 
   return (
     <>
-      <AppBar title="Dads" />
+      <AppBar title="Dads" width="wide" />
 
-      <PageContainer className="animate-fade-in">
+      <PageContainer width="wide" className="animate-fade-in">
   <div className="space-y-4 animate-fade-in">
+    <div className="mb-4 flex items-center gap-3">
     <form
-      className="relative mb-4"
+      className="relative flex-1 sm:max-w-md"
       onSubmit={(e) => {
         e.preventDefault()
         handleDadSearch()
@@ -282,7 +283,7 @@ const DadsPage = () => {
       )}
     </form>
 
-    <div className="flex justify-end mb-4">
+    <div className="shrink-0">
       <Sheet
         open={filtersOpen}
         onOpenChange={handleFiltersOpenChange}
@@ -484,6 +485,7 @@ const DadsPage = () => {
         </SheetContent>
       </Sheet>
     </div>
+    </div>
 
     <div className="space-y-4">
       <QueryState
@@ -515,7 +517,7 @@ const DadsPage = () => {
         }
       >
         {(items) => (
-          <ul role="list" className="space-y-4">
+          <ul role="list" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {items.map((profile) => (
               <li key={profile.id}>
                 <DadCard {...profile} />
@@ -533,10 +535,10 @@ const DadsPage = () => {
       />
     </div>
 
-    <div className="pt-4">
+    <div className="pt-4 flex justify-center">
       <Button
         variant="outline"
-        className="w-full rounded-full"
+        className="w-full sm:w-auto sm:px-8 rounded-full"
         onClick={handleRefreshDads}
       >
         <RefreshCw className="w-4 h-4 mr-2" />

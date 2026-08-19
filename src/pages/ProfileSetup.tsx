@@ -29,6 +29,7 @@ import {
 import axiosPrivate from '@/api/axiosPrivate'
 import { useAuth } from '@/contexts/AuthContext'
 import { toastError } from '@/lib/toast'
+import { getErrorMessage } from '@/utils/errors'
 
 const ProfileSetup = () => {
   const navigate = useNavigate()
@@ -209,8 +210,10 @@ const ProfileSetup = () => {
       })
       navigate(ROUTES.HOME_AFTER_AUTH)
     } catch (err: any) {
-      toastError('Profile creation failed', err.response?.data?.detail ||
-          'Failed to create profile. Please try again.')
+      toastError(
+        'Profile creation failed',
+        getErrorMessage(err, 'Failed to create profile. Please try again.'),
+      )
     } finally {
       setLoading(false)
     }

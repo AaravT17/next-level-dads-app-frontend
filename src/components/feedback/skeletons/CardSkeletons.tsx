@@ -62,7 +62,16 @@ export function ChatRowSkeleton() {
   )
 }
 
-export const DadListSkeleton = () => <ListSkeleton count={4} item={<DadCardSkeleton />} />
-export const CommunityListSkeleton = () => <ListSkeleton count={4} item={<CommunityCardSkeleton />} />
-export const EventListSkeleton = () => <ListSkeleton count={4} item={<EventCardSkeleton />} />
+/** Mirrors the grid the real lists use from sm upward. */
+const CARD_GRID = 'space-y-0 grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+
+export const DadListSkeleton = () => (
+  <ListSkeleton count={6} item={<DadCardSkeleton />} className={CARD_GRID} />
+)
+export const CommunityListSkeleton = () => (
+  <ListSkeleton count={6} item={<CommunityCardSkeleton />} className={CARD_GRID} />
+)
+export const EventListSkeleton = () => (
+  <ListSkeleton count={6} item={<EventCardSkeleton />} className={CARD_GRID} />
+)
 export const ChatListSkeleton = () => <ListSkeleton count={6} item={<ChatRowSkeleton />} />

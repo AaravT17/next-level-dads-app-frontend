@@ -7,6 +7,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
 import { toastError, toastSuccess } from '@/lib/toast'
+import { getErrorMessage } from '@/utils/errors'
 import axiosPublic from '@/api/axiosPublic'
 import { MIN_PASSWORD_LENGTH } from '@/config/constants'
 import validator from 'validator'
@@ -57,8 +58,10 @@ const Register = () => {
       toastSuccess('Registration successful', res.data.detail)
       navigate(ROUTES.LOGIN)
     } catch (err: any) {
-      toastError('Registration failed', err.response?.data?.detail ||
-          'Something went wrong. Please try again later.')
+      toastError(
+        'Registration failed',
+        getErrorMessage(err, 'Something went wrong. Please try again later.'),
+      )
     } finally {
       setIsLoading(false)
     }

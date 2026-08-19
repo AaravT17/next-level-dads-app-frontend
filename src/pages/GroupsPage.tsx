@@ -212,9 +212,10 @@ const GroupsPage = () => {
 
   return (
     <>
-      <AppBar title="Groups" />
+      <AppBar title="Groups" width="wide" />
 
       <TabBar
+        width="wide"
         ariaLabel="Groups sections"
         items={[
           {
@@ -226,16 +227,19 @@ const GroupsPage = () => {
         ]}
       />
 
-      <PageContainer className="space-y-4 animate-fade-in">
+      <PageContainer width="wide" className="space-y-4 animate-fade-in">
+        <div className="flex flex-wrap items-center gap-3 sm:max-w-md">
         <Segmented
           ariaLabel={`Show ${noun}`}
           options={SCOPE_OPTIONS}
           value={scope}
           onChange={(next) => setParam('scope', next === 'joined' ? null : next)}
         />
+        </div>
 
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:max-w-2xl">
         <form
-          className="relative"
+          className="relative flex-1"
           onSubmit={(e) => {
             e.preventDefault()
             setParam('name', searchInput || null)
@@ -267,7 +271,10 @@ const GroupsPage = () => {
         {isCommunities && (
           <Dialog open={isCreateOpen} onOpenChange={handleCreateOpenChange}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="w-full rounded-full border-primary">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto shrink-0 rounded-full border-primary"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Community
               </Button>
@@ -319,6 +326,7 @@ const GroupsPage = () => {
             </DialogContent>
           </Dialog>
         )}
+        </div>
 
         {isCommunities ? (
           <>
@@ -336,7 +344,7 @@ const GroupsPage = () => {
               empty={emptyState}
             >
               {(items) => (
-                <ul role="list" className="space-y-4">
+                <ul role="list" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {items.map((community) => (
                     <li key={community.id}>
                       <CommunityCard {...community} />
@@ -368,7 +376,7 @@ const GroupsPage = () => {
               empty={emptyState}
             >
               {(items) => (
-                <ul role="list" className="space-y-4">
+                <ul role="list" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {items.map((event) => (
                     <li key={event.id}>
                       <EventCard {...event} />

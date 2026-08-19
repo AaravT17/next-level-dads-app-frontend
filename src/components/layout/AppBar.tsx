@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import logo from '@/assets/logo.png'
+import { cn } from '@/lib/utils'
+import { CONTENT_WIDTH, type ContentWidth } from './contentWidth'
 
 export type AppBarProps = {
   title: string
@@ -12,16 +14,27 @@ export type AppBarProps = {
   backTo?: string
   onBack?: () => void
   actions?: ReactNode
+  /** Should match the PageContainer below it. */
+  width?: ContentWidth
 }
 
 /**
- * The page header. Replaces 23 copies of the same title markup.
+ * The page header.
  *
- * Three-column grid rather than the old absolutely-positioned logo plus a
- * flex-centred title, so the title stays optically centred and long ones
- * ("Connection Requests") no longer collide with the leading element.
+ * Two layouts. On mobile it is a centred title with the logo at the leading
+ * edge — the phone convention. From lg the logo moves to the side rail, so the
+ * bar drops it and left-aligns the title against the content column, which is
+ * how a desktop page header reads.
  */
-export function AppBar({ title, subtitle, leading = 'logo', backTo, onBack, actions }: AppBarProps) {
+export function AppBar({
+  title,
+  subtitle,
+  leading = 'logo',
+  backTo,
+  onBack,
+  actions,
+  width = 'default',
+}: AppBarProps) {
   const navigate = useNavigate()
 
   const handleBack = () => {
@@ -30,32 +43,49 @@ export function AppBar({ title, subtitle, leading = 'logo', backTo, onBack, acti
     navigate(-1)
   }
 
+  const back =
+    leading === 'back' ? (
+      <button
+        type="button"
+        onClick={handleBack}
+        aria-label="Go back"
+        className="p-2 -m-2 rounded-md text-foreground"
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </button>
+    ) : null
+
   return (
     <header className="shrink-0 bg-card border-b border-border">
-      <div className="grid grid-cols-[3rem_1fr_3rem] items-center gap-2 px-3 py-3">
-        <div className="flex justify-start">
-          {leading === 'back' ? (
-            <button
-              type="button"
-              onClick={handleBack}
-              aria-label="Go back"
-              className="p-2 -m-2 rounded-md text-foreground"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          ) : leading === 'logo' ? (
-            <img src={logo} alt="" aria-hidden className="h-9 w-auto" />
-          ) : null}
+      <div className={cn(CONTENT_WIDTH[width], 'px-3 sm:px-6')}>
+        {/* Mobile: logo · centred title · actions */}
+        <div className="grid grid-cols-[3rem_1fr_3rem] items-center gap-2 py-3 lg:hidden">
+          <div className="flex justify-start">
+            {back ??
+              (leading === 'logo' ? (
+                <img src={logo} alt="" aria-hidden className="h-9 w-auto" />
+              ) : null)}
+          </div>
+          <div className="min-w-0 text-center">
+            <h1 className="font-heading text-title text-foreground truncate">{title}</h1>
+            {subtitle ? (
+              <p className="text-caption text-muted-foreground truncate">{subtitle}</p>
+            ) : null}
+          </div>
+          <div className="flex justify-end items-center">{actions}</div>
         </div>
 
-        <div className="min-w-0 text-center">
-          <h1 className="font-heading text-title text-foreground truncate">{title}</h1>
-          {subtitle ? (
-            <p className="text-caption text-muted-foreground truncate">{subtitle}</p>
-          ) : null}
+        {/* Desktop: back · left-aligned title · actions. The rail owns the logo. */}
+        <div className="hidden lg:flex items-center gap-3 py-4">
+          {back}
+          <div className="min-w-0 flex-1">
+            <h1 className="font-heading text-title text-foreground truncate">{title}</h1>
+            {subtitle ? (
+              <p className="text-caption text-muted-foreground truncate">{subtitle}</p>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">{actions}</div>
         </div>
-
-        <div className="flex justify-end items-center">{actions}</div>
       </div>
     </header>
   )

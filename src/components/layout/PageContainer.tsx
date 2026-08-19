@@ -1,29 +1,32 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { CONTENT_WIDTH, type ContentWidth } from './contentWidth'
 
 export type PageContainerProps = {
   children: ReactNode
   className?: string
   /** Pass false when the page owns its own scrolling region, as Chat does. */
   scroll?: boolean
+  /** Match the AppBar's width so the header and content share a left edge. */
+  width?: ContentWidth
 }
 
 /**
- * The app's only <main>. Owns page padding and the scroll region, so pages no
- * longer hand-roll min-h-screen / max-w-md / pb-20.
+ * The app's only <main>. Owns page padding, the scroll region, and the
+ * responsive content measure.
  */
-export function PageContainer({ children, className, scroll = true }: PageContainerProps) {
+export function PageContainer({
+  children,
+  className,
+  scroll = true,
+  width = 'default',
+}: PageContainerProps) {
   return (
     <main
       id="main"
-      className={cn(
-        'flex-1 min-h-0',
-        scroll && 'overflow-y-auto overscroll-contain',
-        'px-6 py-6',
-        className,
-      )}
+      className={cn('flex-1 min-h-0', scroll && 'overflow-y-auto overscroll-contain')}
     >
-      {children}
+      <div className={cn(CONTENT_WIDTH[width], 'px-4 sm:px-6 py-6', className)}>{children}</div>
     </main>
   )
 }

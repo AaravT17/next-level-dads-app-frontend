@@ -12,6 +12,7 @@ import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useAuth } from '../contexts/AuthContext'
 import validator from 'validator'
 import { toastError, toastSuccess } from '@/lib/toast'
+import { getErrorMessage } from '@/utils/errors'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -81,8 +82,10 @@ const Login = () => {
         return
       }
       setAccessToken(null)
-      toastError('Login failed', err.response?.data?.detail ||
-          'An error occurred while logging in. Please try again.')
+      toastError(
+        'Login failed',
+        getErrorMessage(err, 'An error occurred while logging in. Please try again.'),
+      )
     } finally {
       setIsLoading(false)
     }

@@ -1,6 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { AppShell } from './AppShell'
-import { SystemBanners } from './SystemBanners'
 import { BottomNav } from './BottomNav'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 
@@ -21,7 +20,6 @@ export function AppLayout({ variant = 'tabs' }: AppLayoutProps) {
 
   return (
     <AppShell>
-      <SystemBanners />
       <ErrorBoundary resetKey={pathname}>
         <Outlet />
       </ErrorBoundary>
