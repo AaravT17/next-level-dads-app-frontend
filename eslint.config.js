@@ -39,9 +39,9 @@ export default tseslint.config(
         },
       ],
       // Sonner is the single toast system. The shadcn stack is being removed.
-      // TODO(phase-1): flip to "error" once the 17 useToast call sites migrate.
+      // The shadcn toast stack is gone; sonner is the only toast system.
       "no-restricted-imports": [
-        "warn",
+        "error",
         {
           paths: [
             {

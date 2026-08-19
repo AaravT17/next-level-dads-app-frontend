@@ -5,7 +5,7 @@ import { AxiosError } from 'axios'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toast'
 import { communityDetail } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import type { Community } from '@/types/communities'
@@ -23,7 +23,6 @@ const CommunityCard = ({
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
   // Determine which list context we're in based on route
   const getListContext = (): ListContext => {
@@ -82,11 +81,7 @@ const CommunityCard = ({
       updateMembershipInCache(true)
     },
     onError: (err: AxiosError) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to join community. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to join community. Please try again.')
     },
   })
 
@@ -97,11 +92,7 @@ const CommunityCard = ({
       updateMembershipInCache(false)
     },
     onError: (err: AxiosError) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to leave community. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to leave community. Please try again.')
     },
   })
 

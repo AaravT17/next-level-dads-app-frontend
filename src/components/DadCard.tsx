@@ -12,7 +12,7 @@ import { Card, CardContent } from './ui/card'
 import { getStageDisplayLabel } from '@/utils/users'
 import { initials } from '@/utils/format'
 import { profileDetail, chat } from '@/lib/routes'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toast'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
@@ -40,7 +40,6 @@ const DadCard = ({
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
   // Determine which list context we're in based on route
   const getListContext = (): ListContext => {
@@ -141,17 +140,9 @@ const DadCard = ({
       ) {
         updateStatusInCache(err.response.data.connection_status)
       } else if (err.response?.status === 429) {
-        toast({
-          title: 'Error',
-          description: 'Connection request limit reached. Please try again later.',
-          variant: 'destructive',
-        })
+        toastError('Connection request limit reached. Please try again later.')
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to send connection request. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to send connection request. Please try again.')
       }
     },
   })
@@ -166,11 +157,7 @@ const DadCard = ({
       if (err.response?.status === 404) {
         updateStatusInCache(null)
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to accept connection. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to accept connection. Please try again.')
       }
     },
   })
@@ -206,11 +193,7 @@ const DadCard = ({
       }
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update connection. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to update connection. Please try again.')
     },
   })
 
@@ -244,17 +227,9 @@ const DadCard = ({
     },
     onError: (err: AxiosError) => {
       if (err.response?.status === 429) {
-        toast({
-          title: 'Error',
-          description: 'Too many chats created. Please slow down.',
-          variant: 'destructive',
-        })
+        toastError('Too many chats created. Please slow down.')
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to open chat. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to open chat. Please try again.')
       }
     },
   })

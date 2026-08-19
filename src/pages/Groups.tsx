@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Search, X, Loader2, RefreshCw, Plus } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toast'
 import { communityDetail } from '@/lib/routes'
 import { ROUTES } from '@/lib/routes'
 import axios from 'axios'
@@ -74,7 +74,6 @@ const Groups = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { toast } = useToast()
 
   // Parse URL params for initial state
   const getStringParam = useCallback(
@@ -115,13 +114,9 @@ const Groups = () => {
       navigate(communityDetail(res.data.id))
     },
     onError: (error) => {
-      toast({
-        title: 'Error',
-        description: axios.isAxiosError(error) && error.response?.status === 429
+      toastError(axios.isAxiosError(error) && error.response?.status === 429
           ? 'Community creation limit reached. Please try again later.'
-          : 'Failed to create community. Please try again.',
-        variant: 'destructive',
-      })
+          : 'Failed to create community. Please try again.')
     },
   })
 

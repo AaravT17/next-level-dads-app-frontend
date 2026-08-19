@@ -6,7 +6,7 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { formatEventDate, formatEventTime, formatPrice } from '@/utils/format'
 import { Card, CardContent } from './ui/card'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toast'
 import { eventDetail } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import type { Event } from '@/types/events'
@@ -28,7 +28,6 @@ const EventCard = ({
   const navigate = useNavigate()
   const location_ = useLocation()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
   // Determine which list context we're in based on route
   const getListContext = (): ListContext => {
@@ -87,23 +86,11 @@ const EventCard = ({
     },
     onError: (err: AxiosError) => {
       if (err.response?.status === 403) {
-        toast({
-          title: 'Paid Event',
-          description: 'This is a paid event. Please register through the event page.',
-          variant: 'destructive',
-        })
+        toastError('Paid Event', 'This is a paid event. Please register through the event page.')
       } else if (err.response?.status === 404) {
-        toast({
-          title: 'Not Found',
-          description: 'This event could not be found.',
-          variant: 'destructive',
-        })
+        toastError('Not Found', 'This event could not be found.')
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to register for event. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to register for event. Please try again.')
       }
     },
   })
@@ -115,11 +102,7 @@ const EventCard = ({
       updateAttendanceInCache(false)
     },
     onError: (err: AxiosError) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to unregister from event. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to unregister from event. Please try again.')
     },
   })
 

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Eye, EyeOff } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
-import { useToast } from '@/components/ui/use-toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 import axiosPublic from '@/api/axiosPublic'
 import { MIN_PASSWORD_LENGTH } from '@/config/constants'
 import validator from 'validator'
@@ -15,7 +15,6 @@ import { isStrongPassword } from '@/utils/auth'
 
 const Register = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -28,35 +27,19 @@ const Register = () => {
     if (isLoading) return
     const trimmedEmail = email.trim()
     if (!trimmedEmail || !password || !confirmPassword) {
-      toast({
-        title: 'Missing fields',
-        description: 'Please fill in all fields.',
-        variant: 'destructive',
-      })
+      toastError('Missing fields', 'Please fill in all fields.')
       return
     }
     if (!validator.isEmail(trimmedEmail)) {
-      toast({
-        title: 'Invalid email address',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      })
+      toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
     if (password !== confirmPassword) {
-      toast({
-        title: 'Passwords do not match',
-        description: 'Please make sure both password fields match.',
-        variant: 'destructive',
-      })
+      toastError('Passwords do not match', 'Please make sure both password fields match.')
       return
     }
     if (!isStrongPassword(password)) {
-      toast({
-        title: 'Weak password',
-        description: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long and include uppercase letters, lowercase letters, numbers, and special characters.`,
-        variant: 'destructive',
-      })
+      toastError('Weak password', `Password must be at least ${MIN_PASSWORD_LENGTH} characters long and include uppercase letters, lowercase letters, numbers, and special characters.`)
       return
     }
     try {
@@ -71,19 +54,11 @@ const Register = () => {
           timeout: TIMEOUT_LENGTH_MS,
         },
       )
-      toast({
-        title: 'Registration successful',
-        description: res.data.detail,
-      })
+      toastSuccess('Registration successful', res.data.detail)
       navigate(ROUTES.LOGIN)
     } catch (err: any) {
-      toast({
-        title: 'Registration failed',
-        description:
-          err.response?.data?.detail ||
-          'Something went wrong. Please try again later.',
-        variant: 'destructive',
-      })
+      toastError('Registration failed', err.response?.data?.detail ||
+          'Something went wrong. Please try again later.')
     } finally {
       setIsLoading(false)
     }

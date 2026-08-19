@@ -28,11 +28,10 @@ import {
 } from '@/config/constants'
 import axiosPrivate from '@/api/axiosPrivate'
 import { useAuth } from '@/contexts/AuthContext'
-import { useToast } from '@/components/ui/use-toast'
+import { toastError } from '@/lib/toast'
 
 const ProfileSetup = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const { accessToken, setAuth } = useAuth()
   const [step, setStep] = useState(1)
@@ -113,29 +112,17 @@ const ProfileSetup = () => {
       const name = formData.name.trim()
       const city = formData.city.trim()
       if (!name || !formData.date_of_birth || !city || !formData.province) {
-        toast({
-          title: 'Please fill out all required fields',
-          description: 'Name, date of birth, city, and province are required.',
-          variant: 'destructive',
-        })
+        toastError('Please fill out all required fields', 'Name, date of birth, city, and province are required.')
         return
       }
     } else if (step === 2) {
       const about = formData.about.trim()
       if (!about) {
-        toast({
-          title: 'Please fill out the about section',
-          description: 'Tell us a bit about yourself.',
-          variant: 'destructive',
-        })
+        toastError('Please fill out the about section', 'Tell us a bit about yourself.')
         return
       }
       if (formData.stages.length === 0) {
-        toast({
-          title: "Please select at least one children's age range",
-          description: 'This helps us connect you with similar dads.',
-          variant: 'destructive',
-        })
+        toastError("Please select at least one children's age range", 'This helps us connect you with similar dads.')
         return
       }
     }
@@ -169,11 +156,7 @@ const ProfileSetup = () => {
   const handleSubmit = async () => {
     if (loading) return
     if (!agreedToTerms || !confirmedAge) {
-      toast({
-        title: 'Please accept all required agreements',
-        description: 'You must agree to the Terms and Conditions, Privacy Policy, and confirm your age.',
-        variant: 'destructive',
-      })
+      toastError('Please accept all required agreements', 'You must agree to the Terms and Conditions, Privacy Policy, and confirm your age.')
       return
     }
     const profileData = new FormData()
@@ -226,13 +209,8 @@ const ProfileSetup = () => {
       })
       navigate(ROUTES.DISCOVER)
     } catch (err: any) {
-      toast({
-        title: 'Profile creation failed',
-        description:
-          err.response?.data?.detail ||
-          'Failed to create profile. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Profile creation failed', err.response?.data?.detail ||
+          'Failed to create profile. Please try again.')
     } finally {
       setLoading(false)
     }

@@ -11,13 +11,12 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/contexts/AuthContext'
 import { useQueryClient } from '@tanstack/react-query'
 import axiosPrivate from '@/api/axiosPrivate'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toast'
 
 const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL as string
 
 export function LegalAcceptancesModal() {
   const { user, accessToken, setAuth } = useAuth()
-  const { toast } = useToast()
   const queryClient = useQueryClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -39,11 +38,7 @@ export function LegalAcceptancesModal() {
       }
       queryClient.invalidateQueries()
     } catch {
-      toast({
-        title: 'Something went wrong',
-        description: 'Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Something went wrong', 'Please try again.')
     } finally {
       setIsSubmitting(false)
     }

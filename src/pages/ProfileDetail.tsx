@@ -15,7 +15,7 @@ import { getStageDisplayLabel } from '@/utils/users'
 import { initials } from '@/utils/format'
 import { chat } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toast'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
 import type { Chat } from '@/types/chats'
@@ -32,7 +32,6 @@ const ProfileDetail = () => {
   const location = useLocation()
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
   // Derive context from route path
   const isFromDiscover = location.pathname.startsWith('/discover/dads')
@@ -194,11 +193,7 @@ const ProfileDetail = () => {
       if (err.response?.status === 409 && err.response.data?.connection_status) {
         updateStatusInCache(err.response.data.connection_status)
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to send connection request. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to send connection request. Please try again.')
       }
     },
   })
@@ -213,11 +208,7 @@ const ProfileDetail = () => {
       if (err.response?.status === 404) {
         updateStatusInCache(null)
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to accept connection. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to accept connection. Please try again.')
       }
     },
   })
@@ -253,11 +244,7 @@ const ProfileDetail = () => {
       }
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update connection. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to update connection. Please try again.')
     },
   })
 
@@ -290,11 +277,7 @@ const ProfileDetail = () => {
       navigate(chat(data.id))
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to open chat. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to open chat. Please try again.')
     },
   })
 

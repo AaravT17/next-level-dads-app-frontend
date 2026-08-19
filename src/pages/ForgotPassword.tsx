@@ -5,14 +5,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
-import { useToast } from '@/components/ui/use-toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 import validator from 'validator'
 import { supabase } from '@/lib/supabase'
 
 const ForgotPassword = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
-  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,19 +19,11 @@ const ForgotPassword = () => {
     if (isLoading) return
     const trimmedEmail = email.trim()
     if (!trimmedEmail) {
-      toast({
-        title: 'Missing email',
-        description: 'Please enter your email address.',
-        variant: 'destructive',
-      })
+      toastError('Missing email', 'Please enter your email address.')
       return
     }
     if (!validator.isEmail(trimmedEmail)) {
-      toast({
-        title: 'Invalid email address',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      })
+      toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
     setIsLoading(true)
@@ -46,17 +37,9 @@ const ForgotPassword = () => {
       if (error) {
         throw error
       }
-      toast({
-        title: 'Reset link sent',
-        description: 'Please check your email for the password reset link.',
-      })
+      toastSuccess('Reset link sent', 'Please check your email for the password reset link.')
     } catch (err: any) {
-      toast({
-        title: 'Error',
-        description:
-          err.message || 'An error occurred while sending the reset link.',
-        variant: 'destructive',
-      })
+      toastError(err.message || 'An error occurred while sending the reset link.')
     } finally {
       setIsLoading(false)
     }

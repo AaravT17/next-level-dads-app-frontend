@@ -19,7 +19,7 @@ import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toast'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Event } from '@/types/events'
@@ -35,7 +35,6 @@ const EventDetail = () => {
   const { eventId } = useParams<{ eventId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
   const {
     data: event,
@@ -159,23 +158,11 @@ const EventDetail = () => {
     },
     onError: (err: AxiosError) => {
       if (err.response?.status === 403) {
-        toast({
-          title: 'Paid Event',
-          description: 'This is a paid event. Please register through the event page.',
-          variant: 'destructive',
-        })
+        toastError('Paid Event', 'This is a paid event. Please register through the event page.')
       } else if (err.response?.status === 404) {
-        toast({
-          title: 'Not Found',
-          description: 'This event could not be found.',
-          variant: 'destructive',
-        })
+        toastError('Not Found', 'This event could not be found.')
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to register for event. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to register for event. Please try again.')
       }
     },
   })
@@ -187,11 +174,7 @@ const EventDetail = () => {
       updateAttendanceInCache(false)
     },
     onError: (err: AxiosError) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to unregister from event. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to unregister from event. Please try again.')
     },
   })
 

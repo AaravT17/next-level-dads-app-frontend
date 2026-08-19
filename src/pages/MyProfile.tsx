@@ -63,7 +63,7 @@ interface UserStats {
   events_registered_for: number
 }
 import { getStageDisplayLabel } from '@/utils/users'
-import { useToast } from '@/hooks/use-toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 
 interface UserResponse {
   id: string
@@ -89,7 +89,6 @@ const MyProfile = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user, accessToken, setAuth } = useAuth()
-  const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [isEditing, setIsEditing] = useState(false)
@@ -177,19 +176,12 @@ const MyProfile = () => {
       setCustomInterest('')
       setShowCustomInput(false)
       setIsEditing(false)
-      toast({
-        title: 'Success',
-        description: 'Profile updated successfully.',
-      })
+      toastSuccess('Profile updated successfully.')
     },
     onError: (error) => {
-      toast({
-        title: 'Error',
-        description: axios.isAxiosError(error) && error.response?.status === 429
+      toastError(axios.isAxiosError(error) && error.response?.status === 429
           ? 'Profile update limit reached. Please try again later.'
-          : 'Failed to update profile. Please try again.',
-        variant: 'destructive',
-      })
+          : 'Failed to update profile. Please try again.')
     },
     onSettled: () => {
       setIsLoading(false)
@@ -219,20 +211,13 @@ const MyProfile = () => {
       }
       setAvatarPreview(null)
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
-      toast({
-        title: 'Success',
-        description: 'Avatar updated successfully.',
-      })
+      toastSuccess('Avatar updated successfully.')
     },
     onError: (error) => {
       setAvatarPreview(null)
-      toast({
-        title: 'Error',
-        description: axios.isAxiosError(error) && error.response?.status === 429
+      toastError(axios.isAxiosError(error) && error.response?.status === 429
           ? 'Avatar upload limit reached. Please try again later.'
-          : 'Failed to upload avatar. Please try again.',
-        variant: 'destructive',
-      })
+          : 'Failed to upload avatar. Please try again.')
     },
     onSettled: () => {
       setIsLoading(false)
@@ -253,17 +238,10 @@ const MyProfile = () => {
         })
       }
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
-      toast({
-        title: 'Success',
-        description: 'Avatar removed successfully.',
-      })
+      toastSuccess('Avatar removed successfully.')
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to remove avatar. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to remove avatar. Please try again.')
     },
     onSettled: () => {
       setIsLoading(false)
@@ -287,11 +265,7 @@ const MyProfile = () => {
       }
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update preferences. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to update preferences. Please try again.')
     },
   })
 
@@ -305,7 +279,7 @@ const MyProfile = () => {
       setAuth({ user: null, accessToken: null })
       navigate(ROUTES.WELCOME)
     } catch {
-      toast({ title: 'Error', description: 'Failed to delete account. Please try again.', variant: 'destructive' })
+      toastError('Failed to delete account. Please try again.')
       setShowDeleteDialog(false)
     } finally {
       setIsDeletingAccount(false)
@@ -409,11 +383,7 @@ const MyProfile = () => {
     const city = formData.city.trim()
     const about = formData.about.trim()
     if (!name || !formData.date_of_birth || !city || !formData.province || !about || formData.children_age_ranges.length === 0) {
-      toast({
-        title: 'Please fill out all required fields',
-        description: 'Name, date of birth, city, province, about, and children\'s age are required.',
-        variant: 'destructive',
-      })
+      toastError('Please fill out all required fields', 'Name, date of birth, city, province, about, and children\'s age are required.')
       return
     }
     setIsLoading(true)
