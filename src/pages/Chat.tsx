@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { chatManage } from '@/lib/routes'
 import { UserAvatar } from '@/components/media/UserAvatar'
+import { AccountButton } from '@/components/layout/AccountButton'
 import { formatClock } from '@/utils/format'
 import {
   type ChatType,
@@ -496,6 +497,9 @@ const Chat = () => {
                 </div>
               </>
             )}
+
+            {/* On desktop this header is the window's top-right. */}
+            <AccountButton className="hidden lg:block ml-auto" />
           </div>
         </div>
       </div>

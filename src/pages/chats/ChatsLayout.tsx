@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { MessageCircle } from 'lucide-react'
+import { AccountButton } from '@/components/layout/AccountButton'
 import { useIsDesktop } from '@/hooks/useIsDesktop'
 import { ROUTES } from '@/lib/routes'
 import Chats from '../Chats'
@@ -40,14 +41,27 @@ export function ChatsLayout() {
 /** Shown in the thread pane on desktop when no conversation is selected. */
 export function ChatsEmptyPane() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-      <MessageCircle aria-hidden className="w-10 h-10 text-muted-foreground/50" strokeWidth={1.5} />
-      <div>
-        <p className="font-heading text-subhead text-foreground">No conversation selected</p>
-        <p className="text-body text-muted-foreground mt-1">
-          Pick a chat from the list, or start a new one.
-        </p>
+    <>
+      {/* Keeps the header band — and the account corner — continuous. */}
+      <div className="shrink-0 bg-card border-b border-border">
+        <div className="flex items-center justify-end px-6 py-4">
+          <AccountButton />
+        </div>
       </div>
-    </div>
+
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+        <MessageCircle
+          aria-hidden
+          className="w-10 h-10 text-muted-foreground/50"
+          strokeWidth={1.5}
+        />
+        <div>
+          <p className="font-heading text-subhead text-foreground">No conversation selected</p>
+          <p className="text-body text-muted-foreground mt-1">
+            Pick a chat from the list, or start a new one.
+          </p>
+        </div>
+      </div>
+    </>
   )
 }

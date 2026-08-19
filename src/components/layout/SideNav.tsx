@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
-import { UserAvatar } from '@/components/media/UserAvatar'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import logo from '@/assets/logo.png'
@@ -19,7 +17,6 @@ import { NavBadge } from './NavBadge'
  */
 export function SideNav() {
   const items = useNavItems()
-  const { user } = useAuth()
 
   return (
     <nav
@@ -45,23 +42,11 @@ export function SideNav() {
                     : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                 )}
               >
-                {item.kind === 'avatar' ? (
-                  <UserAvatar
-                    name={user?.name}
-                    src={user?.avatarUrl}
-                    size="xs"
-                    className={cn(
-                      'w-6 h-6 text-[0.5rem]',
-                      item.active && 'ring-2 ring-primary ring-offset-2 ring-offset-card',
-                    )}
-                  />
-                ) : Icon ? (
-                  <Icon
-                    aria-hidden
-                    className="w-5 h-5 shrink-0"
-                    strokeWidth={item.active ? 2.25 : 2}
-                  />
-                ) : null}
+                <Icon
+                  aria-hidden
+                  className="w-5 h-5 shrink-0"
+                  strokeWidth={item.active ? 2.25 : 2}
+                />
                 <span className="flex-1 text-label">{item.label}</span>
                 <NavBadge count={item.badge} label={item.badgeLabel} />
               </Link>

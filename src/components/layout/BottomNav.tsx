@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
-import { UserAvatar } from '@/components/media/UserAvatar'
 import { cn } from '@/lib/utils'
 import { useNavItems } from './useNavItems'
 import { NavBadge } from './NavBadge'
@@ -13,7 +11,6 @@ import { NavBadge } from './NavBadge'
  */
 export function BottomNav() {
   const items = useNavItems()
-  const { user } = useAuth()
 
   return (
     <nav
@@ -33,27 +30,14 @@ export function BottomNav() {
                   item.active ? 'text-primary' : 'text-muted-foreground',
                 )}
               >
-                {item.kind === 'avatar' ? (
-                  <UserAvatar
-                    name={user?.name}
-                    src={user?.avatarUrl}
-                    size="xs"
-                    className={cn(
-                      'w-6 h-6 text-[0.5rem] transition-transform duration-fast',
-                      item.active &&
-                        'ring-2 ring-primary ring-offset-2 ring-offset-card scale-105',
-                    )}
-                  />
-                ) : Icon ? (
-                  <Icon
-                    aria-hidden
-                    className={cn(
-                      'w-5 h-5 transition-transform duration-fast',
-                      item.active && 'scale-110',
-                    )}
-                    strokeWidth={item.active ? 2.25 : 2}
-                  />
-                ) : null}
+                <Icon
+                  aria-hidden
+                  className={cn(
+                    'w-5 h-5 transition-transform duration-fast',
+                    item.active && 'scale-110',
+                  )}
+                  strokeWidth={item.active ? 2.25 : 2}
+                />
                 <NavBadge
                   count={item.badge}
                   label={item.badgeLabel}

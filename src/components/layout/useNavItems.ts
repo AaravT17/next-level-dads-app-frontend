@@ -2,10 +2,14 @@ import { useLocation } from 'react-router-dom'
 import { UserSearch, Users, MessageCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { ROUTES } from '@/lib/routes'
-import { useUnreadChatCount, usePendingRequestCount } from '@/hooks/useNavBadges'
+import { useUnreadChatCount } from '@/hooks/useNavBadges'
 
 /**
  * The primary destinations, defined once.
+ *
+ * Three places in the app. The account entry point is deliberately not here —
+ * it lives in the header corner as AccountButton, because "you" is not a peer
+ * of the places you browse.
  *
  * Both the bottom bar (mobile) and the side rail (desktop) render from this,
  * so the two navigations cannot drift apart.
@@ -16,9 +20,7 @@ export type NavItem = {
   label: string
   to: string
   active: boolean
-  /** 'avatar' renders the user's own picture instead of a glyph. */
-  kind: 'icon' | 'avatar'
-  icon: LucideIcon | null
+  icon: LucideIcon
   badge: number
   badgeLabel?: string
 }
@@ -26,7 +28,6 @@ export type NavItem = {
 export function useNavItems(): NavItem[] {
   const { pathname } = useLocation()
   const unread = useUnreadChatCount()
-  const pendingRequests = usePendingRequestCount()
 
   return [
     {
@@ -34,7 +35,6 @@ export function useNavItems(): NavItem[] {
       label: 'Dads',
       to: ROUTES.DADS,
       active: pathname.startsWith('/dads'),
-      kind: 'icon',
       icon: UserSearch,
       badge: 0,
     },
@@ -46,7 +46,6 @@ export function useNavItems(): NavItem[] {
         pathname.startsWith('/groups') ||
         pathname.startsWith('/communities') ||
         pathname.startsWith('/events'),
-      kind: 'icon',
       icon: Users,
       badge: 0,
     },
@@ -55,20 +54,9 @@ export function useNavItems(): NavItem[] {
       label: 'Chats',
       to: ROUTES.CHATS,
       active: pathname.startsWith('/chats'),
-      kind: 'icon',
       icon: MessageCircle,
       badge: unread,
       badgeLabel: 'unread conversations',
-    },
-    {
-      key: 'you',
-      label: 'You',
-      to: ROUTES.YOU,
-      active: pathname.startsWith('/you'),
-      kind: 'avatar',
-      icon: null,
-      badge: pendingRequests,
-      badgeLabel: 'pending connection requests',
     },
   ]
 }
