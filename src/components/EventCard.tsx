@@ -154,7 +154,7 @@ const EventCard = ({
 
           <Button
             variant={is_attending ? 'outline' : 'default'}
-            className="rounded-full"
+            className="rounded-md"
             onClick={(e) => {
               e.stopPropagation()
               if (is_attending) {

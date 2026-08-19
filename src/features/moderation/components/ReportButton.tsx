@@ -110,7 +110,7 @@ export function ReportButton({ contentType, contentId, className }: ReportButton
             <Button
               onClick={submit}
               disabled={report.isPending}
-              className="rounded-full"
+              className="rounded-md"
             >
               {report.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

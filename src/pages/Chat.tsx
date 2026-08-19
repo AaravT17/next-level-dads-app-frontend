@@ -657,7 +657,7 @@ const Chat = () => {
                         >
                           <button
                             onClick={() => setReplyingTo(msg)}
-                            className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                            className="p-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                           >
                             <Reply className="w-3 h-3" />
                           </button>
@@ -668,13 +668,13 @@ const Chat = () => {
                                   setEditingId(msg.id)
                                   setEditContent(msg.content)
                                 }}
-                                className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                                className="p-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                               >
                                 <Pencil className="w-3 h-3" />
                               </button>
                               <button
                                 onClick={() => deleteMessage.mutate(msg.id)}
-                                className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                                className="p-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
@@ -710,7 +710,7 @@ const Chat = () => {
         <div className="absolute bottom-24 right-6">
           <button
             onClick={handleScrollToBottom}
-            className="relative bg-card border border-border rounded-full p-2 shadow-md text-muted-foreground hover:text-foreground"
+            className="relative bg-card border border-border rounded-md p-2 shadow-md text-muted-foreground hover:text-foreground"
           >
             <ChevronDown className="w-5 h-5" />
             {unreadCount > 0 && (
@@ -754,13 +754,13 @@ const Chat = () => {
                   handleSend()
                 }
               }}
-              className="rounded-full"
+              className="rounded-md"
             />
             <Button
               size="icon"
               onClick={handleSend}
               disabled={sendMessage.isPending || !messageInput.trim()}
-              className="rounded-full shrink-0 bg-gradient-gold"
+              className="rounded-md shrink-0 bg-gradient-gold"
             >
               {sendMessage.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

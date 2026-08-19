@@ -134,13 +134,13 @@ const SettingsPage = () => {
 
         <section className="space-y-3">
           <h2 className="font-heading text-subhead text-foreground">Account</h2>
-          <Button variant="outline" className="w-full rounded-full" onClick={handleLogout}>
+          <Button variant="outline" className="w-full rounded-md" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-2" />
             Log out
           </Button>
           <Button
             variant="outline"
-            className="w-full rounded-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            className="w-full rounded-md border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
             onClick={() => setShowDeleteDialog(true)}
           >
             <Trash2 className="w-4 h-4 mr-2" />

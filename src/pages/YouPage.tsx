@@ -144,7 +144,7 @@ const YouPage = () => {
                       )}
                     </span>
                     {row.badge ? (
-                      <span className="shrink-0 min-w-[1.375rem] rounded-full bg-destructive px-1.5 py-0.5 text-center text-caption font-semibold text-destructive-foreground">
+                      <span className="shrink-0 min-w-[1.375rem] rounded-md bg-destructive px-1.5 py-0.5 text-center text-caption font-semibold text-destructive-foreground">
                         {row.badge > 99 ? '99+' : row.badge}
                         <span className="sr-only"> pending</span>
                       </span>

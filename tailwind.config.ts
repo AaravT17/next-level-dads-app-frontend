@@ -89,10 +89,10 @@ export default {
         'lg': 'var(--shadow-lg)',
       },
       borderRadius: {
-        sm: "calc(var(--radius) - 0.25rem)",  /*  8px */
-        md: "var(--radius)",                  /* 12px */
-        lg: "calc(var(--radius) + 0.25rem)",  /* 16px */
-        xl: "calc(var(--radius) + 0.75rem)",  /* 24px */
+        sm: "calc(var(--radius) / 2)",        /* 2px */
+        md: "var(--radius)",                  /* 4px */
+        lg: "calc(var(--radius) * 1.5)",      /* 6px */
+        xl: "calc(var(--radius) * 2)",        /* 8px */
       },
       transitionDuration: {
         fast: '120ms',

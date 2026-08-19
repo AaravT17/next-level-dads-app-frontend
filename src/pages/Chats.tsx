@@ -301,7 +301,7 @@ const Chats = () => {
               placeholder="Search conversations..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-10 rounded-full"
+              className="pl-10 rounded-md"
             />
           </div>
           <Dialog
@@ -329,7 +329,7 @@ const Chats = () => {
                     placeholder="Search connections..."
                     value={newChatSearch}
                     onChange={(e) => setNewChatSearch(e.target.value)}
-                    className="pl-9 rounded-full"
+                    className="pl-9 rounded-md"
                   />
                 </div>
 
@@ -341,7 +341,7 @@ const Chats = () => {
                         <div
                           key={id}
                           onClick={() => toggleConnectionSelection(id)}
-                          className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded-full text-sm cursor-pointer hover:bg-primary/20"
+                          className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded-md text-sm cursor-pointer hover:bg-primary/20"
                         >
                           <span>{connection.name.split(' ')[0]}</span>
                           <span className="text-muted-foreground">×</span>
@@ -356,7 +356,7 @@ const Chats = () => {
                     placeholder="Group name..."
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
-                    className="rounded-full"
+                    className="rounded-md"
                   />
                 )}
 
@@ -406,7 +406,7 @@ const Chats = () => {
                   <Button
                     onClick={handleCreateChat}
                     disabled={createChat.isPending}
-                    className="w-full rounded-full"
+                    className="w-full rounded-md"
                   >
                     {createChat.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

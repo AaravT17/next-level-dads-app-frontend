@@ -51,14 +51,14 @@ All colors MUST be HSL.
     --ring: 40 60% 57%;
 
     /* Border radius.
-       Was 1rem, which made rounded-lg 16px and rounded-md 12px — so shadcn
-       components came out larger than designed and nobody used the scale
-       (rounded-full appeared 169 times against rounded-lg's 40). At 0.75rem
-       the ladder lands on 8/12/16/24, and the three tiers are:
-         pill    rounded-full  avatars, chips, primary CTAs
+       Deliberately tight. Generous radii plus pill-shaped buttons everywhere
+       is the default look of generated UI; squaring it off reads as more
+       considered. The ladder is 2/4/6/8. Three tiers:
          card    rounded-lg    cards, dialogs, sheets
-         control rounded-md    inputs, secondary buttons, row surfaces */
-    --radius: 0.75rem;
+         control rounded-md    buttons, inputs, chips, row surfaces
+         circle  rounded-full  reserved for things that are actually round —
+                               avatars, count badges, toggles, spinners */
+    --radius: 0.25rem;
 
     /* Gradients */
     --gradient-warm: linear-gradient(135deg, hsl(35 37% 90%) 0%, hsl(35 30% 85%) 100%);

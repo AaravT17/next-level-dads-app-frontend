@@ -302,13 +302,13 @@ const ProfileDetail = () => {
       return (
         <div className="flex gap-2">
           <Button
-            className="flex-1 rounded-full font-semibold"
+            className="flex-1 rounded-md font-semibold"
             onClick={handleChat}
           >
             Chat
           </Button>
           <Button
-            className="flex-1 rounded-full font-semibold"
+            className="flex-1 rounded-md font-semibold"
             variant="outline"
             disabled={isMutating}
             onClick={handleUnconnect}
@@ -323,14 +323,14 @@ const ProfileDetail = () => {
       return (
         <div className="flex gap-2">
           <Button
-            className="flex-1 rounded-full font-semibold"
+            className="flex-1 rounded-md font-semibold"
             disabled={isMutating}
             onClick={handleAccept}
           >
             Accept
           </Button>
           <Button
-            className="flex-1 rounded-full font-semibold"
+            className="flex-1 rounded-md font-semibold"
             variant="outline"
             disabled={isMutating}
             onClick={handleIgnore}
@@ -344,7 +344,7 @@ const ProfileDetail = () => {
     if (connection_status === 'pending_outgoing') {
       return (
         <Button
-          className="w-full rounded-full font-semibold bg-muted text-muted-foreground hover:bg-muted"
+          className="w-full rounded-md font-semibold bg-muted text-muted-foreground hover:bg-muted"
           disabled={isMutating}
           onClick={handleCancelRequest}
         >
@@ -356,7 +356,7 @@ const ProfileDetail = () => {
     // connection_status === null
     return (
       <Button
-        className="w-full rounded-full font-semibold"
+        className="w-full rounded-md font-semibold"
         disabled={isMutating}
         onClick={handleConnect}
       >
@@ -438,7 +438,7 @@ const ProfileDetail = () => {
                 <Badge
                   key={child}
                   variant="soft"
-                  className="rounded-full"
+                  className="rounded-md"
                 >
                   <Calendar className="w-3 h-3 mr-1" />
                   {getStageDisplayLabel(child)}
@@ -454,7 +454,7 @@ const ProfileDetail = () => {
                 <Badge
                   key={interest}
                   variant="soft"
-                  className="rounded-full"
+                  className="rounded-md"
                 >
                   {interest}
                 </Badge>

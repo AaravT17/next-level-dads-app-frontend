@@ -38,7 +38,7 @@ export function FilteredMessagesTab() {
             <span className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
               {item.content_type}
             </span>
-            <span className={`text-caption px-2 py-0.5 rounded-full font-medium ${LAYER_COLORS[item.layer]}`}>
+            <span className={`text-caption px-2 py-0.5 rounded-md font-medium ${LAYER_COLORS[item.layer]}`}>
               {LAYER_LABELS[item.layer]}
             </span>
             {item.score !== null && (

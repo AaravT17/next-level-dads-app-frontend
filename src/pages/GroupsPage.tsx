@@ -251,7 +251,7 @@ const GroupsPage = () => {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             aria-label={`Search ${noun}`}
-            className="pl-10 pr-10 rounded-full"
+            className="pl-10 pr-10 rounded-md"
           />
           {searchInput && (
             <button
@@ -273,7 +273,7 @@ const GroupsPage = () => {
             <DialogTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full sm:w-auto shrink-0 rounded-full border-primary"
+                className="w-full sm:w-auto shrink-0 rounded-md border-primary"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Community
@@ -311,7 +311,7 @@ const GroupsPage = () => {
                   />
                 </div>
                 <Button
-                  className="w-full rounded-full"
+                  className="w-full rounded-md"
                   disabled={!newName.trim() || createCommunity.isPending}
                   onClick={() =>
                     createCommunity.mutate({

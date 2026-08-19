@@ -137,7 +137,7 @@ const CommunityDetailPage = () => {
               {community.member_count} members
             </span>
             {community.role && (
-              <Badge variant="soft" className="rounded-full text-caption">
+              <Badge variant="soft" className="rounded-md text-caption">
                 {community.role}
               </Badge>
             )}
@@ -146,7 +146,7 @@ const CommunityDetailPage = () => {
           {community.is_member ? (
             <Button
               variant="outline"
-              className="rounded-full"
+              className="rounded-md"
               onClick={() => leaveMutation.mutate()}
               disabled={leaveMutation.isPending}
             >
@@ -159,7 +159,7 @@ const CommunityDetailPage = () => {
           ) : (
             <Button
               variant="outline"
-              className="rounded-full"
+              className="rounded-md"
               onClick={() => joinMutation.mutate()}
               disabled={joinMutation.isPending}
             >
@@ -180,7 +180,7 @@ const CommunityDetailPage = () => {
             </h2>
             {!composerOpen && (
               <Button
-                className="rounded-full gap-1.5"
+                className="rounded-md gap-1.5"
                 onClick={() => setComposerOpen(true)}
               >
                 <Plus className="w-4 h-4" />
@@ -196,7 +196,7 @@ const CommunityDetailPage = () => {
                 <button
                   key={f.value}
                   onClick={() => setActiveFilter(f.value)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     activeFilter === f.value
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -212,7 +212,7 @@ const CommunityDetailPage = () => {
                   <button
                     key={w.value}
                     onClick={() => setTimeWindow(w.value)}
-                    className={`px-3 py-1 rounded-full text-caption font-medium transition-colors ${
+                    className={`px-3 py-1 rounded-md text-caption font-medium transition-colors ${
                       timeWindow === w.value
                         ? 'bg-foreground text-background'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'

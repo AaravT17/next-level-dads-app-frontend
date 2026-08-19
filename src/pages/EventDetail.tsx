@@ -310,7 +310,7 @@ const EventDetail = () => {
 
             {/* Action Button */}
             <Button
-              className="w-full rounded-full"
+              className="w-full rounded-md"
               variant={event.is_attending ? 'outline' : 'default'}
               size="lg"
               onClick={event.is_attending ? handleUnregister : handleRegister}

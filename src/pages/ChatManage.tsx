@@ -391,7 +391,7 @@ const ChatManage = () => {
                 placeholder="Search connections..."
                 value={addSearch}
                 onChange={(e) => setAddSearch(e.target.value)}
-                className="pl-9 rounded-full"
+                className="pl-9 rounded-md"
               />
             </div>
 
@@ -426,7 +426,7 @@ const ChatManage = () => {
                   <Button
                     onClick={() => addParticipants.mutate(selectedAddable)}
                     disabled={addParticipants.isPending}
-                    className="w-full rounded-full"
+                    className="w-full rounded-md"
                   >
                     {addParticipants.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -485,7 +485,7 @@ const ChatManage = () => {
                         <button
                           onClick={() => promoteParticipant.mutate(p.id)}
                           disabled={promoteParticipant.isPending}
-                          className="p-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                          className="p-1.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                           title="Make admin"
                         >
                           <Shield className="w-4 h-4" />
@@ -494,7 +494,7 @@ const ChatManage = () => {
                         <button
                           onClick={() => demoteParticipant.mutate(p.id)}
                           disabled={demoteParticipant.isPending}
-                          className="p-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                          className="p-1.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                           title="Remove admin"
                         >
                           <ShieldOff className="w-4 h-4" />
@@ -503,7 +503,7 @@ const ChatManage = () => {
                       <button
                         onClick={() => removeParticipant.mutate(p.id)}
                         disabled={removeParticipant.isPending}
-                        className="p-1.5 rounded-full bg-muted hover:bg-muted/80 text-destructive"
+                        className="p-1.5 rounded-md bg-muted hover:bg-muted/80 text-destructive"
                         title="Remove from group"
                       >
                         <UserMinus className="w-4 h-4" />
@@ -527,7 +527,7 @@ const ChatManage = () => {
           variant="ghost"
           onClick={() => leaveGroup.mutate()}
           disabled={leaveGroup.isPending}
-          className="w-full rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+          className="w-full rounded-md text-destructive hover:text-destructive hover:bg-destructive/10"
         >
           {leaveGroup.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

@@ -103,7 +103,7 @@ const Register = () => {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-full"
+                  className="rounded-md"
                 />
               </div>
 
@@ -121,7 +121,7 @@ const Register = () => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -151,7 +151,7 @@ const Register = () => {
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -170,7 +170,7 @@ const Register = () => {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full rounded-full font-semibold text-base shadow-md"
+                className="w-full rounded-md font-semibold text-base shadow-md"
                 disabled={isLoading}
               >
                 Create Account

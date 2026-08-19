@@ -158,7 +158,7 @@ const ConversationDetailPage = () => {
                 {author.name}
               </Link>
               {conversation.prompt_type && (
-                <span className="ml-auto text-caption text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                <span className="ml-auto text-caption text-muted-foreground bg-muted px-2.5 py-1 rounded-md">
                   {conversation.prompt_type}
                 </span>
               )}
@@ -225,7 +225,7 @@ const ConversationDetailPage = () => {
             </h3>
             {!conversation.is_deleted && !replyOpen && (
               <Button
-                className="rounded-full px-12"
+                className="rounded-md px-12"
                 onClick={() => setReplyOpen(true)}
               >
                 Reply
@@ -262,7 +262,7 @@ const ConversationDetailPage = () => {
                 <Button
                   type="submit"
                   disabled={createMessage.isPending || isBanned}
-                  className="flex-1 rounded-full"
+                  className="flex-1 rounded-md"
                 >
                   {createMessage.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

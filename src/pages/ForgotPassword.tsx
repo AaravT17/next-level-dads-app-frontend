@@ -86,14 +86,14 @@ const ForgotPassword = () => {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-full"
+                  className="rounded-md"
                 />
               </div>
 
               <Button
                 type="submit"
                 size="lg"
-                className="w-full rounded-full font-semibold text-base shadow-md"
+                className="w-full rounded-md font-semibold text-base shadow-md"
                 disabled={isLoading}
               >
                 Send Reset Link

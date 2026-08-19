@@ -140,7 +140,7 @@ const Welcome = () => {
         <div className="pt-6 space-y-3">
           <Button
             size="lg"
-            className="w-full rounded-full font-semibold text-base bg-accent text-white hover:shadow-lg transition-shadow"
+            className="w-full rounded-md font-semibold text-base bg-accent text-white hover:shadow-lg transition-shadow"
             onClick={() => navigate(ROUTES.LOGIN)}
             disabled={isLoading}
           >
@@ -150,7 +150,7 @@ const Welcome = () => {
 
           <Button
             size="lg"
-            className="w-full rounded-full font-semibold text-base bg-white hover:bg-white text-black border border-gray-300 hover:shadow-lg transition-shadow"
+            className="w-full rounded-md font-semibold text-base bg-white hover:bg-white text-black border border-gray-300 hover:shadow-lg transition-shadow"
             onClick={handleGoogleOAuth}
             disabled={isLoading}
           >

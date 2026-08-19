@@ -133,7 +133,7 @@ const ResetPassword = () => {
                 <p className="text-center text-muted-foreground">{linkError}</p>
                 <Button
                   size="lg"
-                  className="w-full rounded-full font-semibold text-base shadow-md"
+                  className="w-full rounded-md font-semibold text-base shadow-md"
                   onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
                 >
                   Request New Link
@@ -172,7 +172,7 @@ const ResetPassword = () => {
                     placeholder="Enter your new password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -202,7 +202,7 @@ const ResetPassword = () => {
                     placeholder="Confirm your new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -221,7 +221,7 @@ const ResetPassword = () => {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full rounded-full font-semibold text-base shadow-md"
+                className="w-full rounded-md font-semibold text-base shadow-md"
                 disabled={isLoading || !sessionReady}
               >
                 {sessionReady ? 'Reset Password' : 'Loading...'}

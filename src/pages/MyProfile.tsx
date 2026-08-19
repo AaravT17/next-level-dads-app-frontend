@@ -415,14 +415,14 @@ const MyProfile = () => {
               <div className="flex gap-3 w-full max-w-sm">
                 <Button
                   variant="outline"
-                  className="flex-1 rounded-full border-2 border-primary hover:bg-primary hover:text-primary-foreground"
+                  className="flex-1 rounded-md border-2 border-primary hover:bg-primary hover:text-primary-foreground"
                   onClick={() => navigate(ROUTES.CONNECTIONS)}
                 >
                   Connections
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex-1 rounded-full border-2 border-primary hover:bg-primary hover:text-primary-foreground relative"
+                  className="flex-1 rounded-md border-2 border-primary hover:bg-primary hover:text-primary-foreground relative"
                   onClick={() => navigate(ROUTES.REQUESTS)}
                 >
                   Requests
@@ -590,7 +590,7 @@ const MyProfile = () => {
                         ? 'default'
                         : 'soft'
                     }
-                    className="cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-md"
                     onClick={() => !isLoading && toggleStage(stage.value)}
                   >
                     {stage.label}
@@ -611,7 +611,7 @@ const MyProfile = () => {
                     variant={
                       formData.interests.includes(interest) ? 'default' : 'soft'
                     }
-                    className="cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-md"
                     onClick={() => !isLoading && toggleInterest(interest)}
                   >
                     {interest}
@@ -623,7 +623,7 @@ const MyProfile = () => {
                     <Badge
                       key={interest}
                       variant="default"
-                      className="cursor-pointer rounded-full bg-gradient-gold"
+                      className="cursor-pointer rounded-md bg-gradient-gold"
                       onClick={() => !isLoading && toggleInterest(interest)}
                     >
                       {interest}
@@ -632,7 +632,7 @@ const MyProfile = () => {
                 {!showCustomInput ? (
                   <Badge
                     variant="outline"
-                    className="cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-md"
                     onClick={() => !isLoading && setShowCustomInput(true)}
                   >
                     + Add your own
@@ -653,7 +653,7 @@ const MyProfile = () => {
                     <Button
                       size="sm"
                       onClick={handleAddCustomInterest}
-                      className="rounded-full"
+                      className="rounded-md"
                       disabled={
                         isLoading ||
                         !customInterest.trim() ||
@@ -686,7 +686,7 @@ const MyProfile = () => {
                   <Badge
                     key={stage}
                     variant="soft"
-                    className="rounded-full"
+                    className="rounded-md"
                   >
                     <CalendarIcon className="w-3 h-3 mr-1" />
                     {getStageDisplayLabel(stage)}
@@ -702,7 +702,7 @@ const MyProfile = () => {
                   <Badge
                     key={interest}
                     variant="soft"
-                    className="rounded-full"
+                    className="rounded-md"
                   >
                     {interest}
                   </Badge>
@@ -715,7 +715,7 @@ const MyProfile = () => {
         {isEditing ? (
           <>
             <Button
-              className="w-full rounded-full"
+              className="w-full rounded-md"
               onClick={handleSave}
               disabled={isLoading}
             >
@@ -723,7 +723,7 @@ const MyProfile = () => {
             </Button>
             <Button
               variant="outline"
-              className="w-full rounded-full"
+              className="w-full rounded-md"
               onClick={handleCancel}
               disabled={isLoading}
             >

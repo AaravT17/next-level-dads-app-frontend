@@ -58,7 +58,7 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
             <p className="text-caption text-muted-foreground">{conversation.author.name}</p>
           )}
           {!conversation.is_deleted && conversation.prompt_type && (
-            <span className="text-caption text-muted-foreground/70 bg-muted px-2.5 py-1 rounded-full ml-auto">
+            <span className="text-caption text-muted-foreground/70 bg-muted px-2.5 py-1 rounded-md ml-auto">
               {conversation.prompt_type}
             </span>
           )}

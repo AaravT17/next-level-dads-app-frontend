@@ -28,12 +28,12 @@ export function Segmented<T extends string>({
     <div
       role="group"
       aria-label={ariaLabel}
-      className="relative grid rounded-full bg-muted/60 p-1"
+      className="relative grid rounded-md bg-muted/60 p-1"
       style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}
     >
       <span
         aria-hidden
-        className="absolute inset-y-1 rounded-full bg-card shadow-sm transition-transform duration-base ease-soft"
+        className="absolute inset-y-1 rounded-md bg-card shadow-sm transition-transform duration-base ease-soft"
         style={{
           width: `calc((100% - 0.5rem) / ${options.length})`,
           transform: `translateX(calc(${index} * 100%))`,
@@ -49,7 +49,7 @@ export function Segmented<T extends string>({
             aria-pressed={selected}
             onClick={() => onChange(option.value)}
             className={cn(
-              'relative z-10 rounded-full px-4 py-1.5 text-label transition-colors duration-fast',
+              'relative z-10 rounded-md px-4 py-1.5 text-label transition-colors duration-fast',
               selected ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
             )}
           >
