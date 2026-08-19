@@ -62,7 +62,7 @@ const Requests = () => {
 
   // Reset other profile list caches when entering Requests section
   useLayoutEffect(() => {
-    queryClient.removeQueries({ queryKey: ['discover', 'profiles'] })
+    queryClient.removeQueries({ queryKey: ['dads'] })
     queryClient.removeQueries({ queryKey: ['connections', 'connected'] })
     queryClient.removeQueries({ queryKey: ['profile'] })
   }, [queryClient])
@@ -128,7 +128,7 @@ const Requests = () => {
 
   return (
     <>
-      <AppBar title="Connection Requests" leading="back" backTo={ROUTES.PROFILE} />
+      <AppBar title="Connection Requests" leading="back" backTo={ROUTES.YOU} />
 
       <PageContainer className="space-y-4 animate-fade-in">
         <form

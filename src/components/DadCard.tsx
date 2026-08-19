@@ -18,7 +18,7 @@ import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
 import type { Chat } from '@/types/chats'
 
-type ListContext = 'discover' | 'connections' | 'requests'
+type ListContext = 'dads' | 'connections' | 'requests'
 
 interface DadCardProps extends Profile {
   connection_id?: string
@@ -41,13 +41,18 @@ const DadCard = ({
   const location = useLocation()
   const queryClient = useQueryClient()
 
-  // Determine which list context we're in based on route
+  /**
+   * Which list this card sits in.
+   *
+   * Unlike CommunityCard, this branching is real: a declined request should
+   * leave the requests list, while a browse result should stay put with its
+   * button changed. The three lists mean different things.
+   */
   const getListContext = (): ListContext => {
     const { pathname } = location
-    if (pathname.startsWith('/discover')) return 'discover'
-    if (pathname.startsWith('/connections')) return 'connections'
-    if (pathname.startsWith('/requests')) return 'requests'
-    return 'discover' // fallback
+    if (pathname.startsWith('/you/connections')) return 'connections'
+    if (pathname.startsWith('/you/requests')) return 'requests'
+    return 'dads'
   }
 
   const listContext = getListContext()
@@ -58,10 +63,10 @@ const DadCard = ({
 
   // Update connection status in current list's cache only (from card)
   const updateStatusInCache = (newStatus: ConnectionStatus) => {
-    if (listContext === 'discover') {
-      // Update in discover profiles - keep only if null or pending_outgoing
+    if (listContext === 'dads') {
+      // Keep the card in the browse list; only its button changes.
       queryClient.setQueriesData<InfiniteData<Profile[]>>(
-        { queryKey: ['discover', 'profiles'] },
+        { queryKey: ['dads'] },
         (oldData) => {
           if (!oldData) return oldData
           return {
@@ -122,6 +127,9 @@ const DadCard = ({
 
     // Remove detail page cache so it fetches fresh on navigation
     queryClient.removeQueries({ queryKey: ['profile', id] })
+
+    // The pending-requests badge in the nav reads this.
+    queryClient.invalidateQueries({ queryKey: ['user', 'stats'] })
   }
 
   // POST /api/connections/{id} - Send connection request

@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import { Button } from './ui/button'
@@ -10,8 +10,6 @@ import { communityDetail } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import type { Community } from '@/types/communities'
 
-type ListContext = 'discover' | 'groups'
-
 const CommunityCard = ({
   id,
   name,
@@ -21,55 +19,53 @@ const CommunityCard = ({
   role,
 }: Community) => {
   const navigate = useNavigate()
-  const location = useLocation()
   const queryClient = useQueryClient()
-
-  // Determine which list context we're in based on route
-  const getListContext = (): ListContext => {
-    const { pathname } = location
-    if (pathname.startsWith('/groups')) return 'groups'
-    return 'discover'
-  }
-
-  const listContext = getListContext()
 
   const handleCardClick = () => {
     navigate(communityDetail(id))
   }
 
-  // Update membership status in current list's cache only (from card)
+  /**
+   * Patch membership in place rather than dropping the card from the list.
+   *
+   * The old version removed the item — from the discover cache on join, from
+   * the groups cache on leave — because those were two separate lists. Now
+   * that both scopes share one cache namespace, removal would make a card
+   * disappear out from under the person who just clicked it. Flipping the
+   * button is also simply what people expect.
+   *
+   * The 'joined' scope still drops it, since an item you just left genuinely
+   * no longer belongs to that list.
+   */
   const updateMembershipInCache = (isMember: boolean) => {
-    if (listContext === 'discover') {
-      // Remove from discover cache (user just joined)
-      queryClient.setQueriesData<InfiniteData<Community[]>>(
-        { queryKey: ['discover', 'communities'] },
-        (oldData) => {
-          if (!oldData) return oldData
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) =>
-              page.filter((community) => community.id !== id),
+    queryClient.setQueriesData<InfiniteData<Community[]>>(
+      { queryKey: ['communities'] },
+      (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) =>
+            page.map((community) =>
+              community.id === id
+                ? {
+                    ...community,
+                    is_member: isMember,
+                    member_count: Math.max(
+                      0,
+                      community.member_count + (isMember ? 1 : -1),
+                    ),
+                  }
+                : community,
             ),
-          }
-        },
-      )
-    } else {
-      // Remove from groups cache (user just left)
-      queryClient.setQueriesData<InfiniteData<Community[]>>(
-        { queryKey: ['groups', 'communities'] },
-        (oldData) => {
-          if (!oldData) return oldData
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) =>
-              page.filter((community) => community.id !== id),
-            ),
-          }
-        },
-      )
-    }
+          ),
+        }
+      },
+    )
 
-    // Remove detail page caches so they fetch fresh on navigation
+    // The joined list is now stale for this item either way.
+    queryClient.invalidateQueries({ queryKey: ['communities', 'joined'] })
+
+    // Detail caches refetch fresh on navigation.
     queryClient.removeQueries({ queryKey: ['community', id] })
     queryClient.removeQueries({ queryKey: ['community', id, 'members'] })
   }

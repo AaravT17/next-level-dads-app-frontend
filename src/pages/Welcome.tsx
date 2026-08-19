@@ -75,7 +75,7 @@ const Welcome = () => {
           },
           accessToken,
         })
-        navigate(ROUTES.DISCOVER)
+        navigate(ROUTES.HOME_AFTER_AUTH)
       } catch (err: any) {
         if (err.response?.status === 404) {
           // no profile yet — commit token so SetupRoute allows access

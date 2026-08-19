@@ -63,3 +63,11 @@ export interface ConnectionCounts {
   connections: number
   requests: number
 }
+
+/** GET /api/users/me/stats — drives the profile summary and the nav badge. */
+export interface UserStats {
+  connections: number
+  requests: number
+  communities_joined: number
+  events_registered_for: number
+}

@@ -49,39 +49,23 @@ const EventDetail = () => {
 
   // Update list caches when event is fetched
   const updateEventInLists = (event: Event) => {
-    const { is_attending } = event
-
-    // Update in discover events - keep only if not attending
+    // One namespace now: patch the row in place instead of removing it from
+    // whichever list the viewer was not looking at.
     queryClient.setQueriesData<InfiniteData<Event[]>>(
-      { queryKey: ['discover', 'events'] },
+      { queryKey: ['events'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            !is_attending
-              ? page.map((e) => (e.id === eventId ? { ...e, ...event } : e))
-              : page.filter((e) => e.id !== eventId),
+            page.map((e) => (e.id === eventId ? { ...e, ...event } : e)),
           ),
         }
       },
     )
 
-    // Update in groups events - keep only if attending
-    queryClient.setQueriesData<InfiniteData<Event[]>>(
-      { queryKey: ['groups', 'events'] },
-      (oldData) => {
-        if (!oldData) return oldData
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page) =>
-            is_attending
-              ? page.map((e) => (e.id === eventId ? { ...e, ...event } : e))
-              : page.filter((e) => e.id !== eventId),
-          ),
-        }
-      },
-    )
+    // The joined list genuinely changes membership, so let it refetch.
+    queryClient.invalidateQueries({ queryKey: ['events', 'joined'] })
   }
 
   // Update list caches when event is fetched
@@ -109,45 +93,30 @@ const EventDetail = () => {
       }
     })
 
-    // Update discover events - remove if now attending
+    // One namespace: patch in place so the card stays where the viewer
+    // found it and only its button changes.
     queryClient.setQueriesData<InfiniteData<Event[]>>(
-      { queryKey: ['discover', 'events'] },
+      { queryKey: ['events'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            isAttending
-              ? page.filter((e) => e.id !== eventId)
-              : page.map((e) =>
-                  e.id === eventId
-                    ? { ...e, is_attending: isAttending, attendee_count: e.attendee_count + countDelta }
-                    : e,
-                ),
+            page.map((e) =>
+              e.id === eventId
+                ? {
+                    ...e,
+                    is_attending: isAttending,
+                    attendee_count: e.attendee_count + countDelta,
+                  }
+                : e,
+            ),
           ),
         }
       },
     )
 
-    // Update groups events - remove if no longer attending
-    queryClient.setQueriesData<InfiniteData<Event[]>>(
-      { queryKey: ['groups', 'events'] },
-      (oldData) => {
-        if (!oldData) return oldData
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page) =>
-            !isAttending
-              ? page.filter((e) => e.id !== eventId)
-              : page.map((e) =>
-                  e.id === eventId
-                    ? { ...e, is_attending: isAttending, attendee_count: e.attendee_count + countDelta }
-                    : e,
-                ),
-          ),
-        }
-      },
-    )
+    queryClient.invalidateQueries({ queryKey: ['events', 'joined'] })
   }
 
   // POST /api/events/{id}/attendees - Register for event

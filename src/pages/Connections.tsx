@@ -62,7 +62,7 @@ const Connections = () => {
 
   // Reset other profile list caches when entering Connections section
   useLayoutEffect(() => {
-    queryClient.removeQueries({ queryKey: ['discover', 'profiles'] })
+    queryClient.removeQueries({ queryKey: ['dads'] })
     queryClient.removeQueries({ queryKey: ['connections', 'requests'] })
     queryClient.removeQueries({ queryKey: ['profile'] })
   }, [queryClient])
@@ -128,7 +128,7 @@ const Connections = () => {
 
   return (
     <>
-      <AppBar title="Connections" leading="back" backTo={ROUTES.PROFILE} />
+      <AppBar title="Connections" leading="back" backTo={ROUTES.YOU} />
 
       <PageContainer className="space-y-4 animate-fade-in">
         <form
@@ -167,7 +167,7 @@ const Connections = () => {
             <EmptyState
               title="No connections yet"
               description="Dads you connect with will show up here."
-              action={{ label: 'Find dads', to: ROUTES.DISCOVER_DADS }}
+              action={{ label: 'Find dads', to: ROUTES.DADS }}
             />
           }
         >

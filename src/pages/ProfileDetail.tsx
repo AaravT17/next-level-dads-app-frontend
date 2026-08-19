@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
@@ -29,20 +29,16 @@ async function fetchProfile(id: string): Promise<Profile> {
 
 const ProfileDetail = () => {
   const navigate = useNavigate()
-  const location = useLocation()
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
-
-  // Derive context from route path
-  const isFromDiscover = location.pathname.startsWith('/discover/dads')
 
   // Update profile in all list caches
   const updateProfileInLists = (profile: Profile) => {
     const { connection_status } = profile
 
-    // Update in discover profiles - keep only if null or pending_outgoing
+    // Browse list: keep the row, just refresh its status
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
-      { queryKey: ['discover', 'profiles'] },
+      { queryKey: ['dads'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
@@ -119,9 +115,9 @@ const ProfileDetail = () => {
       return { ...oldData, connection_status: newStatus }
     })
 
-    // Update in discover profiles - keep only if null or pending_outgoing
+    // Browse list: keep the row, just refresh its status
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
-      { queryKey: ['discover', 'profiles'] },
+      { queryKey: ['dads'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
@@ -396,86 +392,6 @@ const ProfileDetail = () => {
   }
 
   // Discover context: Card-based layout with Connect button (DadDetail style)
-  if (isFromDiscover) {
-    return (
-      <>
-        <AppBar title="Profile" leading="back" onBack={handleBack} />
-
-        <PageContainer className="animate-fade-in">
-          <Card className="overflow-hidden shadow-md">
-            <CardContent className="p-6 space-y-4">
-              {/* Avatar and basic info */}
-              <div className="flex items-start gap-4">
-                {profile.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={profile.name}
-                    className="w-24 h-24 rounded-lg object-cover flex-shrink-0 aspect-square"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-semibold text-xl flex-shrink-0 aspect-square">
-                    {initials(profile?.name)}
-                  </div>
-                )}
-
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-heading font-semibold text-foreground">
-                    {profile.name}, {profile.age ?? '—'}
-                  </h2>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>
-                      {profile.city}, {profile.province}
-                    </span>
-                  </div>
-                  {profile.children.length > 0 && (
-                    <Badge
-                      variant="soft"
-                      className="rounded-full mt-2"
-                    >
-                      {getStageDisplayLabel(profile.children[0])}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Bio */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground">About</h3>
-                <p className="text-foreground text-sm leading-relaxed">
-                  {profile.about}
-                </p>
-              </div>
-
-              {/* Interests */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground">
-                  Interests
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {profile.interests.map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant="outline"
-                      className="rounded-full"
-                      style={{ borderColor: '#D8A24A', color: '#D8A24A' }}
-                    >
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="mt-4">{renderButtons()}</div>
-            </CardContent>
-          </Card>
-        </PageContainer>
-      </>
-    )
-  }
-
-  // Default context: Full-width layout without Connect button (ProfileDetail style)
   return (
     <>
       <AppBar title="Profile" leading="back" onBack={handleBack} />

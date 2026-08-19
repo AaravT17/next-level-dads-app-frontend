@@ -73,7 +73,7 @@ function DobBanner() {
       <span>Please add your date of birth to complete your profile.</span>
       <button
         type="button"
-        onClick={() => navigate(ROUTES.PROFILE)}
+        onClick={() => navigate(ROUTES.YOU)}
         className="underline font-semibold shrink-0"
       >
         Update now

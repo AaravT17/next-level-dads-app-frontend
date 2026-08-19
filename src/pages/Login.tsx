@@ -72,7 +72,7 @@ const Login = () => {
         accessToken,
       })
       toastSuccess('Login successful', 'Welcome back!')
-      navigate(ROUTES.DISCOVER)
+      navigate(ROUTES.HOME_AFTER_AUTH)
     } catch (err: any) {
       if (err.response?.status === 404) {
         // user exists but profile not set up — commit token so SetupRoute allows access

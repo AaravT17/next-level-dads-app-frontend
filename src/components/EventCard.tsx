@@ -1,5 +1,5 @@
 import { Calendar, MapPin, Users, Clock } from 'lucide-react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import { Button } from './ui/button'
@@ -10,8 +10,6 @@ import { toastError } from '@/lib/toast'
 import { eventDetail } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import type { Event } from '@/types/events'
-
-type ListContext = 'discover' | 'groups'
 
 const EventCard = ({
   id,
@@ -26,53 +24,43 @@ const EventCard = ({
   is_attending,
 }: Event) => {
   const navigate = useNavigate()
-  const location_ = useLocation()
   const queryClient = useQueryClient()
-
-  // Determine which list context we're in based on route
-  const getListContext = (): ListContext => {
-    const { pathname } = location_
-    if (pathname.startsWith('/groups')) return 'groups'
-    return 'discover'
-  }
-
-  const listContext = getListContext()
 
   const handleCardClick = () => {
     navigate(eventDetail(id))
   }
 
-  // Update attendance status in current list's cache only (from card)
+  /**
+   * Patch attendance in place rather than dropping the card from the list.
+   * See CommunityCard for why: both scopes share one cache namespace now, so
+   * removing the item would make it vanish as you click it.
+   */
   const updateAttendanceInCache = (isAttending: boolean) => {
-    if (listContext === 'discover') {
-      // Remove from discover cache (user just registered)
-      queryClient.setQueriesData<InfiniteData<Event[]>>(
-        { queryKey: ['discover', 'events'] },
-        (oldData) => {
-          if (!oldData) return oldData
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) =>
-              page.filter((event) => event.id !== id),
+    queryClient.setQueriesData<InfiniteData<Event[]>>(
+      { queryKey: ['events'] },
+      (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) =>
+            page.map((event) =>
+              event.id === id
+                ? {
+                    ...event,
+                    is_attending: isAttending,
+                    attendee_count: Math.max(
+                      0,
+                      event.attendee_count + (isAttending ? 1 : -1),
+                    ),
+                  }
+                : event,
             ),
-          }
-        },
-      )
-    } else {
-      // Remove from groups cache (user just unregistered)
-      queryClient.setQueriesData<InfiniteData<Event[]>>(
-        { queryKey: ['groups', 'events'] },
-        (oldData) => {
-          if (!oldData) return oldData
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) =>
-              page.filter((event) => event.id !== id),
-            ),
-          }
-        },
-      )
-    }
+          ),
+        }
+      },
+    )
+
+    queryClient.invalidateQueries({ queryKey: ['events', 'joined'] })
 
     // Remove detail page cache so it fetches fresh on navigation
     queryClient.removeQueries({ queryKey: ['event', id] })

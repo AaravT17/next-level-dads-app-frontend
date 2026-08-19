@@ -207,7 +207,7 @@ const ProfileSetup = () => {
         },
         accessToken,
       })
-      navigate(ROUTES.DISCOVER)
+      navigate(ROUTES.HOME_AFTER_AUTH)
     } catch (err: any) {
       toastError('Profile creation failed', err.response?.data?.detail ||
           'Failed to create profile. Please try again.')
@@ -235,7 +235,7 @@ const ProfileSetup = () => {
             {/* <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(ROUTES.DISCOVER_DADS)}
+              onClick={() => navigate(ROUTES.DADS)}
               className="text-muted-foreground hover:text-foreground"
               disabled={loading}
             >
