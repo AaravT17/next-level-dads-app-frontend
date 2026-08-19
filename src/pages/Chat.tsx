@@ -465,7 +465,8 @@ const Chat = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={handleBack}
-              className="text-muted-foreground"
+              aria-label="Back to conversations"
+              className="text-muted-foreground lg:hidden"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>

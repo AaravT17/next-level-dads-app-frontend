@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   useInfiniteQuery,
   useMutation,
@@ -26,6 +26,7 @@ import { chat } from '@/lib/routes'
 import { toast } from 'sonner'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
+import { cn } from '@/lib/utils'
 import { formatListTimestamp } from '@/utils/format'
 import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT, CHATS_PAGE_LIMIT } from '@/config/constants'
 import { Chat, ChatsCursor } from '@/types/chats'
@@ -46,6 +47,9 @@ const Chats = () => {
 
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  // With the two-pane desktop layout the list stays visible beside the thread,
+  // so the open conversation needs to be marked.
+  const { id: selectedChatId } = useParams<{ id: string }>()
   const nameParam = searchParams.get('name') ?? ''
 
   // Sync input with URL param on mount (e.g. back navigation)
@@ -450,7 +454,13 @@ const Chats = () => {
                   <li key={c.id}>
                     <Link
                       to={chat(c.id)}
-                      className="flex items-center gap-4 px-2 py-4 hover:bg-muted/50 transition-colors active:scale-[0.995]"
+                      aria-current={selectedChatId === c.id ? 'true' : undefined}
+                      className={cn(
+                        'flex items-center gap-4 px-2 py-4 transition-colors duration-fast active:scale-[0.995]',
+                        selectedChatId === c.id
+                          ? 'bg-primary/10'
+                          : 'hover:bg-muted/50',
+                      )}
                     >
                       <div className="relative shrink-0">
                         {c.type === 'dm' ? (

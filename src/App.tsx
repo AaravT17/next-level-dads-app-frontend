@@ -20,8 +20,8 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import VerifyEmail from './pages/VerifyEmail'
 import ProfileSetup from './pages/ProfileSetup'
-import Chats from './pages/Chats'
 import Chat from './pages/Chat'
+import { ChatsLayout, ChatsEmptyPane } from './pages/chats/ChatsLayout'
 import ChatManage from './pages/ChatManage'
 import DadsPage from './pages/DadsPage'
 import GroupsPage from './pages/GroupsPage'
@@ -77,8 +77,10 @@ const AppContent = () => {
               <Route path={ROUTES.CONVERSATION_DETAIL} element={<ConversationDetailPage />} />
               <Route path={ROUTES.EVENT_DETAIL} element={<EventDetail />} />
 
-              {/* Chats */}
-              <Route path={ROUTES.CHATS} element={<Chats />} />
+              {/* Chats — list only on mobile, list + thread from lg */}
+              <Route element={<ChatsLayout />}>
+                <Route path={ROUTES.CHATS} element={<ChatsEmptyPane />} />
+              </Route>
 
               {/* You */}
               <Route path={ROUTES.YOU} element={<YouPage />} />
@@ -88,10 +90,16 @@ const AppContent = () => {
               <Route path={ROUTES.REQUESTS} element={<Requests />} />
             </Route>
 
-            {/* Full-height screens that own their chrome */}
+            {/*
+              An open thread hides the bottom bar on mobile so the composer is
+              not stacked on top of it. On desktop ChatsLayout still puts the
+              conversation list alongside, and the side rail is unaffected.
+            */}
             <Route element={<AppLayout variant="immersive" />}>
-              <Route path="/chats/:id" element={<Chat />} />
-              <Route path="/chats/:id/manage" element={<ChatManage />} />
+              <Route element={<ChatsLayout />}>
+                <Route path={ROUTES.CHAT} element={<Chat />} />
+              </Route>
+              <Route path={ROUTES.CHAT_MANAGE} element={<ChatManage />} />
             </Route>
           </Route>
 
