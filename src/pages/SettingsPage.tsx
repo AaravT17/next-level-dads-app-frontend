@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useAuth } from '@/contexts/AuthContext'
+import { ThemePicker } from '@/components/settings/ThemePicker'
 import { toastError } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -98,6 +99,11 @@ const SettingsPage = () => {
       <AppBar title="Settings" leading="back" backTo={ROUTES.YOU} />
 
       <PageContainer className="space-y-8 animate-fade-in">
+        <section className="space-y-3">
+          <h2 className="font-heading text-subhead text-foreground">Appearance</h2>
+          <ThemePicker />
+        </section>
+
         <section className="space-y-3">
           <h2 className="font-heading text-subhead text-foreground">Email</h2>
           <div className="flex items-center justify-between gap-4 rounded-lg bg-card p-4 shadow-sm">

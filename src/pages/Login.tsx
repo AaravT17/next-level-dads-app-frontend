@@ -100,7 +100,7 @@ const Login = () => {
           <img
             src={logo}
             alt="Next Level Dads"
-            className="w-48 h-auto"
+            className="app-logo w-48 h-auto"
           />
         </div>
 

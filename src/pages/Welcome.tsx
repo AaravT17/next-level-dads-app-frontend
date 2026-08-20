@@ -123,7 +123,7 @@ const Welcome = () => {
           <img
             src={logo}
             alt="Next Level Dads"
-            className="w-[95%] h-auto"
+            className="app-logo w-[95%] h-auto"
           />
         </div>
 
