@@ -41,6 +41,8 @@ import { OrganizationsPage } from './features/organizations/pages/OrganizationsP
 import { ApplicationDetailPage } from './features/organizations/pages/ApplicationDetailPage'
 import { OrganizationChatsPage } from './features/organization-chats/pages/OrganizationChatsPage'
 import { OrganizationChatDetailPage } from './features/organization-chats/pages/OrganizationChatDetailPage'
+import { OrganizationEventApprovalPage } from './features/admin/pages/OrganizationEventApprovalPage'
+import { AdminEventsPage } from './features/admin/pages/AdminEventsPage'
 
 const AppContent = () => {
   return (
@@ -174,7 +176,7 @@ const AppContent = () => {
             element={<ProtectedRoute><Requests /></ProtectedRoute>}
           />
 
-          {/* Admin */}
+         {/* Admin */}
 
           <Route
             path={ROUTES.ADMIN}
@@ -206,8 +208,24 @@ const AppContent = () => {
               path="moderation"
               element={<AdminDashboardPage />}
             />
+
+            <Route
+            path={ROUTES.ADMIN_EVENTS}
+            element={
+              <AdminRoute>
+                <AdminEventsPage />
+              </AdminRoute>}
+            />
+
+            <Route
+              path={ROUTES.ADMIN_ORGANIZATION_EVENT}
+              element={
+                <AdminRoute>
+                  <OrganizationEventApprovalPage />
+                </AdminRoute>}
+            />
           </Route>
-          
+
           {/* Catch-all */}
           <Route
             path="*"

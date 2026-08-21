@@ -1,6 +1,7 @@
 export type ReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'actioned'
 export type ModerationLayer = 'profanity' | 'hate_speech' | 'report'
 export type ContentType = 'conversation' | 'message' | 'reply'
+export type OrganizationEventStatus = 'pending' | 'approved' | 'rejected'
 
 export interface AdminContentReport {
   id: string
@@ -108,4 +109,82 @@ export interface AdminUserContext {
     avatar_url: string | null
   }
   activity: AdminUserActivity[]
+}
+
+export interface OrganizationEventAdminNotes {
+  text: string
+  created_by?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface OrganizationEvent {
+  id: string
+  name: string
+  description: string | null
+  type: 'local' | 'virtual'
+  starts_at: string
+  ends_at: string | null
+  location: string
+  latitude: number | null
+  longitude: number | null
+  hosted_by_org_id: string | null
+  contact_email: string | null
+  contact_phone: string | null
+  price_cad: number | string | null
+  created_by: string | null
+  created_at: string
+  app_status: OrganizationEventStatus | string
+  admin_notes: OrganizationEventAdminNotes | null
+}
+
+export interface OrganizationEventDecisionRequest {
+  status: OrganizationEventStatus
+  admin_notes?: string | null
+  decision_message?: string | null
+}
+
+export interface OrganizationEventDecisionResponse {
+  id: string
+  app_status: OrganizationEventStatus | string
+  admin_notes: OrganizationEventAdminNotes | null
+  decision_message?: string | null
+}
+
+export type AdminEventFormat = 'online' | 'in_person' | 'hybrid' | 'in-person'
+export type AdminEventCategory =
+  | 'Parenting'
+  | 'Wellness'
+  | 'Recreation'
+  | 'Support Group'
+  | 'Education'
+  | 'Community Meetup'
+
+export type AdminEventListStatus = 'pending' | 'approved' | 'needs_changes' | 'denied'
+
+export interface AdminEventsMetrics {
+  total_rsvps_active: number
+  dads_attended_completed: number
+  event_attendance_rate: number
+  repeat_attendee_rate: number
+}
+
+export interface AdminEventListItem {
+  id: string
+  name: string
+  organization_name: string
+  event_date: string
+  rsvps: number
+  attended: number
+  attendance_rate: number
+  status: AdminEventListStatus | string
+  region?: string | null
+  format?: AdminEventFormat | string | null
+  category?: AdminEventCategory | string | null
+}
+
+export interface AdminEventsListResponse {
+  metrics: AdminEventsMetrics
+  events: AdminEventListItem[]
+  organizations: string[]
 }
