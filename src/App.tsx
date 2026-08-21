@@ -67,8 +67,7 @@ const AppContent = () => {
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
-            {/* Standard screens, with primary navigation */}
-            <Route element={<AppLayout variant="tabs" />}>
+            <Route element={<AppLayout />}>
               {/* Dads */}
               <Route path={ROUTES.DADS} element={<DadsPage />} />
               <Route path={ROUTES.DAD_DETAIL} element={<ProfileDetail />} />
@@ -86,7 +85,9 @@ const AppContent = () => {
               {/* Chats — list only on mobile, list + thread from lg */}
               <Route element={<ChatsLayout />}>
                 <Route path={ROUTES.CHATS} element={<ChatsEmptyPane />} />
+                <Route path={ROUTES.CHAT} element={<Chat />} />
               </Route>
+              <Route path={ROUTES.CHAT_MANAGE} element={<ChatManage />} />
 
               {/* You */}
               <Route path={ROUTES.YOU} element={<YouPage />} />
@@ -95,23 +96,11 @@ const AppContent = () => {
               <Route path={ROUTES.CONNECTIONS} element={<Connections />} />
               <Route path={ROUTES.REQUESTS} element={<Requests />} />
             </Route>
-
-            {/*
-              An open thread hides the bottom bar on mobile so the composer is
-              not stacked on top of it. On desktop ChatsLayout still puts the
-              conversation list alongside, and the side rail is unaffected.
-            */}
-            <Route element={<AppLayout variant="immersive" />}>
-              <Route element={<ChatsLayout />}>
-                <Route path={ROUTES.CHAT} element={<Chat />} />
-              </Route>
-              <Route path={ROUTES.CHAT_MANAGE} element={<ChatManage />} />
-            </Route>
           </Route>
 
           {/* Admin */}
           <Route element={<AdminRoute />}>
-            <Route element={<AppLayout variant="tabs" />}>
+            <Route element={<AppLayout />}>
               <Route path={ROUTES.ADMIN} element={<AdminDashboardPage />} />
             </Route>
           </Route>

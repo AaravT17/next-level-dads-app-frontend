@@ -459,7 +459,9 @@ const Chat = () => {
   // ============================================
 
   return (
-    <div className="flex-1 min-h-0 bg-background flex flex-col">
+    // `relative` so the scroll-to-latest button anchors to this pane rather
+    // than to the shell, whose bottom edge sits below the primary nav.
+    <div className="relative flex-1 min-h-0 bg-background flex flex-col">
       {/* Header */}
       <div className="bg-card border-b border-border shrink-0">
         <div className="px-6 py-4">
