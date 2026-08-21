@@ -61,9 +61,9 @@ export function AdminSidebar() {
       .toUpperCase()
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col">
       {/* Branding */}
-      <div className="flex min-h-20items-center gap-3 px-5 py-5">
+      <div className="flex min-h-20 items-center gap-3 px-5 py-5">
         <img
           src={logo}
           alt="Next Level Dads"
@@ -84,14 +84,13 @@ export function AdminSidebar() {
       <Separator />
 
       {/* Main navigation */}
-      <div className="flex-1 px-3 py-5">
+      <div className="flex-1 py-5">
         <p className="mb-2 px-3 text-sm font-medium text-muted-foreground">
           Workspace
         </p>
 
         <nav
           aria-label="Admin Dashboard Navigation"
-          className="space-y-1"
         >
           {adminNavigationItems.map(
             ({ label, to, end, icon: Icon }) => (
@@ -101,31 +100,19 @@ export function AdminSidebar() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium transition-colors',
+                    'ml-1 flex items-center gap-3 border-l-4 px-3 py-2.5 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground hover:bg-accent hover:text-accent-foreground',
+                      ? 'border-primary bg-[hsl(var(--muted)/0.35)] text-foreground'
+                      : 'border-transparent text-foreground hover:text-primary',
                   )
                 }
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-5" />
                 <span>{label}</span>
               </NavLink>
             ),
           )}
         </nav>
-
-        {/* Future admin route */}
-        {/*
-          TODO:
-          Add Events here.
-
-          Example:
-
-          <NavLink to={ROUTES.ADMIN_EVENTS}>
-            Events
-          </NavLink>
-        */}
 
         <div className="mt-8">
           <p className="mb-2 px-3 text-sm font-medium text-muted-foreground">
@@ -134,14 +121,13 @@ export function AdminSidebar() {
 
           <nav
             aria-label="Next Level Dads Ecosystem Navigation"
-            className="space-y-1"
           >
             <NavLink
               to={ROUTES.DISCOVER}
-              className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="ml-1 border-l-4 border-transparent flex items-center gap-3 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
             >
-              <Home className="h-4 w-4" />
-              <span>Back to dad app</span>
+              <Home className="h-4 w-5" />
+              <span>Back to NLD</span>
             </NavLink>
 
             {/*

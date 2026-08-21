@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
 import { differenceInCalendarDays } from 'date-fns'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ClipboardCheck } from 'lucide-react'
 import { OrganizationActionItem } from '@/features/organizations/types/organizations.ts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ROUTES, adminOrganizationDetail } from '@/lib/routes'
+
 
 interface ActionItemsCardProps {
   actionItems: OrganizationActionItem[]
@@ -24,12 +25,21 @@ export function ActionItemsCard({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between">
-        <div>
+    <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+      <CardHeader className="flex flex-row items-start justify-between bg-[hsl(var(--muted)/0.25)]">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <ClipboardCheck className="h-4 w-4 bg-foreground text-background" />
+          </div>
+
           <CardTitle>Action Items</CardTitle>
-          <CardDescription>
-            Items waiting for admin review.
+
+          <CardDescription className="mt-1 flex items-center gap-2">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-xs font-semibold text-accent-foreground">
+              {actionItems.length}
+            </span>
+            
+            <span>items pending review.</span>
           </CardDescription>
         </div>
 
@@ -67,7 +77,7 @@ export function ActionItemsCard({
                 className="flex items-center justify-between gap-4 border-t px-6 py-4"
               >
                 <div className="flex items-center gap-4">
-                  <Badge variant="outline">
+                  <Badge variant="soft">
                     Application
                   </Badge>
 
@@ -77,7 +87,7 @@ export function ActionItemsCard({
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <Badge variant="secondary">
+                  <Badge variant="outline">
                     {getWaitingDays(item.created_at)}
                   </Badge>
 

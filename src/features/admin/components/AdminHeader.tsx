@@ -27,7 +27,7 @@ export function AdminHeader({
       .toUpperCase()
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background px-4 py-3">
+    <div className="flex h-14 items-center gap-4 px-4 py-3">
       {/* Sidebar toggle */}
       <Button
         type="button"
@@ -35,8 +35,9 @@ export function AdminHeader({
         size="icon"
         onClick={onToggleSidebar}
         aria-label="Toggle admin sidebar"
+        className="hover:bg-transparent hover:text-primary transition-colors [&_svg]:size-5"
       >
-        <PanelLeft className="h-5 w-5" />
+        <PanelLeft />
       </Button>
 
       {/* Future global admin search */}
@@ -57,18 +58,21 @@ export function AdminHeader({
         */}
       </div>
 
-      <div className="ml-auto flex items-center gap-3">
-        {/* Environment/context badge */}
-        <Badge variant="outline">
-          Internal
-        </Badge>
+       {/* Environment badge */}
+      <Badge 
+        variant="outline"
+        className="bg-muted text-muted-foreground">
+        Internal
+      </Badge>
 
+      <div className="ml-auto flex items-center">
         {/* Future notifications */}
         <Button
           type="button"
           variant="ghost"
           size="icon"
           aria-label="Notifications"
+          className="hover:bg-transparent hover:text-primary transition-colors [&_svg]:size-5"
           disabled
         >
           <Bell className="h-5 w-5" />
@@ -80,22 +84,23 @@ export function AdminHeader({
           events, resources, moderation items, etc.
         */}
 
-        {/* Current admin */}
+        {/* Current admin logged in*/}
         <Button
           variant="ghost"
           size="icon"
           asChild
           aria-label={`Open profile for ${adminName}`}
+          className="hover:bg-transparent hover:opacity-80 transition-opacity"
         >
           <Link to={ROUTES.PROFILE}>
             <Avatar className="h-8 w-8">
-              <AvatarFallback>
+              <AvatarFallback className="bg-secondary-foreground text-background">
                 {getInitials(adminName)}
               </AvatarFallback>
             </Avatar>
           </Link>
         </Button>
       </div>
-    </header>
+    </div>
   )
 }
