@@ -17,9 +17,9 @@ import { useFeed } from '../hooks/useFeed'
  * follow relationship, and membership is what /api/users/me/communities
  * already exposes.
  *
- * The scope lives in the URL as ?feed=, kept distinct from the communities
- * list's ?scope= so the two sections on this page can be linked to
- * independently.
+ * The scope lives in the URL as ?feed=, distinct from the communities list's
+ * ?scope=. The two lived on one page as sibling tabs before the feed became
+ * Home; keeping the names apart means old links still resolve unambiguously.
  */
 
 const FEED_SCOPES = [
@@ -54,7 +54,7 @@ export function CommunityFeed() {
       return next
     })
 
-  // The tab bar already names this section, so there is no visible heading.
+  // The page's AppBar already names this section, so there is no visible heading.
   return (
     <section aria-label="Feed" className="space-y-4">
       <div className="w-full sm:max-w-xs">

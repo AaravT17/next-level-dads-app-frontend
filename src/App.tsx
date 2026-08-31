@@ -3,7 +3,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClient'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ROUTES, dadDetail, groups, events } from '@/lib/routes'
 import { THEMES, DEFAULT_THEME, THEME_STORAGE_KEY } from '@/lib/theme'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -25,6 +25,7 @@ import ProfileSetup from './pages/ProfileSetup'
 import Chat from './pages/Chat'
 import { ChatsLayout, ChatsEmptyPane } from './pages/chats/ChatsLayout'
 import ChatManage from './pages/ChatManage'
+import HomePage from './pages/HomePage'
 import DadsPage from './pages/DadsPage'
 import GroupsPage from './pages/GroupsPage'
 import EventsPage from './pages/EventsPage'
@@ -68,13 +69,15 @@ const AppContent = () => {
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
+              {/* Home — the cross-community feed */}
+              <Route path={ROUTES.HOME} element={<HomePage />} />
+
               {/* Dads */}
               <Route path={ROUTES.DADS} element={<DadsPage />} />
               <Route path={ROUTES.DAD_DETAIL} element={<ProfileDetail />} />
 
-              {/* Groups — feed and communities as sibling tabs */}
-              <Route path={ROUTES.GROUPS} element={<Navigate to={ROUTES.GROUPS_FEED} replace />} />
-              <Route path="/groups/:tab" element={<GroupsPage />} />
+              {/* Groups — the communities themselves */}
+              <Route path={ROUTES.GROUPS} element={<GroupsPage />} />
               <Route path={ROUTES.COMMUNITY_DETAIL} element={<CommunityDetailPage />} />
               <Route path={ROUTES.CONVERSATION_DETAIL} element={<ConversationDetailPage />} />
 
@@ -121,6 +124,9 @@ const AppContent = () => {
           <Route path="/communities" element={<LegacyRedirect to={() => groups('all')} />} />
           {/* Events were a tab inside Groups until they became their own destination. */}
           <Route path="/groups/events" element={<LegacyRedirect to={() => events()} />} />
+          {/* Groups' two tabs became Home (the feed) and Groups itself. */}
+          <Route path="/groups/feed" element={<LegacyRedirect to={() => ROUTES.HOME} />} />
+          <Route path="/groups/communities" element={<LegacyRedirect to={() => groups()} />} />
           <Route path="/match" element={<LegacyRedirect to={() => ROUTES.DADS} />} />
           <Route path="/profile" element={<LegacyRedirect to={() => ROUTES.YOU} />} />
           <Route path="/connections" element={<LegacyRedirect to={() => ROUTES.CONNECTIONS} />} />

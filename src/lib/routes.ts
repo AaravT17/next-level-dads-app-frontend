@@ -11,9 +11,10 @@
  * Route structure:
  * ├── /                       Welcome
  * ├── /setup                  Profile setup
+ * ├── /home                   The cross-community feed
  * ├── /dads                   Browse dads
  * │   └── /dads/:id           A dad's profile
- * ├── /groups/:tab            Feed | Communities
+ * ├── /groups                 Communities, filtered by ?scope=joined|all
  * │   └── /communities/:id                        Community detail
  * │       └── .../conversations/:conversationId   A post
  * ├── /events                 Events, filtered by ?scope=joined|all
@@ -38,14 +39,15 @@ export const ROUTES = {
   VERIFY_EMAIL: '/verify-email',
   SETUP: '/setup',
 
+  // Home — the cross-community feed, first of the primary destinations
+  HOME: '/home',
+
   // Dads
   DADS: '/dads',
   DAD_DETAIL: '/dads/:id',
 
-  // Groups — feed and communities as sibling sections
+  // Groups — the communities themselves; their feed lives on Home
   GROUPS: '/groups',
-  GROUPS_FEED: '/groups/feed',
-  GROUPS_COMMUNITIES: '/groups/communities',
   COMMUNITY_DETAIL: '/communities/:communityId',
   CONVERSATION_DETAIL: '/communities/:communityId/conversations/:conversationId',
 
@@ -90,11 +92,9 @@ export type GroupScope = 'joined' | 'all'
 // ============================================
 export const dadDetail = (id: string) => `/dads/${id}` as const
 
-export type GroupsTab = 'feed' | 'communities'
-
 /** Communities list, optionally scoped. */
 export const groups = (scope?: GroupScope) =>
-  scope ? `/groups/communities?scope=${scope}` : '/groups/communities'
+  scope ? `/groups?scope=${scope}` : '/groups'
 
 /** Events list, optionally scoped. */
 export const events = (scope?: GroupScope) =>

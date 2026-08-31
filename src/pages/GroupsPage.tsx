@@ -14,24 +14,21 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { toastError } from '@/lib/toast'
-import { ROUTES, communityDetail } from '@/lib/routes'
+import { communityDetail } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
-import { useParams, Navigate } from 'react-router-dom'
-import { AppBar } from '@/components/layout/AppBar'
-import { PageContainer } from '@/components/layout/PageContainer'
-import { TabBar } from '@/components/layout/TabBar'
-import { CommunityFeed } from '@/features/feed/components/CommunityFeed'
-import { ScopedCollectionList } from './collections/ScopedCollectionPage'
+import { ScopedCollectionPage } from './collections/ScopedCollectionPage'
 
 /**
- * Groups: the cross-community feed and the communities themselves, as sibling
- * tabs — the same shape communities and events used to have.
+ * Communities.
  *
- * Events used to be the second tab here; they are their own destination now.
+ * The cross-community feed used to be the first of two tabs here; it is Home
+ * now, so this is a single list like Events — same shape, one kind of thing.
+ *
+ * The route is still /groups: renaming the section's label is a UI change, and
+ * moving the URL would break every link anyone has already shared.
  */
 const GroupsPage = () => {
-  const { tab } = useParams<{ tab: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -121,31 +118,8 @@ const GroupsPage = () => {
     </Dialog>
   )
 
-  if (tab !== 'feed' && tab !== 'communities') {
-    return <Navigate to={ROUTES.GROUPS_FEED} replace />
-  }
-
   return (
-    <>
-      <AppBar title="Groups" width="wide" />
-
-      <TabBar
-        width="wide"
-        ariaLabel="Groups sections"
-        items={[
-          { label: 'Feed', to: ROUTES.GROUPS_FEED, isActive: tab === 'feed' },
-          { label: 'Communities', to: ROUTES.GROUPS_COMMUNITIES, isActive: tab === 'communities' },
-        ]}
-      />
-
-      <PageContainer width="wide" className="animate-fade-in">
-        {tab === 'feed' ? (
-          <CommunityFeed />
-        ) : (
-          <ScopedCollectionList kind="communities" action={createCommunityAction} />
-        )}
-      </PageContainer>
-    </>
+    <ScopedCollectionPage kind="communities" title="Communities" action={createCommunityAction} />
   )
 }
 
