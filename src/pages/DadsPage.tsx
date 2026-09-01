@@ -10,6 +10,7 @@ import { QueryState } from '@/components/feedback/QueryState'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { DadListSkeleton } from '@/components/feedback/skeletons/CardSkeletons'
 import DadCard from '@/components/DadCard'
+import { ConnectionRequestsPanel } from '@/features/connections/components/ConnectionRequestsPanel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -249,6 +250,8 @@ const DadsPage = () => {
   const handleRefreshDads = () => {
     queryClient.removeQueries({ queryKey: ['dads'] })
     queryClient.removeQueries({ queryKey: ['profile'] })
+    // The requests panel sits on this page too, so Refresh has to mean it.
+    queryClient.removeQueries({ queryKey: ['connections', 'requests'] })
   }
 
   return (
@@ -257,6 +260,12 @@ const DadsPage = () => {
 
       <PageContainer width="wide" className="animate-fade-in">
   <div className="space-y-4 animate-fade-in">
+    {/*
+      Requests first: they are addressed to you, and browsing is what you do
+      when nothing is waiting. The panel removes itself when the list is empty.
+    */}
+    <ConnectionRequestsPanel />
+
     <div className="mb-4 flex items-center gap-3">
     <form
       className="relative flex-1 sm:max-w-md"

@@ -20,6 +20,12 @@ export function initials(name: string | null | undefined): string {
   return letters || '?'
 }
 
+/** Just the given name: "Marcus Lee" -> "Marcus". Falls back to the whole string. */
+export function firstName(name: string | null | undefined): string {
+  if (!name) return ''
+  return name.trim().split(/\s+/)[0] || ''
+}
+
 /** Clock time only: "3:45 PM". For items already grouped under a known day. */
 export function formatClock(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

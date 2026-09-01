@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
@@ -18,6 +18,7 @@ import axiosPrivate from '@/api/axiosPrivate'
 import { toastError } from '@/lib/toast'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
+import { ConnectRequestDialog } from '@/features/connections/components/ConnectRequestDialog'
 import type { Chat } from '@/types/chats'
 
 async function fetchProfile(id: string): Promise<Profile> {
@@ -31,6 +32,7 @@ const ProfileDetail = () => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
 
   // Update profile in all list caches
   const updateProfileInLists = (profile: Profile) => {
@@ -178,16 +180,29 @@ const ProfileDetail = () => {
 
   // POST /api/connections/{id} - Send connection request
   const sendConnectionRequest = useMutation({
-    mutationFn: () =>
+    mutationFn: (note: string | null) =>
       axiosPrivate.post<{ connection_status: ConnectionStatus }>(
         `/api/connections/${id}`,
+        // No body at all when there is no note, so the request stays identical
+        // to the one-tap connect on the browse grid.
+        note ? { note } : undefined,
       ),
     onSuccess: (res) => {
+      setIsNoteDialogOpen(false)
       updateStatusInCache(res.data.connection_status)
     },
-    onError: (err: AxiosError<{ connection_status: ConnectionStatus }>) => {
+    onError: (err: AxiosError<{ connection_status: ConnectionStatus; detail?: string }>) => {
       if (err.response?.status === 409 && err.response.data?.connection_status) {
+        setIsNoteDialogOpen(false)
         updateStatusInCache(err.response.data.connection_status)
+      } else if (err.response?.status === 400 || err.response?.status === 403) {
+        // The note was rejected (profanity, length, or an active ban). Keep the
+        // dialog open so the text is still there to edit.
+        toastError(
+          typeof err.response.data?.detail === 'string'
+            ? err.response.data.detail
+            : 'Your note could not be sent. Please revise it and try again.',
+        )
       } else {
         toastError('Failed to send connection request. Please try again.')
       }
@@ -245,7 +260,7 @@ const ProfileDetail = () => {
   })
 
   const handleConnect = () => {
-    sendConnectionRequest.mutate()
+    setIsNoteDialogOpen(true)
   }
 
   const handleCancelRequest = () => {
@@ -471,6 +486,16 @@ const ProfileDetail = () => {
           <div className="px-6 flex justify-center">
             <ReportUserButton userId={id} userName={profile.name} />
           </div>
+        )}
+
+        {profile && (
+          <ConnectRequestDialog
+            open={isNoteDialogOpen}
+            onOpenChange={setIsNoteDialogOpen}
+            recipientName={profile.name}
+            isSending={sendConnectionRequest.isPending}
+            onSend={(note) => sendConnectionRequest.mutate(note)}
+          />
         )}
       </PageContainer>
     </>

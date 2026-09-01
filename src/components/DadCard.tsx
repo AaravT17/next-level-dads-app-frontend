@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { MapPin, MessageCircle, UserMinus, UserPlus, Check, X, Clock } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -12,6 +13,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 import { cn } from '@/lib/utils'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
+import { ConnectionNote } from '@/features/connections/components/ConnectionNote'
+import { ConnectRequestDialog } from '@/features/connections/components/ConnectRequestDialog'
 import { getStageDisplayLabel } from '@/utils/users'
 import { initials } from '@/utils/format'
 import { profileDetail, chat } from '@/lib/routes'
@@ -26,6 +29,17 @@ type ListContext = 'dads' | 'connections' | 'requests'
 interface DadCardProps extends Profile {
   connection_id?: string
   connection_updated_at?: string
+  /** Message attached to a pending request; only requests carry one. */
+  note?: string | null
+  /** Clamp a long note — the Dads panel sits above the browse grid. */
+  clampNote?: boolean
+  /**
+   * Which list this card belongs to, when the URL does not say.
+   *
+   * The Dads screen shows incoming requests above the browse grid, so the
+   * pathname alone can no longer tell the two apart on that page.
+   */
+  listContext?: ListContext
 }
 
 const DadCard = ({
@@ -39,10 +53,14 @@ const DadCard = ({
   interests,
   avatar_url,
   connection_status,
+  note,
+  clampNote = false,
+  listContext: listContextProp,
 }: DadCardProps) => {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
 
   /**
    * Which list this card sits in.
@@ -52,6 +70,7 @@ const DadCard = ({
    * button changed. The three lists mean different things.
    */
   const getListContext = (): ListContext => {
+    if (listContextProp) return listContextProp
     const { pathname } = location
     if (pathname.startsWith('/you/connections')) return 'connections'
     if (pathname.startsWith('/you/requests')) return 'requests'
@@ -137,21 +156,33 @@ const DadCard = ({
 
   // POST /api/connections/{id} - Send connection request
   const sendConnectionRequest = useMutation({
-    mutationFn: () =>
+    mutationFn: (note: string | null) =>
       axiosPrivate.post<{ connection_status: ConnectionStatus }>(
         `/api/connections/${id}`,
+        // Omit the body entirely when there is no note.
+        note ? { note } : undefined,
       ),
     onSuccess: (res) => {
+      setIsNoteDialogOpen(false)
       updateStatusInCache(res.data.connection_status)
     },
-    onError: (err: AxiosError<{ connection_status: ConnectionStatus }>) => {
+    onError: (err: AxiosError<{ connection_status: ConnectionStatus; detail?: string }>) => {
       if (
         err.response?.status === 409 &&
         err.response.data?.connection_status
       ) {
+        setIsNoteDialogOpen(false)
         updateStatusInCache(err.response.data.connection_status)
       } else if (err.response?.status === 429) {
         toastError('Connection request limit reached. Please try again later.')
+      } else if (err.response?.status === 400 || err.response?.status === 403) {
+        // The note was rejected. Leave the dialog open so it can be edited
+        // rather than retyped.
+        toastError(
+          typeof err.response.data?.detail === 'string'
+            ? err.response.data.detail
+            : 'Your note could not be sent. Please revise it and try again.',
+        )
       } else {
         toastError('Failed to send connection request. Please try again.')
       }
@@ -209,7 +240,7 @@ const DadCard = ({
   })
 
   const handleConnect = () => {
-    sendConnectionRequest.mutate()
+    setIsNoteDialogOpen(true)
   }
 
   const handleCancelRequest = () => {
@@ -373,6 +404,7 @@ const DadCard = ({
   }
 
   return (
+    <>
     <Card
       className="overflow-hidden shadow-md cursor-pointer"
       onClick={handleCardClick}
@@ -419,6 +451,8 @@ const DadCard = ({
 
         <p className="text-foreground text-body leading-relaxed">{about}</p>
 
+        {note && <ConnectionNote note={note} clamp={clampNote} />}
+
         <div className="flex flex-wrap gap-1.5">
           {interests.map((interest) => (
             <Badge
@@ -432,6 +466,21 @@ const DadCard = ({
         </div>
       </CardContent>
     </Card>
+
+    {/*
+      A sibling of Card, never a child. React synthetic events bubble through
+      the React tree rather than the DOM tree, so a dialog rendered inside
+      Card still fires Card's click-to-navigate handler even though Radix
+      portals it to <body> — closing the dialog would open the profile.
+    */}
+    <ConnectRequestDialog
+      open={isNoteDialogOpen}
+      onOpenChange={setIsNoteDialogOpen}
+      recipientName={name}
+      isSending={sendConnectionRequest.isPending}
+      onSend={(note) => sendConnectionRequest.mutate(note)}
+    />
+    </>
   )
 }
 
