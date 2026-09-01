@@ -74,6 +74,21 @@ export const CHATS_PAGE_LIMIT = 20
 export const MESSAGES_PAGE_LIMIT = 50
 export const PARTICIPANTS_PAGE_LIMIT = 20
 
+/** How many "get back into it" cards the Home rail asks for. */
+export const RESUME_PAGE_LIMIT = 10
+
+/**
+ * Feed suggestion cadence: one suggestion card after every Nth post.
+ *
+ * Four keeps suggestions discoverable without the feed reading as promotional.
+ * The interleave is a pure function of this number, so tuning it is a one-line
+ * change with no layout work.
+ */
+export const FEED_SUGGESTION_INTERVAL = 4
+
+/** How many of each suggestion kind to hold, so the feed can scroll a while. */
+export const FEED_SUGGESTION_POOL_SIZE = 6
+
 export const DISCOVER_DADS_FILTERS_AGE_RANGES = [
   'Under 25',
   '25-29',

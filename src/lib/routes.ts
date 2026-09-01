@@ -12,6 +12,7 @@
  * ├── /                       Welcome
  * ├── /setup                  Profile setup
  * ├── /home                   The cross-community feed
+ * │   └── /home/resume        Only the threads you have a stake in
  * ├── /dads                   Browse dads
  * │   └── /dads/:id           A dad's profile
  * ├── /groups                 Communities, filtered by ?scope=joined|all
@@ -41,6 +42,13 @@ export const ROUTES = {
 
   // Home — the cross-community feed, first of the primary destinations
   HOME: '/home',
+  /**
+   * "Get back into it" as a full page.
+   *
+   * A child of /home rather than a sibling so the Home tab stays lit while you
+   * are in it — useNavItems matches on the /home prefix.
+   */
+  HOME_RESUME: '/home/resume',
 
   // Dads
   DADS: '/dads',

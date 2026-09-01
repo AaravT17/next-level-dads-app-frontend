@@ -26,6 +26,7 @@ import Chat from './pages/Chat'
 import { ChatsLayout, ChatsEmptyPane } from './pages/chats/ChatsLayout'
 import ChatManage from './pages/ChatManage'
 import HomePage from './pages/HomePage'
+import ResumePage from './pages/ResumePage'
 import DadsPage from './pages/DadsPage'
 import GroupsPage from './pages/GroupsPage'
 import EventsPage from './pages/EventsPage'
@@ -69,8 +70,9 @@ const AppContent = () => {
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              {/* Home — the cross-community feed */}
+              {/* Home — the cross-community feed, and the resume set on its own page */}
               <Route path={ROUTES.HOME} element={<HomePage />} />
+              <Route path={ROUTES.HOME_RESUME} element={<ResumePage />} />
 
               {/* Dads */}
               <Route path={ROUTES.DADS} element={<DadsPage />} />
