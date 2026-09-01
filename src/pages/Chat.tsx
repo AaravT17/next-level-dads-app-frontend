@@ -25,6 +25,7 @@ import {
 import { chatManage } from '@/lib/routes'
 import { UserAvatar } from '@/components/media/UserAvatar'
 import { AccountButton } from '@/components/layout/AccountButton'
+import { SharedCommunityCard } from '@/features/communities/components/SharedCommunityCard'
 import { formatClock } from '@/utils/format'
 import {
   type ChatType,
@@ -650,6 +651,13 @@ const Chat = () => {
                         >
                           {msg.is_deleted ? 'Message deleted' : msg.content}
                         </p>
+
+                        {/* Community invite. Withheld on delete both here and
+                            server-side, so a deleted invite stops linking on
+                            the deleter's screen too, not just after a refetch. */}
+                        {msg.shared_community && !msg.is_deleted && (
+                          <SharedCommunityCard community={msg.shared_community} />
+                        )}
                       </div>
 
                       {/* Hover actions */}

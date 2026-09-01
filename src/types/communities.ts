@@ -97,6 +97,14 @@ export interface Community {
   role: CommunityRole
 }
 
+export interface CommunityInviteRequest {
+  recipient_ids: string[]
+}
+
+export interface CommunityInviteResponse {
+  invited_count: number
+}
+
 export interface DiscoverCommunitiesFilters {
   name: string
 }

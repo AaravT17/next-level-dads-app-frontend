@@ -3,6 +3,7 @@ import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type {
   AnyConversationsCursor,
   Community,
+  CommunityInviteResponse,
   Conversation,
   ConversationCreate,
   ConversationMessage,
@@ -50,6 +51,15 @@ export const communitiesApi = {
       .get<Conversation[]>(`/api/communities/${communityId}/conversations`, { params, ...t })
       .then((r) => r.data)
   },
+
+  inviteToCommunity: (communityId: string, recipientIds: string[]) =>
+    axiosPrivate
+      .post<CommunityInviteResponse>(
+        `/api/communities/${communityId}/invites`,
+        { recipient_ids: recipientIds },
+        t,
+      )
+      .then((r) => r.data),
 
   createConversation: (communityId: string, payload: ConversationCreate) =>
     axiosPrivate
