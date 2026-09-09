@@ -44,6 +44,7 @@ export interface SharedCommunity {
   id: string
   name: string
   description: string | null
+  image_url: string | null
   member_count: number
 }
 

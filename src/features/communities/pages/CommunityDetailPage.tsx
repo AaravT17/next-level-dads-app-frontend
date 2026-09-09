@@ -18,6 +18,7 @@ import { communityKeys } from '../hooks/communityKeys'
 import { ConversationCard } from '../components/ConversationCard'
 import { ConversationComposer } from '../components/ConversationComposer'
 import { InviteFriendsDialog } from '../components/InviteFriendsDialog'
+import { CommunityPhotoEditor } from '../components/CommunityPhotoEditor'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { conversationDetail } from '@/lib/routes'
 import type { ConversationSort, ConversationTimeWindow } from '@/types/communities'
@@ -154,10 +155,19 @@ const CommunityDetailPage = () => {
 
         {/* Community header card */}
         <div className="bg-card border-2 border-primary/30 rounded-xl p-5 space-y-4 shadow-md">
-          <h2 className="text-xl font-heading font-bold text-foreground">{community.name}</h2>
-          {community.description && (
-            <p className="text-muted-foreground leading-relaxed">{community.description}</p>
-          )}
+          <div className="flex items-start gap-4">
+            <CommunityPhotoEditor
+              communityId={communityId!}
+              imageUrl={community.image_url}
+              canEdit={community.role === 'admin'}
+            />
+            <div className="min-w-0 flex-1 space-y-2">
+              <h2 className="text-xl font-heading font-bold text-foreground">{community.name}</h2>
+              {community.description && (
+                <p className="text-muted-foreground leading-relaxed">{community.description}</p>
+              )}
+            </div>
+          </div>
           <div className="flex items-center gap-3 flex-wrap">
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Users className="w-4 h-4" />

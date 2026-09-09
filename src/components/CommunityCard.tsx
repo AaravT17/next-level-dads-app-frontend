@@ -2,6 +2,7 @@ import { Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
+import { CommunityImage } from './CommunityImage'
 import { communityDetail } from '@/lib/routes'
 import type { Community } from '@/types/communities'
 
@@ -12,7 +13,7 @@ import type { Community } from '@/types/communities'
  * itself, so the card no longer owns those mutations or the cache patching
  * that went with them. Tapping it opens the community.
  */
-const CommunityCard = ({ id, name, description, member_count, role }: Community) => {
+const CommunityCard = ({ id, name, description, image_url, member_count, role }: Community) => {
   const navigate = useNavigate()
 
   return (
@@ -21,17 +22,7 @@ const CommunityCard = ({ id, name, description, member_count, role }: Community)
       onClick={() => navigate(communityDetail(id))}
     >
       <CardContent className="p-4 flex gap-4">
-        {/*
-          Placeholder until communities carry their own image. Deliberately not
-          wired to any field yet — swap the inner icon for an <img> once the API
-          returns one.
-        */}
-        <div
-          aria-hidden
-          className="flex w-20 h-20 shrink-0 items-center justify-center rounded-md bg-muted"
-        >
-          <Users className="w-7 h-7 text-muted-foreground/60" strokeWidth={1.5} />
-        </div>
+        <CommunityImage src={image_url} size={80} />
 
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-start justify-between gap-2">

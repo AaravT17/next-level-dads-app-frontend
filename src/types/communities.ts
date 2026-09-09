@@ -90,6 +90,7 @@ export interface Community {
   id: string
   name: string
   description: string | null
+  image_url: string | null
   member_count: number
   created_by: string | null
   created_at: string

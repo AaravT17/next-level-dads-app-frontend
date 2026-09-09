@@ -52,6 +52,20 @@ export const communitiesApi = {
       .then((r) => r.data)
   },
 
+  updateCommunityImage: (communityId: string, file: File) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    return axiosPrivate
+      .put<{ image_url: string }>(`/api/communities/${communityId}/image`, formData, {
+        ...t,
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data)
+  },
+
+  deleteCommunityImage: (communityId: string) =>
+    axiosPrivate.delete(`/api/communities/${communityId}/image`, t),
+
   inviteToCommunity: (communityId: string, recipientIds: string[]) =>
     axiosPrivate
       .post<CommunityInviteResponse>(
