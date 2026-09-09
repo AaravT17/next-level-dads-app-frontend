@@ -13,6 +13,7 @@ import axiosPrivate, {
   getAccessToken,
   setAccessToken,
   getAuthCallbacks,
+  refreshAccessToken,
 } from '@/api/axiosPrivate'
 import { Message, Chat } from '@/types/chats'
 import {
@@ -222,11 +223,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           logout()
           return
         }
-        // Auth failure — refresh token then reconnect immediately
+        // Auth failure — refresh token then reconnect immediately.
+        // Shares the interceptor's in-flight refresh: posting to /auth/refresh
+        // here too would race it for a refresh token only one of them can
+        // spend, and the loser logs the user out.
         try {
-          const res = await axiosPrivate.post('/api/auth/refresh')
-          setAccessToken(res.data.access_token)
-          getAuthCallbacks()?.onTokenRefresh(res.data.access_token)
+          await refreshAccessToken()
         } catch {
           logout()
           return

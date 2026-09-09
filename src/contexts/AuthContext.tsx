@@ -5,12 +5,15 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
+import axios from 'axios'
 import { User, AuthState, AuthContextType } from '../types/auth'
 import axiosPrivate, {
   registerAuthCallbacks,
   setAccessToken,
 } from '../api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
+import { getErrorMessage } from '@/utils/errors'
+import { toastError } from '@/lib/toast'
 
 // Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -79,7 +82,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           },
         }))
-      } catch (err: any) {
+      } catch (err) {
+        // A 401 here is the ordinary signed-out case: the request goes out with
+        // no token, the interceptor tries the refresh cookie, and there is no
+        // valid one. Anything else — a timeout, an unreachable server, a 500 —
+        // is a real failure, and swallowing it rendered the app as "signed out"
+        // so a backend incident looked like an unexplained logout.
+        const status = axios.isAxiosError(err) ? err.response?.status : undefined
+        if (status !== 401 && status !== 403) {
+          toastError(
+            'Could not restore your session',
+            getErrorMessage(err, 'Something went wrong. Please try again.'),
+          )
+        }
       } finally {
         setLoading(false)
       }

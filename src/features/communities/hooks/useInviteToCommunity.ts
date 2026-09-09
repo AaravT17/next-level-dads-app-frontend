@@ -14,10 +14,23 @@ export function useInviteToCommunity(communityId: string | undefined) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (recipientIds: string[]) =>
-      communitiesApi.inviteToCommunity(communityId!, recipientIds),
+    mutationFn: (recipientIds: string[]) => {
+      // Rejecting here beats asserting the id is present: without this the
+      // request goes to /api/communities/undefined/invites and comes back as a
+      // server-side 400 that says nothing about the real cause.
+      if (!communityId) {
+        return Promise.reject(new Error('useInviteToCommunity: no community id'))
+      }
+      return communitiesApi.inviteToCommunity(communityId, recipientIds)
+    },
     onSuccess: ({ invited_count }) => {
       queryClient.invalidateQueries({ queryKey: ['chats'] })
+      if (invited_count === 0) {
+        // Accepted, but nothing was sent. Reporting it as success would tell
+        // the sender their friends heard from them when nobody did.
+        toast.error('No invites were sent.')
+        return
+      }
       toast.success(
         invited_count === 1
           ? 'Invite sent'

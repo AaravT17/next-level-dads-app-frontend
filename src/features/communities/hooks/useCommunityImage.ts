@@ -31,9 +31,17 @@ export function useUpdateCommunityImage(communityId: string | undefined) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (file: File) => communitiesApi.updateCommunityImage(communityId!, file),
+    mutationFn: (file: File) => {
+      // See useInviteToCommunity: reject rather than request /undefined/image.
+      if (!communityId) {
+        return Promise.reject(new Error('useUpdateCommunityImage: no community id'))
+      }
+      return communitiesApi.updateCommunityImage(communityId, file)
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
+      if (communityId) {
+        queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId) })
+      }
       queryClient.invalidateQueries({ queryKey: communityKeys.all })
       toast.success('Community photo updated')
     },
@@ -47,9 +55,16 @@ export function useDeleteCommunityImage(communityId: string | undefined) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => communitiesApi.deleteCommunityImage(communityId!),
+    mutationFn: () => {
+      if (!communityId) {
+        return Promise.reject(new Error('useDeleteCommunityImage: no community id'))
+      }
+      return communitiesApi.deleteCommunityImage(communityId)
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
+      if (communityId) {
+        queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId) })
+      }
       queryClient.invalidateQueries({ queryKey: communityKeys.all })
       toast.success('Community photo removed')
     },

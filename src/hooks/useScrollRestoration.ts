@@ -24,6 +24,23 @@ const positions = new Map<string, number>()
 /** Content arrives asynchronously, so the target height may not exist yet. */
 const MAX_RESTORE_FRAMES = 40
 
+/**
+ * How many history entries to remember a position for.
+ *
+ * A Map keeps insertion order, so the oldest key is the first one. Without a
+ * cap this grew by one entry per history entry for as long as the tab stayed
+ * open, and nothing ever removed them.
+ */
+const MAX_TRACKED_POSITIONS = 50
+
+function remember(key: string, top: number): void {
+  if (!positions.has(key) && positions.size >= MAX_TRACKED_POSITIONS) {
+    const oldest = positions.keys().next().value
+    if (oldest !== undefined) positions.delete(oldest)
+  }
+  positions.set(key, top)
+}
+
 export function useScrollRestoration(ref: RefObject<HTMLElement>) {
   const { key } = useLocation()
   const navigationType = useNavigationType()
@@ -42,9 +59,21 @@ export function useScrollRestoration(ref: RefObject<HTMLElement>) {
     // the query cache rehydrates over a few frames.
     let frame = 0
     let attempts = 0
+    let cancelled = false
+
+    // The loop runs for up to 40 frames, and `saved` is captured, so a user who
+    // starts scrolling during it gets dragged back to where they were. Their
+    // first real input hands control over.
+    const cancel = () => {
+      cancelled = true
+    }
+    el.addEventListener('wheel', cancel, { passive: true, once: true })
+    el.addEventListener('touchstart', cancel, { passive: true, once: true })
+    window.addEventListener('keydown', cancel, { once: true })
+
     const restore = () => {
       const node = ref.current
-      if (!node) return
+      if (!node || cancelled) return
       node.scrollTop = saved
       attempts += 1
       if (Math.abs(node.scrollTop - saved) > 1 && attempts < MAX_RESTORE_FRAMES) {
@@ -52,14 +81,19 @@ export function useScrollRestoration(ref: RefObject<HTMLElement>) {
       }
     }
     restore()
-    return () => cancelAnimationFrame(frame)
+    return () => {
+      cancelAnimationFrame(frame)
+      el.removeEventListener('wheel', cancel)
+      el.removeEventListener('touchstart', cancel)
+      window.removeEventListener('keydown', cancel)
+    }
   }, [ref, key, navigationType])
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
 
-    const onScroll = () => positions.set(key, el.scrollTop)
+    const onScroll = () => remember(key, el.scrollTop)
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
   }, [ref, key])

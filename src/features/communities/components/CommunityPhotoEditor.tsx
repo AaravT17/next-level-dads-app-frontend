@@ -63,6 +63,13 @@ export function CommunityPhotoEditor({
     return () => URL.revokeObjectURL(preview)
   }, [preview])
 
+  // The refetched URL is the signal that the upload is really visible, so the
+  // local preview steps aside only once it changes. The stored URL carries a
+  // cache-busting stamp, so it always does.
+  useEffect(() => {
+    setPreview(null)
+  }, [imageUrl])
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     // Reset first so picking the same file twice still fires a change event.
@@ -77,7 +84,10 @@ export function CommunityPhotoEditor({
     }
 
     setPreview(URL.createObjectURL(file))
-    upload.mutate(file, { onSettled: () => setPreview(null) })
+    // Cleared on failure only. onSettled also fired on success, dropping the
+    // preview before the invalidated detail query had refetched -- so `src`
+    // fell back to the stale URL for a beat and the photo appeared to revert.
+    upload.mutate(file, { onError: () => setPreview(null) })
   }
 
   return (

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { ArrowRight, MessageCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -31,14 +31,18 @@ const RESUME_REASON_LABEL: Record<ResumeReason, string> = {
 }
 
 function ResumeCard({ item }: { item: ResumeConversation }) {
-  const navigate = useNavigate()
   const hasUnseen = item.unseen_reply_count > 0
 
+  // An anchor, not a Card with onClick. The div version was unreachable by
+  // keyboard and invisible to assistive tech, despite the comment below
+  // claiming tab order alone walks the rail. This also restores middle-click
+  // and open-in-new-tab.
   return (
-    <Card
-      className="h-full cursor-pointer transition-shadow hover:shadow-md"
-      onClick={() => navigate(conversationDetail(item.community_id, item.id))}
+    <Link
+      to={conversationDetail(item.community_id, item.id)}
+      className="block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
+      <Card className="h-full transition-shadow hover:shadow-md">
       <CardContent className="flex h-full flex-col gap-2 p-4">
         <p className="text-overline uppercase text-primary">{item.community_name}</p>
 
@@ -54,11 +58,12 @@ function ResumeCard({ item }: { item: ResumeConversation }) {
               </span>
             </>
           ) : (
-            <span>{RESUME_REASON_LABEL[item.reason]}</span>
+            <span>{RESUME_REASON_LABEL[item.reason] ?? 'you took part'}</span>
           )}
         </p>
       </CardContent>
-    </Card>
+      </Card>
+    </Link>
   )
 }
 

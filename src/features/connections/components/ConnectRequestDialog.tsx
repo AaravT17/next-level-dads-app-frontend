@@ -49,7 +49,10 @@ export function ConnectRequestDialog({
   const placeholder = given ? `Hey ${given}, let's connect!` : "Hey, let's connect!"
 
   const trimmed = note.trim()
-  const remaining = CONNECTION_NOTE_MAX_LENGTH - note.length
+  // Counts what actually gets sent. Measuring the raw input meant trailing
+  // whitespace pushed the counter negative and disabled a button whose payload
+  // was comfortably inside the limit.
+  const remaining = CONNECTION_NOTE_MAX_LENGTH - trimmed.length
   const isOverLimit = remaining < 0
 
   const handleOpenChange = (next: boolean) => {

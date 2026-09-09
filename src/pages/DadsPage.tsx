@@ -72,20 +72,35 @@ async function fetchInterests(): Promise<string[]> {
 }
 
 
+/**
+ * A repeatable search parameter as a referentially stable array.
+ *
+ * Serialising first means the identity only changes when that parameter's
+ * values do -- which is what the effects consuming these arrays depend on.
+ */
+function useArrayParam(searchParams: URLSearchParams, key: string): string[] {
+  const serialized = JSON.stringify(searchParams.getAll(key))
+  return useMemo(() => JSON.parse(serialized) as string[], [serialized])
+}
+
 const DadsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
 
-  const getArrayParam = useCallback((key: string) => searchParams.getAll(key), [searchParams])
   const getStringParam = useCallback((key: string) => searchParams.get(key) || '', [searchParams])
 
   const urlDadSearch = getStringParam('dad_name')
   const [dadSearchQuery, setDadSearchQuery] = useState(urlDadSearch)
 
-  const urlChildrenAges = useMemo(() => getArrayParam('children_age_ranges'), [getArrayParam])
-  const urlInterests = useMemo(() => getArrayParam('interests'), [getArrayParam])
-  const urlProvinces = useMemo(() => getArrayParam('provinces'), [getArrayParam])
-  const urlAgeRanges = useMemo(() => getArrayParam('age_ranges'), [getArrayParam])
+  // Keyed on the serialised values of *this* parameter rather than on a getter
+  // closed over searchParams. The getter changed identity whenever any search
+  // param changed, so submitting the name box gave all four filter arrays new
+  // identities, and the sync effect below then wiped in-progress selections out
+  // of the open filter sheet.
+  const urlChildrenAges = useArrayParam(searchParams, 'children_age_ranges')
+  const urlInterests = useArrayParam(searchParams, 'interests')
+  const urlProvinces = useArrayParam(searchParams, 'provinces')
+  const urlAgeRanges = useArrayParam(searchParams, 'age_ranges')
 
   const [pendingChildrenAges, setPendingChildrenAges] = useState<string[]>(urlChildrenAges)
   const [pendingInterests, setPendingInterests] = useState<string[]>(urlInterests)

@@ -86,3 +86,23 @@ export function formatPrice(price: string): string {
   if (value === 0) return 'Free'
   return `$${value.toFixed(2)}`
 }
+
+/**
+ * `mailto:` / `tel:` hrefs built from API-supplied contact details.
+ *
+ * The values are typed by whoever submitted the event, not validated, and land
+ * straight in an href. Percent-encoding the address keeps a value containing
+ * `?subject=`, `&bcc=` or a newline from turning into extra mail headers when
+ * the link opens; RFC 6068 expects the addr-spec encoded this way, so ordinary
+ * addresses still open normally.
+ */
+export function mailtoHref(email: string): string {
+  return `mailto:${encodeURIComponent(email)}`
+}
+
+/** Keeps only the characters a dial string can contain. */
+export function telHref(phone: string): string {
+  // A literal space, not \s: \s admits newlines and tabs, which have no place
+  // in a dial string.
+  return `tel:${phone.replace(/[^0-9+()\-.#* ]/g, '')}`
+}
