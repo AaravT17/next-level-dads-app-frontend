@@ -36,27 +36,46 @@ export function insertMessage(messages: Message[], newMsg: Message): Message[] {
 type ChatsCache = InfiniteData<Chat[]>
 
 /**
- * Insert a chat into a page maintaining updated_at DESC, id DESC order.
+ * Insert a chat into the correct sorted position across all pages (updated_at DESC, id DESC).
+ * Walks pages from first to last, within each page from first to last, inserts before the first chat that is
+ * less recently active. Falls back to appending to the last page if allowAppend is true, else does nothing.
+ * Caller is responsible for removing the chat from pages before calling if it already exists.
  */
-function insertSorted(page: Chat[], chat: Chat): Chat[] {
-  const result = [...page]
-  let i = 0
-  while (i < result.length) {
-    const cur = result[i]
-    const after =
-      cur.updated_at > chat.updated_at ||
-      (cur.updated_at === chat.updated_at && cur.id > chat.id)
-    if (!after) break
-    i++
+function insertChatIntoPages(
+  pages: Chat[][],
+  chat: Chat,
+  allowAppend: boolean,
+): { pages: Chat[][]; dropped: boolean } {
+  for (let p = 0; p < pages.length; p++) {
+    const page = pages[p]
+    for (let i = 0; i < page.length; i++) {
+      const cur = page[i]
+      const insertBefore =
+        chat.updated_at > cur.updated_at ||
+        (chat.updated_at === cur.updated_at && chat.id > cur.id)
+      if (insertBefore) {
+        const newPage = [...page]
+        newPage.splice(i, 0, chat)
+        const newPages = [...pages]
+        newPages[p] = newPage
+        return { pages: newPages, dropped: false }
+      }
+    }
   }
-  result.splice(i, 0, chat)
-  return result
+
+  if (!allowAppend) return { pages, dropped: true }
+
+  const newPages = [...pages]
+  newPages[newPages.length - 1] = [...newPages[newPages.length - 1], chat]
+  return { pages: newPages, dropped: false }
 }
 
 /**
  * Update the ['chats'] cache when a new message arrives.
- * Finds the chat, updates last_message + updated_at, moves it to front of first page.
- * Returns true if found, false if not.
+ * Finds the chat, updates last_message + updated_at only if the incoming message
+ * is newer than the current last_message, then moves the chat to the correct
+ * position in the list of chat previews.
+ * Returns true if the chat was found, false if not.
  */
 export function updateChatPreviewOnNewMessage(
   queryClient: QueryClient,
@@ -65,8 +84,6 @@ export function updateChatPreviewOnNewMessage(
   const data = queryClient.getQueryData<ChatsCache>(['chats'])
   if (!data) return false
 
-  const newPages = data.pages.map((page) => page.filter((c) => c.id !== message.chat_id))
-
   let updatedChat: Chat | undefined
   for (const page of data.pages) {
     updatedChat = page.find((c) => c.id === message.chat_id)
@@ -74,6 +91,16 @@ export function updateChatPreviewOnNewMessage(
   }
 
   if (!updatedChat) return false
+
+  // Only update if incoming message is newer (or there is no current last_message)
+  const currentLastMessage = updatedChat.last_message
+  const isNewer =
+    !currentLastMessage ||
+    message.created_at > currentLastMessage.created_at ||
+    (message.created_at === currentLastMessage.created_at &&
+      message.id > currentLastMessage.id)
+
+  if (!isNewer) return true
 
   const updated: Chat = {
     ...updatedChat,
@@ -88,28 +115,62 @@ export function updateChatPreviewOnNewMessage(
     },
   }
 
-  // Insert into first page maintaining updated_at DESC, id DESC order
-  const [firstPage, ...restPages] = newPages
+  const pagesWithoutChat = data.pages.map((page) =>
+    page.filter((c) => c.id !== message.chat_id),
+  )
+  const { pages: newPages } = insertChatIntoPages(
+    pagesWithoutChat,
+    updated,
+    true,
+  )
   queryClient.setQueryData<ChatsCache>(['chats'], {
     ...data,
-    pages: [insertSorted(firstPage, updated), ...restPages],
+    pages: newPages,
   })
 
   return true
 }
 
 /**
- * Insert a Chat object into the ['chats'] cache first page, ordered by updated_at DESC, id DESC.
+ * Insert a Chat object into the correct sorted position across all loaded pages.
+ * Deduplicates by id — if the chat already exists anywhere in the cache, does nothing.
+ * If the chat falls outside the loaded range, invalidates the query to trigger a refetch.
  */
 export function insertChatPreview(queryClient: QueryClient, chat: Chat): void {
   const data = queryClient.getQueryData<ChatsCache>(['chats'])
   if (!data) return
 
-  const [firstPage, ...restPages] = data.pages
+  // Dedup: if chat already exists in any page, do nothing
+  for (const page of data.pages) {
+    if (page.some((c) => c.id === chat.id)) return
+  }
+
+  const { pages, dropped } = insertChatIntoPages(data.pages, chat, false)
+
+  if (dropped) {
+    queryClient.invalidateQueries({ queryKey: ['chats'] })
+    return
+  }
 
   queryClient.setQueryData<ChatsCache>(['chats'], {
     ...data,
-    pages: [insertSorted(firstPage, chat), ...restPages],
+    pages,
+  })
+}
+
+/**
+ * Remove a chat from the ['chats'] cache by id.
+ */
+export function removeChatPreview(
+  queryClient: QueryClient,
+  chatId: string,
+): void {
+  const data = queryClient.getQueryData<ChatsCache>(['chats'])
+  if (!data) return
+
+  queryClient.setQueryData<ChatsCache>(['chats'], {
+    ...data,
+    pages: data.pages.map((page) => page.filter((c) => c.id !== chatId)),
   })
 }
 
@@ -171,8 +232,46 @@ export function updateChatPreviewOnDelete(
 // Messages cache helpers
 // ============================================
 
+type MessagesCache = InfiniteData<Message[]>
+
 /**
- * Insert a new message into the ['messages', chatId] cache if it exists.
+ * Insert a message into the correct position across all pages (oldest-first within each page,
+ * pages ordered oldest-first). Walks backwards from the newest page/message to find the
+ * insertion point. Deduplicates at the insertion point in the same pass.
+ */
+function insertMessageIntoPages(
+  pages: Message[][],
+  newMsg: Message,
+): { pages: Message[][]; dropped: boolean } {
+  for (let p = pages.length - 1; p >= 0; p--) {
+    const page = pages[p]
+    for (let i = page.length - 1; i >= 0; i--) {
+      const cur = page[i]
+      const belongsBefore =
+        cur.created_at < newMsg.created_at ||
+        (cur.created_at === newMsg.created_at && cur.id < newMsg.id)
+      if (belongsBefore) {
+        // newMsg inserts at index i+1 — check for duplicate at that position
+        const next = i + 1 < page.length ? page[i + 1] : pages[p + 1]?.[0]
+        if (next && next.id === newMsg.id) return { pages, dropped: false }
+
+        const newPage = [...page]
+        newPage.splice(i + 1, 0, newMsg)
+        const newPages = [...pages]
+        newPages[p] = newPage
+        return { pages: newPages, dropped: false }
+      }
+    }
+    // newMsg is older than everything in this page — continue to previous page
+  }
+
+  // newMsg is older than all loaded messages — drop it, caller will invalidate
+  return { pages, dropped: true }
+}
+
+/**
+ * Insert a new message into the correct page of the ['messages', chatId] infinite cache.
+ * Walks pages to find correct position, deduplicates in one pass.
  * Does nothing if the cache doesn't exist.
  */
 export function updateMessagesCache(
@@ -180,14 +279,24 @@ export function updateMessagesCache(
   chatId: string,
   message: Message,
 ): void {
-  const data = queryClient.getQueryData<Message[]>(['messages', chatId])
-  if (!data) return
+  const data = queryClient.getQueryData<MessagesCache>(['messages', chatId])
+  if (!data || data.pages.length === 0) return
 
-  queryClient.setQueryData<Message[]>(['messages', chatId], insertMessage(data, message))
+  const { pages, dropped } = insertMessageIntoPages(data.pages, message)
+
+  if (dropped) {
+    queryClient.invalidateQueries({ queryKey: ['messages', chatId] })
+    return
+  }
+
+  queryClient.setQueryData<MessagesCache>(['messages', chatId], {
+    ...data,
+    pages,
+  })
 }
 
 /**
- * Patch a message in the ['messages', chatId] cache by id.
+ * Patch a message across all pages of the ['messages', chatId] infinite cache by id.
  * Merges payload fields onto the matched message.
  * Does nothing if the cache doesn't exist.
  */
@@ -196,11 +305,13 @@ export function patchMessageInCache(
   chatId: string,
   payload: Partial<Message> & { id: string },
 ): void {
-  const data = queryClient.getQueryData<Message[]>(['messages', chatId])
+  const data = queryClient.getQueryData<MessagesCache>(['messages', chatId])
   if (!data) return
 
-  queryClient.setQueryData<Message[]>(
-    ['messages', chatId],
-    data.map((m) => (m.id === payload.id ? { ...m, ...payload } : m)),
-  )
+  queryClient.setQueryData<MessagesCache>(['messages', chatId], {
+    ...data,
+    pages: data.pages.map((page) =>
+      page.map((m) => (m.id === payload.id ? { ...m, ...payload } : m)),
+    ),
+  })
 }

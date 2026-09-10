@@ -8,7 +8,7 @@ export interface ChatOtherUser {
 
 export interface ChatLastMessage {
   id: string
-  content: string        // empty string if deleted
+  content: string // empty string if deleted
   sender_id: string
   sender_name: string
   created_at: string
@@ -18,16 +18,16 @@ export interface ChatLastMessage {
 export interface Chat {
   id: string
   type: ChatType
-  name: string | null    // null for DMs, set for groups
+  name: string | null // null for DMs, set for groups
   updated_at: string
   last_read_at: string | null
   last_message: ChatLastMessage | null
-  other_user: ChatOtherUser | null   // only present for DMs
+  other_user: ChatOtherUser | null // only present for DMs
 }
 
 export interface ReplyTo {
   id: string
-  content: string        // empty string if deleted
+  content: string // empty string if deleted
   sender_id: string
   sender_name: string
   is_deleted: boolean
@@ -39,7 +39,7 @@ export interface Message {
   sender_id: string
   sender_name: string
   sender_avatar_url: string | null
-  content: string        // empty string if deleted
+  content: string // empty string if deleted
   edited_at: string | null
   is_deleted: boolean
   created_at: string
@@ -73,4 +73,10 @@ export interface MessagesCursor {
 export interface ParticipantsCursor {
   cursor_id: string
   cursor_joined_at: string
+}
+
+export interface ChatMembership {
+  chat_id: string
+  last_read_at: string | null
+  updated_at: string
 }
