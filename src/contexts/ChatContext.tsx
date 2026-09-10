@@ -82,6 +82,9 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
 const MAX_RECONNECT_ATTEMPTS = 5
 
+/** Must match BEARER_SUBPROTOCOL on the server. */
+const WS_AUTH_SUBPROTOCOL = 'bearer'
+
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
@@ -90,7 +93,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [isFailed, setIsFailed] = useState(false)
 
   const wsRef = useRef<WebSocket | null>(null)
-  const connectionIdRef = useRef<string>(crypto.randomUUID())
   const reconnectAttemptRef = useRef<number>(0)
   const hasConnectedOnceRef = useRef<boolean>(false)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -126,11 +128,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const connect = useCallback(function connect(isPostRefresh = false) {
     const token = getAccessToken()
     const baseUrl = import.meta.env.VITE_BACKEND_BASE_URL || ''
-    const wsUrl =
-      baseUrl.replace(/^http/, 'ws') +
-      `/api/ws/?token=${token}&connection_id=${connectionIdRef.current}`
+    const wsUrl = baseUrl.replace(/^http/, 'ws') + '/api/ws/'
 
-    const ws = new WebSocket(wsUrl)
+    // The token goes in the subprotocol, not the query string. A WebSocket
+    // handshake is an HTTP GET, so a token in the URL is written to every
+    // access log between here and the server; `Sec-WebSocket-Protocol` is a
+    // header, and it is the only one the browser's WebSocket API lets us set.
+    // The server echoes back 'bearer', which RFC 6455 requires it to do.
+    // A missing token still opens the socket, so the server rejects it and the
+    // onclose 1008 path refreshes and retries -- the same route an expired
+    // token takes. The sentinel exists because the browser throws on an empty
+    // subprotocol value; a real JWT is always subprotocol-safe, being base64url
+    // segments joined by dots.
+    const ws = new WebSocket(wsUrl, [WS_AUTH_SUBPROTOCOL, token || 'missing'])
     wsRef.current = ws
 
     ws.onopen = () => {
