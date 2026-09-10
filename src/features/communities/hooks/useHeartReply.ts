@@ -2,9 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { communitiesApi } from '../api/communitiesApi'
 import { communityKeys } from './communityKeys'
+import { useJoinNudge } from './joinNudgeContext'
 
 export function useHeartReply(replyId: string, messageId: string) {
   const queryClient = useQueryClient()
+  const { recordInteraction } = useJoinNudge()
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: communityKeys.replies(messageId) })
@@ -12,7 +14,11 @@ export function useHeartReply(replyId: string, messageId: string) {
 
   const heart = useMutation({
     mutationFn: () => communitiesApi.heartReply(replyId),
-    onSuccess: invalidate,
+    // The like counts toward joining; the undo below does not.
+    onSuccess: () => {
+      invalidate()
+      recordInteraction('heart')
+    },
     onError: () => toast.error("Couldn't update your like"),
   })
 

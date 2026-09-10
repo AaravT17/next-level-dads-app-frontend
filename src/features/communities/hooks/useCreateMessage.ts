@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { communitiesApi } from '../api/communitiesApi'
 import { communityKeys } from './communityKeys'
+import { useJoinNudge } from './joinNudgeContext'
 import { scheduleModerationCheck } from '@/features/moderation/hooks/moderationWatch'
 import type { MessageCreate } from '@/types/communities'
 
 export function useCreateMessage(conversationId: string, communityId: string) {
   const queryClient = useQueryClient()
+  const { recordInteraction } = useJoinNudge()
 
   return useMutation({
     mutationFn: (payload: MessageCreate) =>
@@ -24,6 +26,7 @@ export function useCreateMessage(conversationId: string, communityId: string) {
         queryKey: communityKeys.conversationsAll(communityId),
       })
       scheduleModerationCheck(queryClient)
+      recordInteraction('message')
     },
   })
 }

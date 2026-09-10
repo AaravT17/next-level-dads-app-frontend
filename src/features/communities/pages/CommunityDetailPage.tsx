@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Users, Loader2, Plus, UserPlus } from 'lucide-react'
 import { AppBar } from '@/components/layout/AppBar'
@@ -10,15 +9,14 @@ import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import axiosPrivate from '@/api/axiosPrivate'
-import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useCommunity } from '../hooks/useCommunity'
 import { useCommunityConversations } from '../hooks/useCommunityConversations'
-import { communityKeys } from '../hooks/communityKeys'
+import { useJoinCommunity, useLeaveCommunity } from '../hooks/useCommunityMembership'
 import { ConversationCard } from '../components/ConversationCard'
 import { ConversationComposer } from '../components/ConversationComposer'
 import { InviteFriendsDialog } from '../components/InviteFriendsDialog'
 import { CommunityPhotoEditor } from '../components/CommunityPhotoEditor'
+import { JoinNudgeProvider } from '../components/JoinNudgeProvider'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { conversationDetail } from '@/lib/routes'
 import type { ConversationSort, ConversationTimeWindow } from '@/types/communities'
@@ -37,10 +35,8 @@ const TIME_WINDOWS: { value: ConversationTimeWindow; label: string }[] = [
   { value: 'all', label: 'All Time' },
 ]
 
-const CommunityDetailPage = () => {
+const CommunityDetailBody = ({ communityId }: { communityId: string | undefined }) => {
   const navigate = useNavigate()
-  const { communityId } = useParams<{ communityId: string }>()
-  const queryClient = useQueryClient()
   const [composerOpen, setComposerOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [activeFilter, setActiveFilter] = useState<ConversationSort>('recent')
@@ -72,29 +68,8 @@ const CommunityDetailPage = () => {
     })
   }, [fetchNextConversations])
 
-  const joinMutation = useMutation({
-    mutationFn: () =>
-      axiosPrivate.post(`/api/communities/${communityId}/members`, {}, {
-        timeout: TIMEOUT_LENGTH_MS,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
-      queryClient.invalidateQueries({ queryKey: ['communities'] })
-    },
-    onError: () => toast.error("Couldn't join community"),
-  })
-
-  const leaveMutation = useMutation({
-    mutationFn: () =>
-      axiosPrivate.delete(`/api/communities/${communityId}/members`, {
-        timeout: TIMEOUT_LENGTH_MS,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
-      queryClient.invalidateQueries({ queryKey: ['communities'] })
-    },
-    onError: () => toast.error("Couldn't leave community"),
-  })
+  const joinMutation = useJoinCommunity(communityId!)
+  const leaveMutation = useLeaveCommunity(communityId!)
 
   const handleConversationCreated = (conversationId: string) => {
     setComposerOpen(false)
@@ -303,6 +278,21 @@ const CommunityDetailPage = () => {
         </div>
       </PageContainer>
     </>
+  )
+}
+
+/**
+ * The provider sits above the whole page so that every like, reply and post
+ * inside it — however deep — is counted toward the join prompt, and so the
+ * header's own Join button clears that count through the same context.
+ */
+const CommunityDetailPage = () => {
+  const { communityId } = useParams<{ communityId: string }>()
+
+  return (
+    <JoinNudgeProvider communityId={communityId}>
+      <CommunityDetailBody communityId={communityId} />
+    </JoinNudgeProvider>
   )
 }
 

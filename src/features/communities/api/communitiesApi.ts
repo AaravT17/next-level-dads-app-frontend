@@ -52,6 +52,12 @@ export const communitiesApi = {
       .then((r) => r.data)
   },
 
+  joinCommunity: (communityId: string) =>
+    axiosPrivate.post(`/api/communities/${communityId}/members`, {}, t),
+
+  leaveCommunity: (communityId: string) =>
+    axiosPrivate.delete(`/api/communities/${communityId}/members`, t),
+
   updateCommunityImage: (communityId: string, file: File) => {
     const formData = new FormData()
     formData.append('image', file)

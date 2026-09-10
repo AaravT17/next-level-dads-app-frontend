@@ -28,16 +28,18 @@ import { useAuth } from '@/contexts/AuthContext'
 import { communityDetail, profileDetail } from '@/lib/routes'
 import { initials } from '@/utils/format'
 import { useCommunity } from '../hooks/useCommunity'
+import { JoinNudgeProvider } from '../components/JoinNudgeProvider'
 
 interface ReplyFormValues {
   body: string
 }
 
-const ConversationDetailPage = () => {
-  const { communityId, conversationId } = useParams<{
-    communityId: string
-    conversationId: string
-  }>()
+type BodyProps = {
+  communityId: string | undefined
+  conversationId: string | undefined
+}
+
+const ConversationDetailBody = ({ communityId, conversationId }: BodyProps) => {
   const { data: community } = useCommunity(communityId)
   const [replyOpen, setReplyOpen] = useState(false)
   const { user } = useAuth()
@@ -332,6 +334,26 @@ const ConversationDetailPage = () => {
         </div>
       </PageContainer>
     </>
+  )
+}
+
+/**
+ * Replies and likes on this page belong to the community the post sits in, so
+ * the join prompt is scoped here just as it is on the community page itself.
+ */
+const ConversationDetailPage = () => {
+  const { communityId, conversationId } = useParams<{
+    communityId: string
+    conversationId: string
+  }>()
+
+  return (
+    <JoinNudgeProvider communityId={communityId}>
+      <ConversationDetailBody
+        communityId={communityId}
+        conversationId={conversationId}
+      />
+    </JoinNudgeProvider>
   )
 }
 
