@@ -35,6 +35,7 @@ import {
 } from '@/types/chats'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChat } from '@/contexts/ChatContext'
+import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, MESSAGES_PAGE_LIMIT } from '@/config/constants'
@@ -59,6 +60,9 @@ const Chat = () => {
     useChat()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  // Same gate the community composers use, so a ban reads the same way
+  // wherever the user runs into it.
+  const { isBanned, notice: banNotice, handlePostError } = useModerationBan()
   const { id } = useParams<{ id: string }>()
 
   const chatId = id || ''
@@ -336,7 +340,9 @@ const Chat = () => {
       if (axios.isAxiosError(error) && error.response?.status === 429) {
         toast.error('Too many messages sent. Please slow down.')
       } else {
-        toast.error('Failed to send message.')
+        // Recognises the ban 403 and flips the composer to disabled, which
+        // covers a ban that lands mid-session.
+        handlePostError(error, 'message')
       }
     },
   })
@@ -755,7 +761,7 @@ const Chat = () => {
         <div className="px-6 py-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Type a message..."
+              placeholder={isBanned ? 'Messaging is suspended' : 'Type a message...'}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyDown={(e) => {
@@ -764,12 +770,13 @@ const Chat = () => {
                   handleSend()
                 }
               }}
+              disabled={isBanned}
               className="rounded-md"
             />
             <Button
               size="icon"
               onClick={handleSend}
-              disabled={sendMessage.isPending || !messageInput.trim()}
+              disabled={isBanned || sendMessage.isPending || !messageInput.trim()}
               className="rounded-md shrink-0 bg-gradient-gold"
             >
               {sendMessage.isPending ? (
@@ -779,6 +786,9 @@ const Chat = () => {
               )}
             </Button>
           </div>
+          {banNotice && (
+            <p className="text-caption text-destructive mt-2">{banNotice}</p>
+          )}
         </div>
       </div>
     </div>

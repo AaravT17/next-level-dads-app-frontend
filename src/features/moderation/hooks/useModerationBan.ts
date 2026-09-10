@@ -8,8 +8,15 @@ import { moderationKeys } from './moderationKeys'
 
 const BAN_REFETCH_MS = 60_000
 
-/** What the user was trying to post — drives the failure-toast copy. */
-export type PostFailureContext = 'conversation' | 'reply'
+/** What the user was trying to write — drives the failure-toast copy. */
+export type PostFailureContext = 'conversation' | 'reply' | 'message'
+
+// A direct message is sent, not posted.
+const FAILURE_VERB: Record<PostFailureContext, string> = {
+  conversation: 'post',
+  reply: 'post',
+  message: 'send',
+}
 
 interface BanGate {
   /** True while the user has an active posting ban. */
@@ -40,7 +47,7 @@ function suspensionNotice(expiresAt: string | null): string {
 }
 
 function failureNotice(context: PostFailureContext): string {
-  return `Couldn't post your ${context}. Please try again.`
+  return `Couldn't ${FAILURE_VERB[context]} your ${context}. Please try again.`
 }
 
 export function useModerationBan(): BanGate {

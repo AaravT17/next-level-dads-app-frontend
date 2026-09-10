@@ -91,13 +91,25 @@ export function formatPrice(price: string): string {
  * `mailto:` / `tel:` hrefs built from API-supplied contact details.
  *
  * The values are typed by whoever submitted the event, not validated, and land
- * straight in an href. Percent-encoding the address keeps a value containing
- * `?subject=`, `&bcc=` or a newline from turning into extra mail headers when
- * the link opens; RFC 6068 expects the addr-spec encoded this way, so ordinary
- * addresses still open normally.
+ * straight in an href, so a value containing `?subject=`, `&bcc=`, a comma or a
+ * newline could otherwise add mail headers or extra recipients when the link
+ * opens.
+ *
+ * Only the characters that can do that are escaped. `encodeURIComponent` would
+ * also percent-encode `@`, and while RFC 6068 permits that, not every mail
+ * handler decodes it before parsing the address — so the safe-looking choice
+ * risks breaking ordinary addresses for no extra protection. `%` is in the set
+ * so an address containing one cannot smuggle an escape of its own; the single
+ * pass never re-reads what it emits.
  */
+const MAILTO_UNSAFE = /[%?&#,;<>"\s]/g
+
 export function mailtoHref(email: string): string {
-  return `mailto:${encodeURIComponent(email)}`
+  const encoded = email.replace(
+    MAILTO_UNSAFE,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`,
+  )
+  return `mailto:${encoded}`
 }
 
 /** Keeps only the characters a dial string can contain. */
