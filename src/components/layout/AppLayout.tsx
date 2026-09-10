@@ -1,6 +1,8 @@
+import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { BottomNav } from './BottomNav'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 
 /**
@@ -17,7 +19,14 @@ export function AppLayout() {
   return (
     <AppShell>
       <ErrorBoundary resetKey={pathname}>
-        <Outlet />
+        {/*
+          Routes are code-split, so navigating to one not yet downloaded
+          suspends. Keeping the boundary here rather than around <Routes> means
+          the shell and bottom nav stay put and only the pane swaps.
+        */}
+        <Suspense fallback={<CenteredSpinner />}>
+          <Outlet />
+        </Suspense>
       </ErrorBoundary>
       <BottomNav />
     </AppShell>

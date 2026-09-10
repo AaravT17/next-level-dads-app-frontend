@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
@@ -9,38 +10,56 @@ import { THEMES, DEFAULT_THEME, THEME_STORAGE_KEY } from '@/lib/theme'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { LegacyRedirect } from '@/components/routing/LegacyRedirect'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 import { LegalAcceptancesModal } from '@/components/LegalAcceptancesModal'
 import { ChatProvider } from '@/contexts/ChatContext'
 
+// Welcome and NotFound stay eager: Welcome is what a logged-out visitor lands
+// on, so putting it behind a chunk boundary would trade a smaller bundle for a
+// spinner on first paint. Everything else is split, because none of it is
+// reachable until the user has navigated somewhere.
 import Welcome from './pages/Welcome'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import ForgotPassword from './pages/ForgotPassword'
-import ResetPassword from './pages/ResetPassword'
-import VerifyEmail from './pages/VerifyEmail'
-import ProfileSetup from './pages/ProfileSetup'
-import Chat from './pages/Chat'
-import { ChatsLayout, ChatsEmptyPane } from './pages/chats/ChatsLayout'
-import ChatManage from './pages/ChatManage'
-import HomePage from './pages/HomePage'
-import ResumePage from './pages/ResumePage'
-import DadsPage from './pages/DadsPage'
-import GroupsPage from './pages/GroupsPage'
-import EventsPage from './pages/EventsPage'
-import MyProfile from './pages/MyProfile'
-import YouPage from './pages/YouPage'
-import SettingsPage from './pages/SettingsPage'
-import ProfileDetail from './pages/ProfileDetail'
-import Connections from './pages/Connections'
-import Requests from './pages/Requests'
-import EventDetail from './pages/EventDetail'
 import NotFound from './pages/NotFound'
-import CommunityDetailPage from './features/communities/pages/CommunityDetailPage'
-import ConversationDetailPage from './features/communities/pages/ConversationDetailPage'
-import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
+
+const Login = lazy(() => import('./pages/Login'))
+const Register = lazy(() => import('./pages/Register'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
+const ProfileSetup = lazy(() => import('./pages/ProfileSetup'))
+const Chat = lazy(() => import('./pages/Chat'))
+// Named exports need mapping to a default for React.lazy.
+const ChatsLayout = lazy(() =>
+  import('./pages/chats/ChatsLayout').then((m) => ({ default: m.ChatsLayout })),
+)
+const ChatsEmptyPane = lazy(() =>
+  import('./pages/chats/ChatsLayout').then((m) => ({ default: m.ChatsEmptyPane })),
+)
+const ChatManage = lazy(() => import('./pages/ChatManage'))
+const HomePage = lazy(() => import('./pages/HomePage'))
+const ResumePage = lazy(() => import('./pages/ResumePage'))
+const DadsPage = lazy(() => import('./pages/DadsPage'))
+const GroupsPage = lazy(() => import('./pages/GroupsPage'))
+const EventsPage = lazy(() => import('./pages/EventsPage'))
+const MyProfile = lazy(() => import('./pages/MyProfile'))
+const YouPage = lazy(() => import('./pages/YouPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const ProfileDetail = lazy(() => import('./pages/ProfileDetail'))
+const Connections = lazy(() => import('./pages/Connections'))
+const Requests = lazy(() => import('./pages/Requests'))
+const EventDetail = lazy(() => import('./pages/EventDetail'))
+const CommunityDetailPage = lazy(() => import('./features/communities/pages/CommunityDetailPage'))
+const ConversationDetailPage = lazy(
+  () => import('./features/communities/pages/ConversationDetailPage'),
+)
+const AdminDashboardPage = lazy(() =>
+  import('./features/admin/pages/AdminDashboardPage').then((m) => ({
+    default: m.AdminDashboardPage,
+  })),
+)
 
 const AppContent = () => {
   return (
@@ -49,6 +68,12 @@ const AppContent = () => {
       <ModerationNotifier />
       <LegalAcceptancesModal />
       <BrowserRouter>
+        {/*
+          Covers the routes rendered outside AppLayout (auth, setup, 404).
+          Routes inside it have their own boundary, so the shell survives a
+          chunk load there instead of being replaced by this fallback.
+        */}
+        <Suspense fallback={<CenteredSpinner />}>
         <Routes>
           {/* Public - redirect to the app if already authenticated */}
           <Route element={<PublicRoute />}>
@@ -136,6 +161,7 @@ const AppContent = () => {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   )

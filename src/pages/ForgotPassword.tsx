@@ -7,8 +7,8 @@ import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
 import { getErrorMessage } from '@/utils/errors'
 import { toastError, toastSuccess } from '@/lib/toast'
-import validator from 'validator'
-import { supabase } from '@/lib/supabase'
+import { isValidEmail } from '@/utils/auth'
+import { supabaseAuth } from '@/lib/supabase'
 
 const ForgotPassword = () => {
   const navigate = useNavigate()
@@ -23,13 +23,13 @@ const ForgotPassword = () => {
       toastError('Missing email', 'Please enter your email address.')
       return
     }
-    if (!validator.isEmail(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(
+      const { error } = await supabaseAuth.resetPasswordForEmail(
         trimmedEmail,
         {
           redirectTo: `${import.meta.env.VITE_FRONTEND_BASE_URL}${ROUTES.RESET_PASSWORD}`,

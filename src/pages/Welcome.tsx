@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Mail } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
-import { supabase } from '@/lib/supabase'
+import { supabaseAuth } from '@/lib/supabase'
 import { toastError } from '@/lib/toast'
 import { useEffect, useState } from 'react'
 import axiosPublic from '@/api/axiosPublic'
@@ -99,7 +99,7 @@ const Welcome = () => {
 
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabaseAuth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${import.meta.env.VITE_FRONTEND_BASE_URL}`,

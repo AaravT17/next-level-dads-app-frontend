@@ -10,7 +10,7 @@ import axiosPublic from '@/api/axiosPublic'
 import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useAuth } from '../contexts/AuthContext'
-import validator from 'validator'
+import { isValidEmail } from '@/utils/auth'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { getErrorMessage, isHttpStatus } from '@/utils/errors'
 
@@ -30,7 +30,7 @@ const Login = () => {
       toastError('Missing fields', 'Please fill in all fields.')
       return
     }
-    if (!validator.isEmail(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }

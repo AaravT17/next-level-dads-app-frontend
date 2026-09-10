@@ -9,7 +9,7 @@ import { ROUTES } from '@/lib/routes'
 import { getErrorMessage } from '@/utils/errors'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { MIN_PASSWORD_LENGTH } from '@/config/constants'
-import { supabase } from '@/lib/supabase'
+import { supabaseAuth } from '@/lib/supabase'
 import { isStrongPassword } from '@/utils/auth'
 
 const ResetPassword = () => {
@@ -57,7 +57,7 @@ const ResetPassword = () => {
       }
 
       // Establish Supabase session with recovery tokens
-      const { error: sessionError } = await supabase.auth.setSession({
+      const { error: sessionError } = await supabaseAuth.setSession({
         access_token,
         refresh_token,
       })
@@ -90,13 +90,13 @@ const ResetPassword = () => {
     }
     setIsLoading(true)
     try {
-      const updated = await supabase.auth.updateUser({
+      const updated = await supabaseAuth.updateUser({
         password: newPassword,
       })
       if (updated.error) {
         throw updated.error
       }
-      const signedOut = await supabase.auth.signOut()
+      const signedOut = await supabaseAuth.signOut()
       if (signedOut.error) {
         throw signedOut.error
       }

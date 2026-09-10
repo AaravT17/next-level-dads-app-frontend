@@ -10,7 +10,7 @@ import { toastError, toastSuccess } from '@/lib/toast'
 import { getErrorMessage } from '@/utils/errors'
 import axiosPublic from '@/api/axiosPublic'
 import { MIN_PASSWORD_LENGTH } from '@/config/constants'
-import validator from 'validator'
+import { isValidEmail } from '@/utils/auth'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { isStrongPassword } from '@/utils/auth'
 
@@ -31,7 +31,7 @@ const Register = () => {
       toastError('Missing fields', 'Please fill in all fields.')
       return
     }
-    if (!validator.isEmail(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
