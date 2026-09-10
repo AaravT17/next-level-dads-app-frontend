@@ -1,6 +1,6 @@
 // TODO: Add date separators between messages (e.g. "Today", "Yesterday", specific dates) so users can orient
 // themselves in longer conversations — currently messages only show time, no date context.
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   useQuery,

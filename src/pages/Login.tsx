@@ -12,7 +12,7 @@ import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useAuth } from '../contexts/AuthContext'
 import validator from 'validator'
 import { toastError, toastSuccess } from '@/lib/toast'
-import { getErrorMessage } from '@/utils/errors'
+import { getErrorMessage, isHttpStatus } from '@/utils/errors'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -74,8 +74,8 @@ const Login = () => {
       })
       toastSuccess('Login successful', 'Welcome back!')
       navigate(ROUTES.HOME_AFTER_AUTH)
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err) {
+      if (isHttpStatus(err, 404)) {
         // user exists but profile not set up — commit token so SetupRoute allows access
         setAuth({ user: null, accessToken })
         navigate(ROUTES.SETUP)

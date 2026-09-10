@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Eye, EyeOff, XCircle } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
+import { getErrorMessage } from '@/utils/errors'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { MIN_PASSWORD_LENGTH } from '@/config/constants'
 import { supabase } from '@/lib/supabase'
@@ -89,21 +90,24 @@ const ResetPassword = () => {
     }
     setIsLoading(true)
     try {
-      let res: any = await supabase.auth.updateUser({
+      const updated = await supabase.auth.updateUser({
         password: newPassword,
       })
-      if (res.error) {
-        throw res.error
+      if (updated.error) {
+        throw updated.error
       }
-      res = await supabase.auth.signOut()
-      if (res.error) {
-        throw res.error
+      const signedOut = await supabase.auth.signOut()
+      if (signedOut.error) {
+        throw signedOut.error
       }
       window.history.replaceState({}, document.title, ROUTES.RESET_PASSWORD) // clear query params from URL
       toastSuccess('Password reset successful', 'Your password has been reset.')
       navigate(ROUTES.LOGIN)
-    } catch (err: any) {
-      toastError('Password reset failed', err.message || 'An error occurred while resetting your password.')
+    } catch (err) {
+      toastError(
+        'Password reset failed',
+        getErrorMessage(err, 'An error occurred while resetting your password.'),
+      )
     } finally {
       setIsLoading(false)
     }

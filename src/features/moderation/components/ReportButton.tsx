@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Flag, Loader2 } from 'lucide-react'
-import axios from 'axios'
+import { getErrorMessage, isHttpStatus } from '@/utils/errors'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -49,13 +49,12 @@ export function ReportButton({ contentType, contentId, className }: ReportButton
           setReason('')
           toast.success('Thanks for reporting — our team will review this.')
         },
-        onError: (error: any) => {
-          if (axios.isAxiosError(error) && error.response?.status === 429) {
+        onError: (error: unknown) => {
+          if (isHttpStatus(error, 429)) {
             toast.error('Report limit reached. Please try again later.')
           } else {
             toast.error(
-              error.response?.data?.detail ??
-                'Could not submit your report. Please try again.',
+              getErrorMessage(error, 'Could not submit your report. Please try again.'),
             )
           }
         },

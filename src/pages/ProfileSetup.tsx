@@ -209,7 +209,7 @@ const ProfileSetup = () => {
         accessToken,
       })
       navigate(ROUTES.HOME_AFTER_AUTH)
-    } catch (err: any) {
+    } catch (err) {
       toastError(
         'Profile creation failed',
         getErrorMessage(err, 'Failed to create profile. Please try again.'),

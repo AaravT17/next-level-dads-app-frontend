@@ -8,6 +8,7 @@ import { toastError } from '@/lib/toast'
 import { useEffect, useState } from 'react'
 import axiosPublic from '@/api/axiosPublic'
 import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
+import { isHttpStatus } from '@/utils/errors'
 import { useAuth } from '../contexts/AuthContext'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 
@@ -76,8 +77,8 @@ const Welcome = () => {
           accessToken,
         })
         navigate(ROUTES.HOME_AFTER_AUTH)
-      } catch (err: any) {
-        if (err.response?.status === 404) {
+      } catch (err) {
+        if (isHttpStatus(err, 404)) {
           // no profile yet — commit token so SetupRoute allows access
           setAuth({ user: null, accessToken })
           navigate(ROUTES.SETUP)
@@ -107,7 +108,7 @@ const Welcome = () => {
       if (error) {
         throw error
       }
-    } catch (err) {
+    } catch {
       toastError('Sign in failed', 'An error occurred while signing in with Google.')
     } finally {
       setIsLoading(false)

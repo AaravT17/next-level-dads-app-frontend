@@ -57,7 +57,7 @@ const Register = () => {
       )
       toastSuccess('Registration successful', res.data.detail)
       navigate(ROUTES.LOGIN)
-    } catch (err: any) {
+    } catch (err) {
       toastError(
         'Registration failed',
         getErrorMessage(err, 'Something went wrong. Please try again later.'),

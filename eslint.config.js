@@ -37,6 +37,22 @@ export default tseslint.config(
           message:
             "Inline hex colour in a style prop. Use a design token class instead (see src/index.css).",
         },
+        // A Tailwind arbitrary value is the other way a raw colour gets in, and
+        // the style-prop selector above never saw it. Covers plain strings and
+        // template literals anywhere inside className, so cn(...) and
+        // conditional class expressions are caught too.
+        {
+          selector:
+            "JSXAttribute[name.name='className'] Literal[value=/\\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\]/]",
+          message:
+            "Arbitrary hex colour in a Tailwind class. Use a design token class instead (see src/index.css).",
+        },
+        {
+          selector:
+            "JSXAttribute[name.name='className'] TemplateElement[value.raw=/\\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\]/]",
+          message:
+            "Arbitrary hex colour in a Tailwind class. Use a design token class instead (see src/index.css).",
+        },
       ],
       // Sonner is the single toast system. The shadcn stack is being removed.
       // The shadcn toast stack is gone; sonner is the only toast system.

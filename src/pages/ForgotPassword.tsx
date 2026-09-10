@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
+import { getErrorMessage } from '@/utils/errors'
 import { toastError, toastSuccess } from '@/lib/toast'
 import validator from 'validator'
 import { supabase } from '@/lib/supabase'
@@ -38,8 +39,8 @@ const ForgotPassword = () => {
         throw error
       }
       toastSuccess('Reset link sent', 'Please check your email for the password reset link.')
-    } catch (err: any) {
-      toastError(err.message || 'An error occurred while sending the reset link.')
+    } catch (err) {
+      toastError(getErrorMessage(err, 'An error occurred while sending the reset link.'))
     } finally {
       setIsLoading(false)
     }

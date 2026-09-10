@@ -89,7 +89,7 @@ const EventCard = ({
     onSuccess: () => {
       updateAttendanceInCache(false)
     },
-    onError: (err: AxiosError) => {
+    onError: () => {
       toastError('Failed to unregister from event. Please try again.')
     },
   })
