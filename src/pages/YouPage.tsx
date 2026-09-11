@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
+  Calendar,
   ChevronRight,
   Pencil,
   Settings,
@@ -11,7 +12,14 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
-import { UserAvatar } from '@/components/media/UserAvatar'
+import { Badge } from '@/components/ui/badge'
+import { ProfileHero } from '@/features/profile/components/ProfileHero'
+import {
+  ProfileCard,
+  ProfileSection,
+} from '@/features/profile/components/ProfileSection'
+import { ProfileStats } from '@/features/profile/components/ProfileStats'
+import { getStageDisplayLabel } from '@/utils/users'
 import { useAuth } from '@/contexts/AuthContext'
 import { ROUTES } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -89,6 +97,11 @@ const YouPage = () => {
       : []),
   ]
 
+  const hasDetails =
+    Boolean(user.about) ||
+    user.children_age_ranges.length > 0 ||
+    user.interests.length > 0
+
   const summary = [
     { label: 'Connections', value: stats?.connections ?? 0 },
     { label: 'Communities', value: stats?.communities_joined ?? 0 },
@@ -100,29 +113,77 @@ const YouPage = () => {
       <AppBar title="You" />
 
       <PageContainer className="space-y-6 animate-fade-in">
-        <section className="flex flex-col items-center text-center gap-3">
-          <UserAvatar name={user.name} src={user.avatarUrl} size="xl" shape="rounded" />
-          <div>
-            <h2 className="font-heading text-heading text-foreground">{user.name}</h2>
-            {(user.city || user.province) && (
-              <p className="text-body text-muted-foreground">
-                {[user.city, user.province].filter(Boolean).join(', ')}
-              </p>
-            )}
-          </div>
-        </section>
+        <ProfileHero
+          name={user.name}
+          age={user.age}
+          city={user.city}
+          province={user.province}
+          avatarUrl={user.avatarUrl}
+        />
 
-        <section aria-label="Your activity" className="grid grid-cols-3 rounded-lg bg-card shadow-sm">
-          {summary.map((item, i) => (
-            <div
-              key={item.label}
-              className={`px-2 py-4 text-center ${i > 0 ? 'border-l border-border' : ''}`}
+        <ProfileStats stats={summary} />
+
+        <ProfileCard
+          title="Your profile"
+          action={
+            <Link
+              to={ROUTES.YOU_EDIT}
+              className="shrink-0 rounded-md text-label font-medium text-primary transition-colors duration-fast hover:underline"
             >
-              <p className="font-heading text-heading text-foreground">{item.value}</p>
-              <p className="text-caption text-muted-foreground">{item.label}</p>
-            </div>
-          ))}
-        </section>
+              Edit
+            </Link>
+          }
+        >
+          {hasDetails ? (
+            <>
+              {user.about && (
+                <ProfileSection title="About me">
+                  <p className="text-body leading-relaxed text-foreground">
+                    {user.about}
+                  </p>
+                </ProfileSection>
+              )}
+
+              {user.children_age_ranges.length > 0 && (
+                <ProfileSection title="Children's age">
+                  <div className="flex flex-wrap gap-2">
+                    {user.children_age_ranges.map((stage) => (
+                      <Badge key={stage} variant="soft" className="rounded-md text-caption">
+                        <Calendar aria-hidden className="w-3 h-3 mr-1" />
+                        {getStageDisplayLabel(stage)}
+                      </Badge>
+                    ))}
+                  </div>
+                </ProfileSection>
+              )}
+
+              {user.interests.length > 0 && (
+                <ProfileSection title="Interests">
+                  <div className="flex flex-wrap gap-2">
+                    {user.interests.map((interest) => (
+                      <Badge key={interest} variant="soft" className="rounded-md text-caption">
+                        {interest}
+                      </Badge>
+                    ))}
+                  </div>
+                </ProfileSection>
+              )}
+            </>
+          ) : (
+            /*
+              Every field here is required at save time, so this is the
+              pre-migration account rather than the normal empty state. Three
+              empty headings would make the page barer than no card at all.
+            */
+            <p className="text-body text-muted-foreground">
+              You have not filled in your bio, interests or children's ages yet.{' '}
+              <Link to={ROUTES.YOU_EDIT} className="font-medium text-primary hover:underline">
+                Add them
+              </Link>{' '}
+              so other dads know who they are connecting with.
+            </p>
+          )}
+        </ProfileCard>
 
         <nav aria-label="Account">
           <ul role="list" className="overflow-hidden rounded-lg bg-card shadow-sm">
