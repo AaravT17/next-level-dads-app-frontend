@@ -33,8 +33,8 @@ import {
   type Chat,
   type MessagesCursor,
 } from '@/types/chats'
-import { useAuth } from '@/contexts/AuthContext'
-import { useChat } from '@/contexts/ChatContext'
+import { useAuth } from '@/contexts/useAuth'
+import { useChat } from '@/contexts/useChat'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'

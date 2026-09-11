@@ -27,7 +27,7 @@ import {
   PROVINCE_OPTIONS,
 } from '@/config/constants'
 import axiosPrivate from '@/api/axiosPrivate'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { toastError } from '@/lib/toast'
 import { getErrorMessage } from '@/utils/errors'
 

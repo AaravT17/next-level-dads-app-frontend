@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
-import { useChat } from '@/contexts/ChatContext'
+import { useAuth } from '@/contexts/useAuth'
+import { useChat } from '@/contexts/useChat'
 import { ROUTES } from '@/lib/routes'
 
 /**

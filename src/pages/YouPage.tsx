@@ -20,7 +20,7 @@ import {
 } from '@/features/profile/components/ProfileSection'
 import { ProfileStats } from '@/features/profile/components/ProfileStats'
 import { getStageDisplayLabel } from '@/utils/users'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'

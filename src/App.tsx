@@ -7,7 +7,7 @@ import { queryClient } from '@/lib/queryClient'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ROUTES, dadDetail, groups, events } from '@/lib/routes'
 import { THEMES, DEFAULT_THEME, THEME_STORAGE_KEY } from '@/lib/theme'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { AuthProvider } from '@/contexts/AuthProvider'
 import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { CenteredSpinner } from '@/components/feedback/Spinner'
@@ -15,7 +15,7 @@ import { LegacyRedirect } from '@/components/routing/LegacyRedirect'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 import { LegalAcceptancesModal } from '@/components/LegalAcceptancesModal'
-import { ChatProvider } from '@/contexts/ChatContext'
+import { ChatProvider } from '@/contexts/ChatProvider'
 
 // Welcome and NotFound stay eager: Welcome is what a logged-out visitor lands
 // on, so putting it behind a chunk boundary would trade a smaller bundle for a

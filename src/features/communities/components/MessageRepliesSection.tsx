@@ -16,7 +16,7 @@ import { useHeartReply } from '../hooks/useHeartReply'
 import { useDeleteReply } from '../hooks/useDeleteReply'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { profileDetail } from '@/lib/routes'
 import { PendingReportGate } from './PendingReportGate'
 

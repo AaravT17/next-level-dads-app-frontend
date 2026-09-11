@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { useQueryClient } from '@tanstack/react-query'
 import axiosPrivate from '@/api/axiosPrivate'
 import { toastError } from '@/lib/toast'

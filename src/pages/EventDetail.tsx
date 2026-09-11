@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
@@ -47,8 +47,13 @@ const EventDetail = () => {
     staleTime: 0, // Always fresh fetch
   })
 
-  // Update list caches when event is fetched
-  const updateEventInLists = (event: Event) => {
+  // Update list caches when event is fetched.
+  //
+  // Memoised so the effect below can depend on it honestly. Both deps are
+  // stable for the life of the route — the query client is a singleton and the
+  // id comes from the path — so this does not add a render to the effect.
+  const updateEventInLists = useCallback(
+    (event: Event) => {
     // One namespace now: patch the row in place instead of removing it from
     // whichever list the viewer was not looking at.
     queryClient.setQueriesData<InfiniteData<Event[]>>(
@@ -66,14 +71,16 @@ const EventDetail = () => {
 
     // The joined list genuinely changes membership, so let it refetch.
     queryClient.invalidateQueries({ queryKey: ['events', 'joined'] })
-  }
+    },
+    [queryClient, eventId],
+  )
 
   // Update list caches when event is fetched
   useEffect(() => {
     if (event) {
       updateEventInLists(event)
     }
-  }, [event])
+  }, [event, updateEventInLists])
 
   const handleBack = () => {
     navigate(-1)

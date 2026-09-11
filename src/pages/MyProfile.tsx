@@ -33,7 +33,7 @@ import {
   ProfileCard,
   ProfileSection,
 } from '@/features/profile/components/ProfileSection'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import {
@@ -208,10 +208,6 @@ const MyProfile = () => {
     },
   })
 
-
-
-
-
   const handleAvatarClick = () => {
     if (!isLoading) {
       fileInputRef.current?.click()
@@ -239,7 +235,6 @@ const MyProfile = () => {
     setIsLoading(true)
     deleteAvatar.mutate()
   }
-
 
   const handleCancel = () => {
     // Reset form to current user values

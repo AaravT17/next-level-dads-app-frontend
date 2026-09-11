@@ -9,7 +9,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { toast } from 'sonner'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, PARTICIPANTS_PAGE_LIMIT } from '@/config/constants'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
 import {
   type Chat,

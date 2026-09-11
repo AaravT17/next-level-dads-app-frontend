@@ -1,6 +1,4 @@
 import {
-  createContext,
-  useContext,
   useEffect,
   useRef,
   useState,
@@ -8,14 +6,15 @@ import {
   ReactNode,
 } from 'react'
 import { useQueryClient, InfiniteData } from '@tanstack/react-query'
-import { useAuth } from '@/contexts/AuthContext'
+import { ChatContext } from '@/contexts/ChatContext'
+import { useAuth } from '@/contexts/useAuth'
+import type { Chat, MessageHandler, WsEvent } from '@/types/chats'
 import axiosPrivate, {
   getAccessToken,
   setAccessToken,
   getAuthCallbacks,
   refreshAccessToken,
 } from '@/api/axiosPrivate'
-import { Message, Chat } from '@/types/chats'
 import {
   updateChatPreviewOnNewMessage,
   insertChatPreview,
@@ -24,57 +23,6 @@ import {
   updateMessagesCache,
   patchMessageInCache,
 } from '@/utils/chats'
-
-// ============================================
-// Types
-// ============================================
-
-type MessageHandler = (event: WsEvent) => void
-
-type WsEvent =
-  | { type: 'messages:new'; payload: Message }
-  | {
-      type: 'messages:edit'
-      payload: {
-        id: string
-        chat_id: string
-        content: string
-        is_deleted: false
-        edited_at: string
-      }
-    }
-  | {
-      type: 'messages:delete'
-      payload: {
-        id: string
-        chat_id: string
-        content: ''
-        is_deleted: true
-        edited_at: null
-      }
-    }
-  | {
-      type: 'chats:read'
-      payload: {
-        chat_id: string
-        last_read_at: string
-      }
-    }
-
-interface ChatContextType {
-  registerMessageHandler: (chatId: string, handler: MessageHandler) => () => void
-  registerReconnectHandler: (handler: () => void) => () => void
-  sendWsMessage: (data: object) => void
-  isReconnecting: boolean
-  isFailed: boolean
-  reconnect: () => void
-}
-
-// ============================================
-// Context
-// ============================================
-
-const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
 // ============================================
 // Provider
@@ -123,6 +71,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     shouldReconnectRef.current = false
     setAccessToken(null)
     getAuthCallbacks()?.onAuthFailure()
+  }, [])
+
+  const sendWsMessage = useCallback((data: object) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(data))
+    }
   }, [])
 
   const connect = useCallback(function connect(isPostRefresh = false) {
@@ -267,13 +221,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }, delay)
       }
     }
-  }, [logout, queryClient])
-
-  const sendWsMessage = useCallback((data: object) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(data))
-    }
-  }, [])
+  }, [logout, queryClient, sendWsMessage])
 
   const reconnect = useCallback(() => {
     shouldReconnectRef.current = true
@@ -284,12 +232,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     connect()
   }, [connect])
 
+  // The socket keys on identity, not on the user object.
+  //
+  // The dep list already said `user?.id` deliberately: a profile save replaces
+  // the user object, and depending on it would tear down and reconnect a live
+  // socket every time someone edited their bio. The guard below now reads the
+  // same id, so what the effect uses and what it depends on finally agree —
+  // userId is falsy in exactly the cases `!user` was.
+  const userId = user?.id
   const hasAcceptedLegal = !!(
     user?.legal_acceptances.terms && user?.legal_acceptances.privacy_policy
   )
 
   useEffect(() => {
-    if (!user || !hasAcceptedLegal) {
+    if (!userId || !hasAcceptedLegal) {
       shouldReconnectRef.current = false
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
       wsRef.current?.close()
@@ -320,7 +276,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setIsReconnecting(false)
       setIsFailed(false)
     }
-  }, [user?.id, hasAcceptedLegal, connect, reconnect])
+  }, [userId, hasAcceptedLegal, connect, reconnect])
 
   return (
     <ChatContext.Provider value={{ registerMessageHandler, registerReconnectHandler, sendWsMessage, isReconnecting, isFailed, reconnect }}>
@@ -329,14 +285,3 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// ============================================
-// Hook
-// ============================================
-
-export function useChat() {
-  const context = useContext(ChatContext)
-  if (context === undefined) {
-    throw new Error('useChat must be used within a ChatProvider')
-  }
-  return context
-}

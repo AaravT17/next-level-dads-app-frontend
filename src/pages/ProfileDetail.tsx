@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
@@ -56,8 +56,13 @@ const ProfileDetail = () => {
   const queryClient = useQueryClient()
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
 
-  // Update profile in all list caches
-  const updateProfileInLists = (profile: Profile) => {
+  // Update profile in all list caches.
+  //
+  // Memoised so the effect below can depend on it honestly. Both deps are
+  // stable for the life of the route — the query client is a singleton and the
+  // id comes from the path — so this does not add a render to the effect.
+  const updateProfileInLists = useCallback(
+    (profile: Profile) => {
     const { connection_status } = profile
 
     // Browse list: keep the row, just refresh its status
@@ -107,7 +112,9 @@ const ProfileDetail = () => {
         }
       },
     )
-  }
+    },
+    [queryClient, id],
+  )
 
   const {
     data: profile,
@@ -125,7 +132,7 @@ const ProfileDetail = () => {
     if (profile) {
       updateProfileInLists(profile)
     }
-  }, [profile])
+  }, [profile, updateProfileInLists])
 
   const handleBack = () => {
     navigate(-1)

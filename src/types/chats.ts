@@ -90,3 +90,48 @@ export interface ParticipantsCursor {
   cursor_id: string
   cursor_joined_at: string
 }
+
+// ============================================
+// Realtime + context
+// ============================================
+
+export type MessageHandler = (event: WsEvent) => void
+
+export type WsEvent =
+  | { type: 'messages:new'; payload: Message }
+  | {
+      type: 'messages:edit'
+      payload: {
+        id: string
+        chat_id: string
+        content: string
+        is_deleted: false
+        edited_at: string
+      }
+    }
+  | {
+      type: 'messages:delete'
+      payload: {
+        id: string
+        chat_id: string
+        content: ''
+        is_deleted: true
+        edited_at: null
+      }
+    }
+  | {
+      type: 'chats:read'
+      payload: {
+        chat_id: string
+        last_read_at: string
+      }
+    }
+
+export interface ChatContextType {
+  registerMessageHandler: (chatId: string, handler: MessageHandler) => () => void
+  registerReconnectHandler: (handler: () => void) => () => void
+  sendWsMessage: (data: object) => void
+  isReconnecting: boolean
+  isFailed: boolean
+  reconnect: () => void
+}
