@@ -423,7 +423,11 @@ const MyProfile = () => {
                 <Button
                   variant="outline"
                   className="flex-1 rounded-md border-2 border-primary hover:bg-primary hover:text-primary-foreground relative"
-                  onClick={() => navigate(ROUTES.REQUESTS)}
+                  onClick={() =>
+                    // See useBackTarget: without `from`, back on the requests
+                    // screen lands on /you rather than this editor.
+                    navigate(ROUTES.REQUESTS, { state: { from: ROUTES.YOU_EDIT } })
+                  }
                 >
                   Requests
                   {userStats.requests > 0 && (
