@@ -1,9 +1,8 @@
-// TODO: Add date separators between messages (e.g. "Today", "Yesterday", specific dates) so users can orient
-// themselves in longer conversations — currently messages only show time, no date context.
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   useQuery,
+  useInfiniteQuery,
   useMutation,
   useQueryClient,
   InfiniteData,
@@ -38,7 +37,6 @@ import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, MESSAGES_PAGE_LIMIT } from '@/config/constants'
 import {
-  insertMessage,
   updateChatPreviewOnNewMessage,
   insertChatPreview,
   updateChatPreviewOnEdit,
@@ -54,8 +52,12 @@ import { toast } from 'sonner'
 
 const Chat = () => {
   const { user } = useAuth()
-  const { registerMessageHandler, registerReconnectHandler, sendWsMessage } =
-    useChat()
+  const {
+    registerMessageHandler,
+    registerReconnectHandler,
+    sendWsMessage,
+    wsReady,
+  } = useChat()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { id } = useParams<{ id: string }>()
@@ -66,16 +68,12 @@ const Chat = () => {
   // Local state
   // ============================================
 
-  const [messages, setMessages] = useState<Message[]>([])
   const [messageInput, setMessageInput] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [replyingTo, setReplyingTo] = useState<Message | null>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [olderCursor, setOlderCursor] = useState<MessagesCursor | null>(null)
-  const [isFetchingOlder, setIsFetchingOlder] = useState(false)
-  const [hasMoreOlder, setHasMoreOlder] = useState(true)
 
   // ============================================
   // Refs
@@ -87,7 +85,7 @@ const Chat = () => {
   const isAtBottomRef = useRef<boolean>(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollBehaviorRef = useRef<'smooth' | 'instant' | null>('instant')
-  const hasInitialisedRef = useRef(false)
+  const prevScrollHeightRef = useRef<number>(0)
 
   // ============================================
   // Chat metadata query
@@ -120,44 +118,83 @@ const Chat = () => {
     : (chatData?.other_user?.avatar_url ?? null)
 
   // ============================================
-  // Messages initial load
+  // Messages query (infinite, oldest-first pages)
   // ============================================
 
-  const { data: initialMessages, isSuccess: messagesLoaded } = useQuery({
+  const {
+    data: messagesData,
+    fetchPreviousPage,
+    hasPreviousPage,
+    isFetchingPreviousPage,
+  } = useInfiniteQuery({
     queryKey: ['messages', chatId],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams()
+      if (pageParam) {
+        params.append('cursor_id', pageParam.cursor_id)
+        params.append('cursor_created_at', pageParam.cursor_created_at)
+      }
       const res = await axiosPrivate.get<Message[]>(
         `/api/chats/${chatId}/messages`,
-        {
-          timeout: TIMEOUT_LENGTH_MS,
-        },
+        { params, timeout: TIMEOUT_LENGTH_MS },
       )
-      // Reverse once on arrival: API returns newest-first, cache stores oldest-first
+      // API returns newest-first, cache stores oldest-first
       return [...res.data].reverse()
     },
-    enabled: !!chatId,
+    initialPageParam: undefined as MessagesCursor | undefined,
+    enabled: !!chatId && wsReady,
     staleTime: Infinity,
+    getPreviousPageParam: (firstPage) => {
+      if (firstPage.length < MESSAGES_PAGE_LIMIT) return undefined
+      const oldest = firstPage[0]
+      return { cursor_id: oldest.id, cursor_created_at: oldest.created_at }
+    },
+    getNextPageParam: () => undefined,
   })
 
-  // On initial load: cache is already oldest-first, init state directly
-  useEffect(() => {
-    if (!messagesLoaded || !initialMessages) return
-    if (hasInitialisedRef.current) return
-    hasInitialisedRef.current = true
-    setMessages(initialMessages)
+  const messages = useMemo(
+    () => messagesData?.pages.flat() ?? [],
+    [messagesData],
+  )
 
-    // Cursor points to the oldest loaded message (index 0 in oldest-first)
-    if (initialMessages.length > 0) {
-      const oldest = initialMessages[0]
-      setOlderCursor({
-        cursor_id: oldest.id,
-        cursor_created_at: oldest.created_at,
-      })
-      setHasMoreOlder(true)
-    } else {
-      setHasMoreOlder(false)
+  type DateItem = { type: 'date'; label: string }
+  type MessageItem = { type: 'message'; message: Message }
+
+  const messagesWithDates = useMemo(() => {
+    const items: (DateItem | MessageItem)[] = []
+    let prevDate = ''
+
+    for (const msg of messages) {
+      const msgDate = new Date(msg.created_at)
+      const dateKey = msgDate.toLocaleDateString()
+
+      if (dateKey !== prevDate) {
+        const today = new Date()
+        const yesterday = new Date()
+        yesterday.setDate(today.getDate() - 1)
+
+        let label: string
+        if (dateKey === today.toLocaleDateString()) {
+          label = 'Today'
+        } else if (dateKey === yesterday.toLocaleDateString()) {
+          label = 'Yesterday'
+        } else {
+          label = msgDate.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        }
+
+        items.push({ type: 'date', label })
+        prevDate = dateKey
+      }
+
+      items.push({ type: 'message', message: msg })
     }
-  }, [messagesLoaded, initialMessages])
+
+    return items
+  }, [messages])
 
   // Scroll to bottom after initial load, reconnect, or sending a message
   useEffect(() => {
@@ -167,6 +204,18 @@ const Chat = () => {
       messagesEndRef.current?.scrollIntoView({ behavior })
     }
   }, [messages])
+
+  // Restore scroll position after prepending older pages
+  useLayoutEffect(() => {
+    if (prevScrollHeightRef.current > 0 && !isFetchingPreviousPage) {
+      const container = scrollContainerRef.current
+      if (container) {
+        container.scrollTop =
+          container.scrollHeight - prevScrollHeightRef.current
+      }
+      prevScrollHeightRef.current = 0
+    }
+  }, [isFetchingPreviousPage])
 
   // ============================================
   // Bottom sentinel — isAtBottom tracking
@@ -189,66 +238,22 @@ const Chat = () => {
   // Top sentinel — load older messages
   // ============================================
 
-  const fetchOlderMessages = useCallback(async () => {
-    if (!olderCursor || isFetchingOlder || !hasMoreOlder) return
-
-    setIsFetchingOlder(true)
-    const container = scrollContainerRef.current
-    const prevScrollHeight = container?.scrollHeight ?? 0
-
-    try {
-      const params = new URLSearchParams({
-        cursor_id: olderCursor.cursor_id,
-        cursor_created_at: olderCursor.cursor_created_at,
-      })
-      const res = await axiosPrivate.get<Message[]>(
-        `/api/chats/${chatId}/messages`,
-        {
-          params,
-          timeout: TIMEOUT_LENGTH_MS,
-        },
-      )
-      const older = res.data
-
-      if (older.length === 0) {
-        setHasMoreOlder(false)
-        return
-      }
-
-      const reversed = [...older].reverse()
-      setMessages((prev) => [...reversed, ...prev])
-
-      // Update cursor to the oldest message in this page
-      const oldestInPage = older[older.length - 1]
-      setOlderCursor({
-        cursor_id: oldestInPage.id,
-        cursor_created_at: oldestInPage.created_at,
-      })
-
-      // Preserve scroll position
-      requestAnimationFrame(() => {
-        if (container) {
-          container.scrollTop = container.scrollHeight - prevScrollHeight
-        }
-      })
-
-      if (older.length < MESSAGES_PAGE_LIMIT) setHasMoreOlder(false)
-    } catch {
-      // silently fail — user can scroll up again to retry
-    } finally {
-      setIsFetchingOlder(false)
-    }
-  }, [chatId, olderCursor, isFetchingOlder, hasMoreOlder])
+  const handleFetchOlder = useCallback(() => {
+    if (!hasPreviousPage || isFetchingPreviousPage) return
+    prevScrollHeightRef.current =
+      scrollContainerRef.current?.scrollHeight ?? 0
+    fetchPreviousPage()
+  }, [hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage])
 
   useEffect(() => {
     const sentinel = topSentinelRef.current
     if (!sentinel) return
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) fetchOlderMessages()
+      if (entries[0].isIntersecting) handleFetchOlder()
     })
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [fetchOlderMessages])
+  }, [handleFetchOlder])
 
   // ============================================
   // WS handler
@@ -263,23 +268,9 @@ const Chat = () => {
     if (!chatId) return
     const unregister = registerMessageHandler(chatId, (event) => {
       if (event.type === 'messages:new') {
-        const msg = event.payload
-        setMessages((prev) => insertMessage(prev, msg))
         if (!isAtBottomRef.current) {
           setUnreadCount((n) => n + 1)
         }
-      } else if (event.type === 'messages:edit') {
-        const { id, content, edited_at } = event.payload
-        setMessages((prev) =>
-          prev.map((m) => (m.id === id ? { ...m, content, edited_at } : m)),
-        )
-      } else if (event.type === 'messages:delete') {
-        const { id } = event.payload
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === id ? { ...m, is_deleted: true, content: '' } : m,
-          ),
-        )
       }
     })
     return unregister
@@ -287,7 +278,6 @@ const Chat = () => {
 
   useEffect(() => {
     return registerReconnectHandler(() => {
-      hasInitialisedRef.current = false
       scrollBehaviorRef.current = 'instant'
     })
   }, [registerReconnectHandler])
@@ -317,7 +307,6 @@ const Chat = () => {
       setMessageInput('')
       setReplyingTo(null)
       sendWsMessage({ type: 'chats:read', chat_id: chatId })
-      // Update all three: chat preview, messages cache, local state
       const found = updateChatPreviewOnNewMessage(queryClient, newMsg)
       if (!found) {
         axiosPrivate
@@ -329,7 +318,6 @@ const Chat = () => {
       }
       updateMessagesCache(queryClient, chatId, newMsg)
       scrollBehaviorRef.current = 'smooth'
-      setMessages((prev) => insertMessage(prev, newMsg))
     },
     onError: (error) => {
       if (axios.isAxiosError(error) && error.response?.status === 429) {
@@ -375,13 +363,6 @@ const Chat = () => {
       }
       updateChatPreviewOnEdit(queryClient, patch)
       patchMessageInCache(queryClient, chatId, patch)
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === patch.id
-            ? { ...m, content: patch.content, edited_at: patch.edited_at }
-            : m,
-        ),
-      )
     },
     onError: () => {
       toast.error('Failed to edit message.')
@@ -408,11 +389,6 @@ const Chat = () => {
       }
       updateChatPreviewOnDelete(queryClient, patch)
       patchMessageInCache(queryClient, chatId, patch)
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId ? { ...m, is_deleted: true, content: '' } : m,
-        ),
-      )
     },
     onError: () => {
       toast.error('Failed to delete message.')
@@ -517,14 +493,27 @@ const Chat = () => {
           className="h-1"
         />
 
-        {isFetchingOlder && (
+        {isFetchingPreviousPage && (
           <div className="flex justify-center py-3">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           </div>
         )}
 
         <div className="space-y-4">
-          {messages.map((msg) => {
+          {messagesWithDates.map((item, idx) => {
+            if (item.type === 'date') {
+              return (
+                <div key={`date-${idx}`} className="flex items-center gap-3 py-2">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-caption text-muted-foreground font-medium shrink-0">
+                    {item.label}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              )
+            }
+
+            const msg = item.message
             const isSelf = msg.sender_id === user?.id
             const isEditing = editingId === msg.id
 

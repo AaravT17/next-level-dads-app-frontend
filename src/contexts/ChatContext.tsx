@@ -78,6 +78,7 @@ interface ChatContextType {
   registerMessageHandler: (chatId: string, handler: MessageHandler) => () => void
   registerReconnectHandler: (handler: () => void) => () => void
   sendWsMessage: (data: object) => void
+  isChatMember: (chatId: string) => boolean
   isReconnecting: boolean
   isFailed: boolean
   reconnect: () => void
@@ -272,6 +273,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(data))
     }
+  }, [])
+
+  const isChatMember = useCallback((chatId: string) => {
+    return chatMembershipRef.current.has(chatId)
   }, [])
 
   // ============================================
@@ -556,6 +561,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         registerMessageHandler,
         registerReconnectHandler,
         sendWsMessage,
+        isChatMember,
         isReconnecting,
         isFailed,
         reconnect,

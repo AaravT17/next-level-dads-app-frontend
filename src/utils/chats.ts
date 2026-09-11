@@ -2,34 +2,6 @@ import { InfiniteData, QueryClient } from '@tanstack/react-query'
 import { Chat, Message } from '@/types/chats'
 
 // ============================================
-// insertMessage
-// ============================================
-
-/**
- * Insert a message into an oldest-first array.
- * Deduplicates by id. Tiebreaker: created_at ASC, id ASC.
- */
-export function insertMessage(messages: Message[], newMsg: Message): Message[] {
-  // Dedup
-  if (messages.some((m) => m.id === newMsg.id)) return messages
-
-  const result = [...messages]
-  let i = result.length - 1
-
-  while (i >= 0) {
-    const cur = result[i]
-    const before =
-      cur.created_at < newMsg.created_at ||
-      (cur.created_at === newMsg.created_at && cur.id < newMsg.id)
-    if (before) break
-    i--
-  }
-
-  result.splice(i + 1, 0, newMsg)
-  return result
-}
-
-// ============================================
 // Chat preview cache helpers
 // ============================================
 
