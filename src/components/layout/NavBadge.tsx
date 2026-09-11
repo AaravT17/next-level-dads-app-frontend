@@ -16,12 +16,12 @@ export function NavBadge({
       <span
         aria-hidden
         className={cn(
-          'min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-destructive text-destructive-foreground',
+          'min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-primary text-primary-foreground',
           'text-[0.625rem] font-semibold leading-[1.125rem] text-center',
           className,
         )}
       >
-        {count > 9 ? '9+' : count}
+        {count > 99 ? '99+' : count}
       </span>
       <span className="sr-only">
         {count} {label ?? 'unread'}
