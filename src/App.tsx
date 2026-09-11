@@ -1,12 +1,14 @@
-import { Toaster } from '@/components/ui/toaster'
-import { Toaster as Sonner } from '@/components/ui/sonner'
+import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClient'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ROUTES } from '@/lib/routes'
+import { ROUTES, dadDetail, groupsTab } from '@/lib/routes'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { LegacyRedirect } from '@/components/routing/LegacyRedirect'
+import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 import { LegalAcceptancesModal } from '@/components/LegalAcceptancesModal'
 import { ChatProvider } from '@/contexts/ChatContext'
@@ -18,20 +20,19 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import VerifyEmail from './pages/VerifyEmail'
 import ProfileSetup from './pages/ProfileSetup'
-import Match from './pages/Match'
 import Chats from './pages/Chats'
 import Chat from './pages/Chat'
 import ChatManage from './pages/ChatManage'
-import Discover from './pages/Discover'
-import Groups from './pages/Groups'
-import Members from './pages/Members'
+import DadsPage from './pages/DadsPage'
+import GroupsPage from './pages/GroupsPage'
 import MyProfile from './pages/MyProfile'
+import YouPage from './pages/YouPage'
+import SettingsPage from './pages/SettingsPage'
 import ProfileDetail from './pages/ProfileDetail'
 import Connections from './pages/Connections'
 import Requests from './pages/Requests'
 import EventDetail from './pages/EventDetail'
 import NotFound from './pages/NotFound'
-import CommunitiesPage from './features/communities/pages/CommunitiesPage'
 import CommunityDetailPage from './features/communities/pages/CommunityDetailPage'
 import ConversationDetailPage from './features/communities/pages/ConversationDetailPage'
 import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
@@ -40,145 +41,93 @@ const AppContent = () => {
   return (
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <ModerationNotifier />
       <LegalAcceptancesModal />
       <BrowserRouter>
         <Routes>
-          {/* Public Routes - redirect to app if authenticated */}
-          <Route
-            path={ROUTES.WELCOME}
-            element={<PublicRoute><Welcome /></PublicRoute>}
-          />
-          <Route
-            path={ROUTES.LOGIN}
-            element={<PublicRoute><Login /></PublicRoute>}
-          />
-          <Route
-            path={ROUTES.REGISTER}
-            element={<PublicRoute><Register /></PublicRoute>}
-          />
-          <Route
-            path={ROUTES.FORGOT_PASSWORD}
-            element={<PublicRoute><ForgotPassword /></PublicRoute>}
-          />
-          {/* Auth utility pages - always accessible regardless of auth state */}
-          <Route
-            path={ROUTES.RESET_PASSWORD}
-            element={<ResetPassword />}
-          />
-          <Route
-            path={ROUTES.VERIFY_EMAIL}
-            element={<VerifyEmail />}
-          />
+          {/* Public - redirect to the app if already authenticated */}
+          <Route element={<PublicRoute />}>
+            <Route path={ROUTES.WELCOME} element={<Welcome />} />
+            <Route path={ROUTES.LOGIN} element={<Login />} />
+            <Route path={ROUTES.REGISTER} element={<Register />} />
+            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+          </Route>
 
-          {/* Profile Setup - requires token but no user profile yet */}
-          <Route
-            path={ROUTES.SETUP}
-            element={<SetupRoute><ProfileSetup /></SetupRoute>}
-          />
+          {/* Auth utilities - reachable in any auth state */}
+          <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
+          <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmail />} />
 
-          {/* Protected Routes - require full authentication */}
-          <Route
-            path={ROUTES.MATCH}
-            element={<ProtectedRoute><Match /></ProtectedRoute>}
-          />
+          {/* Setup - has a token but no profile yet */}
+          <Route element={<SetupRoute />}>
+            <Route path={ROUTES.SETUP} element={<ProfileSetup />} />
+          </Route>
 
-          {/* Discover (tabbed) */}
-          <Route
-            path={ROUTES.DISCOVER}
-            element={<ProtectedRoute><Navigate to={ROUTES.DISCOVER_DADS} replace /></ProtectedRoute>}
-          />
-          <Route
-            path="/discover/dads/:id"
-            element={<ProtectedRoute><ProfileDetail /></ProtectedRoute>}
-          />
-          <Route
-            path="/discover/:tab"
-            element={<ProtectedRoute><Discover /></ProtectedRoute>}
-          />
+          {/* Protected */}
+          <Route element={<ProtectedRoute />}>
+            {/* Standard screens, with primary navigation */}
+            <Route element={<AppLayout variant="tabs" />}>
+              {/* Dads */}
+              <Route path={ROUTES.DADS} element={<DadsPage />} />
+              <Route path={ROUTES.DAD_DETAIL} element={<ProfileDetail />} />
 
-          {/* Communities */}
-          <Route
-            path="/communities"
-            element={<ProtectedRoute><CommunitiesPage /></ProtectedRoute>}
-          />
-          <Route
-            path="/communities/:communityId"
-            element={<ProtectedRoute><CommunityDetailPage /></ProtectedRoute>}
-          />
-          <Route
-            path="/communities/:communityId/conversations/:conversationId"
-            element={<ProtectedRoute><ConversationDetailPage /></ProtectedRoute>}
-          />
-          <Route
-            path="/communities/:communityId/members"
-            element={<ProtectedRoute><Members /></ProtectedRoute>}
-          />
+              {/* Groups */}
+              <Route path={ROUTES.GROUPS} element={<Navigate to={ROUTES.GROUPS_COMMUNITIES} replace />} />
+              <Route path="/groups/:tab" element={<GroupsPage />} />
+              <Route path={ROUTES.COMMUNITY_DETAIL} element={<CommunityDetailPage />} />
+              <Route path={ROUTES.CONVERSATION_DETAIL} element={<ConversationDetailPage />} />
+              <Route path={ROUTES.EVENT_DETAIL} element={<EventDetail />} />
 
-          {/* Events */}
-          <Route
-            path="/events/:eventId"
-            element={<ProtectedRoute><EventDetail /></ProtectedRoute>}
-          />
+              {/* Chats */}
+              <Route path={ROUTES.CHATS} element={<Chats />} />
 
-          {/* My Groups (tabbed) */}
-          <Route
-            path={ROUTES.GROUPS}
-            element={<ProtectedRoute><Navigate to={ROUTES.GROUPS_COMMUNITIES} replace /></ProtectedRoute>}
-          />
-          <Route
-            path="/groups/:tab"
-            element={<ProtectedRoute><Groups /></ProtectedRoute>}
-          />
-          <Route
-            path="/groups/:groupId/members"
-            element={<ProtectedRoute><Members /></ProtectedRoute>}
-          />
+              {/* You */}
+              <Route path={ROUTES.YOU} element={<YouPage />} />
+              <Route path={ROUTES.YOU_EDIT} element={<MyProfile />} />
+              <Route path={ROUTES.YOU_SETTINGS} element={<SettingsPage />} />
+              <Route path={ROUTES.CONNECTIONS} element={<Connections />} />
+              <Route path={ROUTES.REQUESTS} element={<Requests />} />
+            </Route>
 
-          {/* Chats */}
-          <Route
-            path={ROUTES.CHATS}
-            element={<ProtectedRoute><Chats /></ProtectedRoute>}
-          />
-          <Route
-            path="/chats/:id"
-            element={<ProtectedRoute><Chat /></ProtectedRoute>}
-          />
-          <Route
-            path="/chats/:id/manage"
-            element={<ProtectedRoute><ChatManage /></ProtectedRoute>}
-          />
-
-          {/* Profile */}
-          <Route
-            path={ROUTES.PROFILE}
-            element={<ProtectedRoute><MyProfile /></ProtectedRoute>}
-          />
-          <Route
-            path="/profiles/:id"
-            element={<ProtectedRoute><ProfileDetail /></ProtectedRoute>}
-          />
-          <Route
-            path={ROUTES.CONNECTIONS}
-            element={<ProtectedRoute><Connections /></ProtectedRoute>}
-          />
-          <Route
-            path={ROUTES.REQUESTS}
-            element={<ProtectedRoute><Requests /></ProtectedRoute>}
-          />
+            {/* Full-height screens that own their chrome */}
+            <Route element={<AppLayout variant="immersive" />}>
+              <Route path="/chats/:id" element={<Chat />} />
+              <Route path="/chats/:id/manage" element={<ChatManage />} />
+            </Route>
+          </Route>
 
           {/* Admin */}
-          <Route
-            path={ROUTES.ADMIN}
-            element={<AdminRoute><AdminDashboardPage /></AdminRoute>}
-          />
+          <Route element={<AdminRoute />}>
+            <Route element={<AppLayout variant="tabs" />}>
+              <Route path={ROUTES.ADMIN} element={<AdminDashboardPage />} />
+            </Route>
+          </Route>
 
-          {/* Catch-all */}
+          {/*
+            Retired URLs. Last in the list so a legacy pattern can never
+            shadow a live route. Keep for two release cycles.
+          */}
+          <Route path="/discover" element={<LegacyRedirect to={() => ROUTES.DADS} />} />
+          <Route path="/discover/dads" element={<LegacyRedirect to={() => ROUTES.DADS} />} />
+          <Route path="/discover/dads/:id" element={<LegacyRedirect to={(p) => dadDetail(p.id!)} />} />
+          <Route path="/profiles/:id" element={<LegacyRedirect to={(p) => dadDetail(p.id!)} />} />
           <Route
-            path="*"
-            element={<NotFound />}
+            path="/discover/communities"
+            element={<LegacyRedirect to={() => groupsTab('communities', 'all')} />}
           />
+          <Route
+            path="/discover/events"
+            element={<LegacyRedirect to={() => groupsTab('events', 'all')} />}
+          />
+          <Route
+            path="/communities"
+            element={<LegacyRedirect to={() => groupsTab('communities', 'all')} />}
+          />
+          <Route path="/match" element={<LegacyRedirect to={() => ROUTES.DADS} />} />
+          <Route path="/profile" element={<LegacyRedirect to={() => ROUTES.YOU} />} />
+          <Route path="/connections" element={<LegacyRedirect to={() => ROUTES.CONNECTIONS} />} />
+          <Route path="/requests" element={<LegacyRedirect to={() => ROUTES.REQUESTS} />} />
+
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
@@ -186,13 +135,15 @@ const AppContent = () => {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <ChatProvider>
-        <AppContent />
-      </ChatProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ChatProvider>
+          <AppContent />
+        </ChatProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 )
 
 export default App

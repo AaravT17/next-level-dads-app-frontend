@@ -77,7 +77,6 @@ const VerifyEmail = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
@@ -112,14 +111,13 @@ const VerifyEmail = () => {
                   Your email has been successfully verified. You can now log in
                   to your account.
                 </p>
-                <p className="text-center text-sm text-muted-foreground">
+                <p className="text-center text-body text-muted-foreground">
                   Redirecting to login in {countdown} second
                   {countdown !== 1 ? 's' : ''}...
                 </p>
                 <Button
                   size="lg"
                   className="w-full rounded-full font-semibold text-base shadow-md"
-                  style={{ backgroundColor: '#D8A24A' }}
                   onClick={handleManualRedirect}
                 >
                   Go to Login
@@ -134,7 +132,7 @@ const VerifyEmail = () => {
                   Verification Failed
                 </h1>
                 <p className="text-center text-muted-foreground">{errorMessage}</p>
-                <p className="text-center text-sm text-muted-foreground">
+                <p className="text-center text-body text-muted-foreground">
                   Redirecting to register in {countdown} second
                   {countdown !== 1 ? 's' : ''}...
                 </p>

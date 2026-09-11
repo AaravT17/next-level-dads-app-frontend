@@ -1,7 +1,7 @@
 // TODO: Add date separators between messages (e.g. "Today", "Yesterday", specific dates) so users can orient
 // themselves in longer conversations — currently messages only show time, no date context.
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   useQuery,
   useMutation,
@@ -22,7 +22,9 @@ import {
   Reply,
   X,
 } from 'lucide-react'
-import { groupsTab, chatManage } from '@/lib/routes'
+import { chatManage } from '@/lib/routes'
+import { UserAvatar } from '@/components/media/UserAvatar'
+import { formatClock } from '@/utils/format'
 import {
   type ChatType,
   type Message,
@@ -56,10 +58,8 @@ const Chat = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { id } = useParams<{ id: string }>()
-  const [searchParams] = useSearchParams()
 
   const chatId = id || ''
-  const from = searchParams.get('from')
 
   // ============================================
   // Local state
@@ -429,11 +429,7 @@ const Chat = () => {
   }
 
   const handleBack = () => {
-    if (from === 'groups') {
-      navigate(groupsTab('communities'))
-    } else {
-      navigate(-1)
-    }
+    navigate(-1)
   }
 
   const cancelEdit = () => {
@@ -457,20 +453,15 @@ const Chat = () => {
     setUnreadCount(0)
   }
 
-  const formatTime = (isoString: string) => {
-    const date = new Date(isoString)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-
   // ============================================
   // Render
   // ============================================
 
   return (
-    <div className="h-dvh bg-background flex flex-col">
+    <div className="flex-1 min-h-0 bg-background flex flex-col">
       {/* Header */}
       <div className="bg-card border-b border-border shrink-0">
-        <div className="max-w-md mx-auto px-6 py-4">
+        <div className="px-6 py-4">
           <div className="flex items-center gap-4">
             <button
               onClick={handleBack}
@@ -488,20 +479,17 @@ const Chat = () => {
                   <Users className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-lg font-heading font-semibold text-foreground">
+                  <h1 className="text-subhead font-heading font-semibold text-foreground">
                     {displayName}
                   </h1>
-                  <p className="text-xs text-muted-foreground">Group</p>
+                  <p className="text-caption text-muted-foreground">Group</p>
                 </div>
               </button>
             ) : (
               <>
-                <Avatar className="w-10 h-10 shrink-0">
-                  <AvatarImage src={avatarUrl ?? undefined} />
-                  <AvatarFallback>{displayName[0] ?? '?'}</AvatarFallback>
-                </Avatar>
+                <UserAvatar name={displayName} src={avatarUrl} size="sm" />
                 <div className="flex-1">
-                  <h1 className="text-lg font-heading font-semibold text-foreground">
+                  <h1 className="text-subhead font-heading font-semibold text-foreground">
                     {displayName}
                   </h1>
                 </div>
@@ -514,7 +502,7 @@ const Chat = () => {
       {/* Messages */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 max-w-md mx-auto w-full px-6 py-4 overflow-y-auto relative"
+        className="flex-1 min-h-0 w-full px-6 py-4 overflow-y-auto relative"
       >
         {/* Top sentinel — triggers loading older messages */}
         <div
@@ -554,7 +542,7 @@ const Chat = () => {
                   className={`flex flex-col ${isSelf ? 'items-end' : ''} max-w-xs`}
                 >
                   {!isSelf && isGroupChat && (
-                    <span className="text-xs text-muted-foreground mb-1">
+                    <span className="text-caption text-muted-foreground mb-1">
                       {msg.sender_name ?? 'Unknown'}
                     </span>
                   )}
@@ -565,15 +553,15 @@ const Chat = () => {
                         {msg.reply_to && !msg.is_deleted && (
                           <div className="mb-1.5 pl-2 border-l-2 border-muted-foreground/40">
                             {msg.reply_to.is_deleted ? (
-                              <p className="text-xs text-muted-foreground italic">
+                              <p className="text-caption text-muted-foreground italic">
                                 Message deleted
                               </p>
                             ) : (
                               <>
-                                <p className="text-xs font-medium text-muted-foreground truncate">
+                                <p className="text-caption font-medium text-muted-foreground truncate">
                                   {msg.reply_to.sender_name ?? 'Unknown'}
                                 </p>
-                                <p className="text-xs text-muted-foreground truncate">
+                                <p className="text-caption text-muted-foreground truncate">
                                   {msg.reply_to.content}
                                 </p>
                               </>
@@ -635,15 +623,15 @@ const Chat = () => {
                         {msg.reply_to && !msg.is_deleted && (
                           <div className="mb-1.5 pl-2 border-l-2 border-muted-foreground/40">
                             {msg.reply_to.is_deleted ? (
-                              <p className="text-xs text-muted-foreground italic">
+                              <p className="text-caption text-muted-foreground italic">
                                 Message deleted
                               </p>
                             ) : (
                               <>
-                                <p className="text-xs font-medium text-muted-foreground truncate">
+                                <p className="text-caption font-medium text-muted-foreground truncate">
                                   {msg.reply_to.sender_name ?? 'Unknown'}
                                 </p>
-                                <p className="text-xs text-muted-foreground truncate">
+                                <p className="text-caption text-muted-foreground truncate">
                                   {msg.reply_to.content}
                                 </p>
                               </>
@@ -692,8 +680,8 @@ const Chat = () => {
                     </div>
                   )}
 
-                  <span className="text-xs text-muted-foreground mt-1">
-                    {formatTime(msg.created_at)}
+                  <span className="text-caption text-muted-foreground mt-1">
+                    {formatClock(msg.created_at)}
                     {msg.edited_at && !msg.is_deleted && (
                       <span className="ml-1 opacity-60">edited</span>
                     )}
@@ -714,14 +702,14 @@ const Chat = () => {
 
       {/* Down arrow + unread badge */}
       {!isAtBottom && (
-        <div className="absolute bottom-24 right-6 max-w-md">
+        <div className="absolute bottom-24 right-6">
           <button
             onClick={handleScrollToBottom}
             className="relative bg-card border border-border rounded-full p-2 shadow-md text-muted-foreground hover:text-foreground"
           >
             <ChevronDown className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-semibold rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-caption font-semibold rounded-full w-4 h-4 flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -732,12 +720,12 @@ const Chat = () => {
       {/* Input */}
       <div className="bg-card border-t border-border shrink-0">
         {replyingTo && (
-          <div className="max-w-md mx-auto px-6 pt-3 flex items-start gap-2">
+          <div className="px-6 pt-3 flex items-start gap-2">
             <div className="flex-1 pl-2 border-l-2 border-primary min-w-0">
-              <p className="text-xs font-medium text-primary">
+              <p className="text-caption font-medium text-primary">
                 Replying to {replyingTo.sender_name}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-caption text-muted-foreground truncate">
                 {replyingTo.is_deleted ? 'Message deleted' : replyingTo.content}
               </p>
             </div>
@@ -749,7 +737,7 @@ const Chat = () => {
             </button>
           </div>
         )}
-        <div className="max-w-md mx-auto px-6 py-4">
+        <div className="px-6 py-4">
           <div className="flex gap-2">
             <Input
               placeholder="Type a message..."

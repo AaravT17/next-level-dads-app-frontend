@@ -34,7 +34,7 @@ export function HeartButton({
       disabled={disabled}
       className={cn(
         'flex items-center gap-1 transition-colors',
-        size === 'sm' ? 'text-xs' : 'text-sm',
+        size === 'sm' ? 'text-caption' : 'text-sm',
         isHearted
           ? 'text-rose-500'
           : 'text-muted-foreground hover:text-rose-400',

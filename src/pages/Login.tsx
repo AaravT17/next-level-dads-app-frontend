@@ -11,11 +11,10 @@ import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useAuth } from '../contexts/AuthContext'
 import validator from 'validator'
-import { useToast } from '@/components/ui/use-toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 
 const Login = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -27,19 +26,11 @@ const Login = () => {
     if (isLoading) return
     const trimmedEmail = email.trim()
     if (!trimmedEmail || !password) {
-      toast({
-        title: 'Missing fields',
-        description: 'Please fill in all fields.',
-        variant: 'destructive',
-      })
+      toastError('Missing fields', 'Please fill in all fields.')
       return
     }
     if (!validator.isEmail(trimmedEmail)) {
-      toast({
-        title: 'Invalid email address',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      })
+      toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
     setIsLoading(true)
@@ -80,11 +71,8 @@ const Login = () => {
         },
         accessToken,
       })
-      toast({
-        title: 'Login successful',
-        description: 'Welcome back!',
-      })
-      navigate(ROUTES.DISCOVER)
+      toastSuccess('Login successful', 'Welcome back!')
+      navigate(ROUTES.HOME_AFTER_AUTH)
     } catch (err: any) {
       if (err.response?.status === 404) {
         // user exists but profile not set up — commit token so SetupRoute allows access
@@ -93,13 +81,8 @@ const Login = () => {
         return
       }
       setAccessToken(null)
-      toast({
-        title: 'Login failed',
-        description:
-          err.response?.data?.detail ||
-          'An error occurred while logging in. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Login failed', err.response?.data?.detail ||
+          'An error occurred while logging in. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -108,7 +91,6 @@ const Login = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
@@ -132,7 +114,7 @@ const Login = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="email"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Email
                 </label>
@@ -149,7 +131,7 @@ const Login = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="password"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Password
                 </label>
@@ -191,20 +173,18 @@ const Login = () => {
                 type="submit"
                 size="lg"
                 className="w-full rounded-full font-semibold text-base shadow-md"
-                style={{ backgroundColor: '#D8A24A' }}
                 disabled={isLoading}
               >
                 Login
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-body text-muted-foreground">
               Don't have an account?{' '}
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.REGISTER)}
-                className="font-semibold hover:underline"
-                style={{ color: '#D8A24A' }}
+                className="font-semibold text-primary hover:underline"
                 disabled={isLoading}
               >
                 Register

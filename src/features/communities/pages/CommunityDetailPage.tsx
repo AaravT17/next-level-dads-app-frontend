@@ -1,12 +1,15 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArrowLeft, Users, Loader2, Plus } from 'lucide-react'
+import { Users, Loader2, Plus } from 'lucide-react'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { ErrorState } from '@/components/feedback/ErrorState'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
+import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import BottomNav from '@/components/BottomNav'
-import logo from '@/assets/logo.png'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useCommunity } from '../hooks/useCommunity'
@@ -14,7 +17,7 @@ import { useCommunityConversations } from '../hooks/useCommunityConversations'
 import { communityKeys } from '../hooks/communityKeys'
 import { ConversationCard } from '../components/ConversationCard'
 import { ConversationComposer } from '../components/ConversationComposer'
-import { EmptyState } from '../components/EmptyState'
+import { EmptyState } from '@/components/feedback/EmptyState'
 import { conversationDetail } from '@/lib/routes'
 import type { ConversationSort, ConversationTimeWindow } from '@/types/communities'
 
@@ -60,28 +63,11 @@ const CommunityDetailPage = () => {
     [conversationsData],
   )
 
-  const conversationsSentinelRef = useRef<HTMLDivElement>(null)
-
   const handleFetchNextConversations = useCallback(() => {
     fetchNextConversations({ throwOnError: true }).catch(() => {
       toast.error("Couldn't load more conversations")
     })
   }, [fetchNextConversations])
-
-  useEffect(() => {
-    const sentinel = conversationsSentinelRef.current
-    if (!sentinel) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextConversations && !isFetchingNextConversations) {
-          handleFetchNextConversations()
-        }
-      },
-      { threshold: 0.1 },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextConversations, isFetchingNextConversations, handleFetchNextConversations])
 
   const joinMutation = useMutation({
     mutationFn: () =>
@@ -90,8 +76,7 @@ const CommunityDetailPage = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
-      queryClient.removeQueries({ queryKey: ['discover', 'communities'] })
-      queryClient.removeQueries({ queryKey: ['groups', 'communities'] })
+      queryClient.invalidateQueries({ queryKey: ['communities'] })
     },
     onError: () => toast.error("Couldn't join community"),
   })
@@ -103,8 +88,7 @@ const CommunityDetailPage = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
-      queryClient.removeQueries({ queryKey: ['discover', 'communities'] })
-      queryClient.removeQueries({ queryKey: ['groups', 'communities'] })
+      queryClient.invalidateQueries({ queryKey: ['communities'] })
     },
     onError: () => toast.error("Couldn't leave community"),
   })
@@ -116,54 +100,31 @@ const CommunityDetailPage = () => {
 
   if (communityLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">Community</h1>
-        </div>
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Community" leading="back" />
+        <PageContainer>
+          <CenteredSpinner label="Loading community" />
+        </PageContainer>
+      </>
     )
   }
 
   if (communityError || !community) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">Community</h1>
-        </div>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Failed to load community. Please try again.</p>
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Community" leading="back" />
+        <PageContainer>
+          <ErrorState noun="this community" />
+        </PageContainer>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="relative bg-card border-b-2 border-primary px-6 py-7 flex items-center justify-center shadow-sm">
-        <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-        <h1 className="text-2xl font-heading font-semibold text-foreground">
-          {community.name}
-        </h1>
-      </div>
+    <>
+      <AppBar title={community.name} leading="back" />
 
-      <div className="max-w-md mx-auto px-4 pt-3 pb-6 space-y-4">
-        <Button
-          variant="ghost"
-          size="lg"
-          onClick={() => navigate(-1)}
-          className="-ml-2 text-muted-foreground font-bold"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back
-        </Button>
-
+      <PageContainer className="space-y-4 animate-fade-in">
         {/* Community header card */}
         <div className="bg-card border-2 border-primary/30 rounded-xl p-5 space-y-4 shadow-md">
           <h2 className="text-xl font-heading font-bold text-foreground">{community.name}</h2>
@@ -176,7 +137,7 @@ const CommunityDetailPage = () => {
               {community.member_count} members
             </span>
             {community.role && (
-              <Badge variant="soft" className="rounded-full text-xs">
+              <Badge variant="soft" className="rounded-full text-caption">
                 {community.role}
               </Badge>
             )}
@@ -214,7 +175,7 @@ const CommunityDetailPage = () => {
         {/* Conversations section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
-            <h2 className="text-lg font-heading font-semibold text-foreground">
+            <h2 className="text-subhead font-heading font-semibold text-foreground">
               Conversations
             </h2>
             {!composerOpen && (
@@ -251,7 +212,7 @@ const CommunityDetailPage = () => {
                   <button
                     key={w.value}
                     onClick={() => setTimeWindow(w.value)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    className={`px-3 py-1 rounded-full text-caption font-medium transition-colors ${
                       timeWindow === w.value
                         ? 'bg-foreground text-background'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -278,7 +239,7 @@ const CommunityDetailPage = () => {
             </div>
           ) : conversationsError ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 Failed to load conversations. Please try again.
               </p>
             </div>
@@ -294,19 +255,17 @@ const CommunityDetailPage = () => {
                   <ConversationCard key={conv.id} conversation={conv} />
                 ))}
               </div>
-              <div ref={conversationsSentinelRef} className="h-4" />
-              {isFetchingNextConversations && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                </div>
-              )}
+              <InfiniteSentinel
+                hasNextPage={hasNextConversations}
+                isFetchingNextPage={isFetchingNextConversations}
+                fetchNextPage={handleFetchNextConversations}
+                noun="posts"
+              />
             </>
           )}
         </div>
-      </div>
-
-      <BottomNav />
-    </div>
+      </PageContainer>
+    </>
   )
 }
 

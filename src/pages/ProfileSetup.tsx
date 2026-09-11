@@ -28,11 +28,10 @@ import {
 } from '@/config/constants'
 import axiosPrivate from '@/api/axiosPrivate'
 import { useAuth } from '@/contexts/AuthContext'
-import { useToast } from '@/components/ui/use-toast'
+import { toastError } from '@/lib/toast'
 
 const ProfileSetup = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const { accessToken, setAuth } = useAuth()
   const [step, setStep] = useState(1)
@@ -113,29 +112,17 @@ const ProfileSetup = () => {
       const name = formData.name.trim()
       const city = formData.city.trim()
       if (!name || !formData.date_of_birth || !city || !formData.province) {
-        toast({
-          title: 'Please fill out all required fields',
-          description: 'Name, date of birth, city, and province are required.',
-          variant: 'destructive',
-        })
+        toastError('Please fill out all required fields', 'Name, date of birth, city, and province are required.')
         return
       }
     } else if (step === 2) {
       const about = formData.about.trim()
       if (!about) {
-        toast({
-          title: 'Please fill out the about section',
-          description: 'Tell us a bit about yourself.',
-          variant: 'destructive',
-        })
+        toastError('Please fill out the about section', 'Tell us a bit about yourself.')
         return
       }
       if (formData.stages.length === 0) {
-        toast({
-          title: "Please select at least one children's age range",
-          description: 'This helps us connect you with similar dads.',
-          variant: 'destructive',
-        })
+        toastError("Please select at least one children's age range", 'This helps us connect you with similar dads.')
         return
       }
     }
@@ -169,11 +156,7 @@ const ProfileSetup = () => {
   const handleSubmit = async () => {
     if (loading) return
     if (!agreedToTerms || !confirmedAge) {
-      toast({
-        title: 'Please accept all required agreements',
-        description: 'You must agree to the Terms and Conditions, Privacy Policy, and confirm your age.',
-        variant: 'destructive',
-      })
+      toastError('Please accept all required agreements', 'You must agree to the Terms and Conditions, Privacy Policy, and confirm your age.')
       return
     }
     const profileData = new FormData()
@@ -224,15 +207,10 @@ const ProfileSetup = () => {
         },
         accessToken,
       })
-      navigate(ROUTES.DISCOVER)
+      navigate(ROUTES.HOME_AFTER_AUTH)
     } catch (err: any) {
-      toast({
-        title: 'Profile creation failed',
-        description:
-          err.response?.data?.detail ||
-          'Failed to create profile. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Profile creation failed', err.response?.data?.detail ||
+          'Failed to create profile. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -257,7 +235,7 @@ const ProfileSetup = () => {
             {/* <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(ROUTES.DISCOVER_DADS)}
+              onClick={() => navigate(ROUTES.DADS)}
               className="text-muted-foreground hover:text-foreground"
               disabled={loading}
             >
@@ -408,7 +386,7 @@ const ProfileSetup = () => {
                   required
                   disabled={loading}
                 />
-                <div className="text-xs text-muted-foreground text-right">
+                <div className="text-caption text-muted-foreground text-right">
                   {formData.about.length}/{MAX_BIO_LENGTH}
                 </div>
               </div>
@@ -604,7 +582,7 @@ const ProfileSetup = () => {
                   disabled={loading}
                   className="mt-0.5"
                 />
-                <label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
+                <label htmlFor="terms" className="text-label leading-relaxed cursor-pointer">
                   I agree to the{' '}
                   <a
                     href={`${WEBSITE_BASE_URL}/terms`}
@@ -635,7 +613,7 @@ const ProfileSetup = () => {
                   disabled={loading}
                   className="mt-0.5"
                 />
-                <label htmlFor="age" className="text-sm leading-relaxed cursor-pointer">
+                <label htmlFor="age" className="text-label leading-relaxed cursor-pointer">
                   I confirm I am 18 years of age or older.{' '}
                   <span className="text-destructive">*</span>
                 </label>
@@ -649,7 +627,7 @@ const ProfileSetup = () => {
                   disabled={loading}
                   className="mt-0.5"
                 />
-                <label htmlFor="marketing" className="text-sm leading-relaxed cursor-pointer text-muted-foreground">
+                <label htmlFor="marketing" className="text-label leading-relaxed cursor-pointer text-muted-foreground">
                   I'd like to receive occasional emails about new features, events, and updates from Next Level Dads. I can unsubscribe at any time.
                 </label>
               </div>

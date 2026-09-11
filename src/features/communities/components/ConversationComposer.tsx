@@ -87,7 +87,7 @@ export function ConversationComposer({
               })}
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title.message}</p>
+              <p className="text-caption text-destructive">{errors.title.message}</p>
             )}
           </div>
 
@@ -103,7 +103,7 @@ export function ConversationComposer({
               })}
             />
             {errors.body && (
-              <p className="text-xs text-destructive">{errors.body.message}</p>
+              <p className="text-caption text-destructive">{errors.body.message}</p>
             )}
           </div>
 
@@ -138,10 +138,10 @@ export function ConversationComposer({
             </Button>
           </div>
           {notice && (
-            <p className="text-xs text-destructive text-center">{notice}</p>
+            <p className="text-caption text-destructive text-center">{notice}</p>
           )}
           {isError && !isBanned && !(axios.isAxiosError(error) && error.response?.status === 429) && (
-            <p className="text-xs text-destructive text-center">
+            <p className="text-caption text-destructive text-center">
               Failed to post. Please try again.
             </p>
           )}

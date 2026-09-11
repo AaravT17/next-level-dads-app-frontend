@@ -9,30 +9,12 @@ import { useHeartMessage } from '../hooks/useHeartMessage'
 import { useDeleteMessage } from '../hooks/useDeleteMessage'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
 import { useAuth } from '@/contexts/AuthContext'
+import { initials, formatRelative } from '@/utils/format'
 import { profileDetail } from '@/lib/routes'
 import { PendingReportGate } from './PendingReportGate'
 
 interface ConversationMessageProps {
   message: ConversationMessageType
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso)
-  const diff = Date.now() - d.getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return d.toLocaleDateString()
-}
-
-function initials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 }
 
 export function ConversationMessage({ message }: ConversationMessageProps) {
@@ -57,13 +39,13 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
                 className="w-8 h-8 rounded-full object-cover"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-caption font-semibold">
                 {initials(author.name)}
               </div>
             )}
           </Link>
         ) : (
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-caption font-semibold">
             ?
           </div>
         )}
@@ -82,8 +64,8 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
           ) : (
             <span className="text-sm font-semibold text-foreground">Anonymous</span>
           )}
-          <span className="text-xs text-muted-foreground">
-            {formatTime(message.created_at)}
+          <span className="text-caption text-muted-foreground">
+            {formatRelative(message.created_at)}
           </span>
         </div>
 

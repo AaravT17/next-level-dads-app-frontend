@@ -10,14 +10,15 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
 import { getStageDisplayLabel } from '@/utils/users'
+import { initials } from '@/utils/format'
 import { profileDetail, chat } from '@/lib/routes'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toast'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
 import type { Chat } from '@/types/chats'
 
-type ListContext = 'discover' | 'connections' | 'requests'
+type ListContext = 'dads' | 'connections' | 'requests'
 
 interface DadCardProps extends Profile {
   connection_id?: string
@@ -39,24 +40,22 @@ const DadCard = ({
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
-  // Determine which list context we're in based on route
+  /**
+   * Which list this card sits in.
+   *
+   * Unlike CommunityCard, this branching is real: a declined request should
+   * leave the requests list, while a browse result should stay put with its
+   * button changed. The three lists mean different things.
+   */
   const getListContext = (): ListContext => {
     const { pathname } = location
-    if (pathname.startsWith('/discover')) return 'discover'
-    if (pathname.startsWith('/connections')) return 'connections'
-    if (pathname.startsWith('/requests')) return 'requests'
-    return 'discover' // fallback
+    if (pathname.startsWith('/you/connections')) return 'connections'
+    if (pathname.startsWith('/you/requests')) return 'requests'
+    return 'dads'
   }
 
   const listContext = getListContext()
-
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
 
   const handleCardClick = () => {
     navigate(profileDetail(id))
@@ -64,10 +63,10 @@ const DadCard = ({
 
   // Update connection status in current list's cache only (from card)
   const updateStatusInCache = (newStatus: ConnectionStatus) => {
-    if (listContext === 'discover') {
-      // Update in discover profiles - keep only if null or pending_outgoing
+    if (listContext === 'dads') {
+      // Keep the card in the browse list; only its button changes.
       queryClient.setQueriesData<InfiniteData<Profile[]>>(
-        { queryKey: ['discover', 'profiles'] },
+        { queryKey: ['dads'] },
         (oldData) => {
           if (!oldData) return oldData
           return {
@@ -128,6 +127,9 @@ const DadCard = ({
 
     // Remove detail page cache so it fetches fresh on navigation
     queryClient.removeQueries({ queryKey: ['profile', id] })
+
+    // The pending-requests badge in the nav reads this.
+    queryClient.invalidateQueries({ queryKey: ['user', 'stats'] })
   }
 
   // POST /api/connections/{id} - Send connection request
@@ -146,17 +148,9 @@ const DadCard = ({
       ) {
         updateStatusInCache(err.response.data.connection_status)
       } else if (err.response?.status === 429) {
-        toast({
-          title: 'Error',
-          description: 'Connection request limit reached. Please try again later.',
-          variant: 'destructive',
-        })
+        toastError('Connection request limit reached. Please try again later.')
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to send connection request. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to send connection request. Please try again.')
       }
     },
   })
@@ -171,11 +165,7 @@ const DadCard = ({
       if (err.response?.status === 404) {
         updateStatusInCache(null)
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to accept connection. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to accept connection. Please try again.')
       }
     },
   })
@@ -211,11 +201,7 @@ const DadCard = ({
       }
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update connection. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to update connection. Please try again.')
     },
   })
 
@@ -249,17 +235,9 @@ const DadCard = ({
     },
     onError: (err: AxiosError) => {
       if (err.response?.status === 429) {
-        toast({
-          title: 'Error',
-          description: 'Too many chats created. Please slow down.',
-          variant: 'destructive',
-        })
+        toastError('Too many chats created. Please slow down.')
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to open chat. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to open chat. Please try again.')
       }
     },
   })
@@ -286,7 +264,6 @@ const DadCard = ({
         <div className="flex gap-2">
           <Button
             className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
             onClick={(e) => {
               e.stopPropagation()
               handleChat()
@@ -314,7 +291,6 @@ const DadCard = ({
         <div className="flex gap-2">
           <Button
             className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
             disabled={isLoading}
             onClick={(e) => {
               e.stopPropagation()
@@ -341,8 +317,7 @@ const DadCard = ({
     if (connection_status === 'pending_outgoing') {
       return (
         <Button
-          className="w-full rounded-full font-semibold"
-          style={{ backgroundColor: '#9ca3af' }}
+          className="w-full rounded-full font-semibold bg-muted text-muted-foreground hover:bg-muted"
           disabled={isLoading}
           onClick={(e) => {
             e.stopPropagation()
@@ -358,7 +333,6 @@ const DadCard = ({
     return (
       <Button
         className="w-full rounded-full font-semibold"
-        style={{ backgroundColor: '#D8A24A' }}
         disabled={isLoading}
         onClick={(e) => {
           e.stopPropagation()
@@ -385,15 +359,15 @@ const DadCard = ({
             />
           ) : (
             <div className="w-20 h-20 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-semibold text-lg flex-shrink-0 aspect-square">
-              {initials}
+              {initials(name)}
             </div>
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-heading font-semibold text-foreground">
+            <h3 className="text-subhead font-heading font-semibold text-foreground">
               {name}, {age ?? '—'}
             </h3>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+            <div className="flex items-center gap-1 text-caption text-muted-foreground mt-0.5">
               <MapPin className="w-3 h-3" />
               <span>
                 {city}, {province}
@@ -404,7 +378,7 @@ const DadCard = ({
                 <Badge
                   key={child}
                   variant="soft"
-                  className="rounded-full text-xs"
+                  className="rounded-full text-caption"
                 >
                   {getStageDisplayLabel(child)}
                 </Badge>
@@ -413,15 +387,14 @@ const DadCard = ({
           </div>
         </div>
 
-        <p className="text-foreground text-sm leading-relaxed">{about}</p>
+        <p className="text-foreground text-body leading-relaxed">{about}</p>
 
         <div className="flex flex-wrap gap-1.5">
           {interests.map((interest) => (
             <Badge
               key={interest}
-              variant="outline"
-              className="rounded-full text-xs"
-              style={{ borderColor: '#D8A24A', color: '#D8A24A' }}
+              variant="interest"
+              className="rounded-full text-caption"
             >
               {interest}
             </Badge>

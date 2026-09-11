@@ -1,13 +1,16 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useState, useMemo, useCallback } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'sonner'
-import { ArrowLeft, Loader2, MessageCircle } from 'lucide-react'
+import { Loader2, MessageCircle } from 'lucide-react'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { ErrorState } from '@/components/feedback/ErrorState'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
+import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import BottomNav from '@/components/BottomNav'
-import logo from '@/assets/logo.png'
 import { useConversation } from '../hooks/useConversation'
 import { useConversationMessages } from '../hooks/useConversationMessages'
 import { useConversationParticipants } from '../hooks/useConversationParticipants'
@@ -19,26 +22,17 @@ import { useDeleteConversation } from '../hooks/useDeleteConversation'
 import { HeartButton } from '../components/HeartButton'
 import { ConversationMessage } from '../components/ConversationMessage'
 import { ParticipantList } from '../components/ParticipantList'
-import { EmptyState } from '../components/EmptyState'
+import { EmptyState } from '@/components/feedback/EmptyState'
 import { DeleteContentButton } from '../components/DeleteContentButton'
 import { useAuth } from '@/contexts/AuthContext'
 import { profileDetail } from '@/lib/routes'
+import { initials } from '@/utils/format'
 
 interface ReplyFormValues {
   body: string
 }
 
-function initials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
-
 const ConversationDetailPage = () => {
-  const navigate = useNavigate()
   const { communityId, conversationId } = useParams<{
     communityId: string
     conversationId: string
@@ -62,28 +56,12 @@ const ConversationDetailPage = () => {
 
   const messages = useMemo(() => messagesData?.pages.flat() ?? [], [messagesData])
 
-  const messagesSentinelRef = useRef<HTMLDivElement>(null)
-
   const handleFetchNextMessages = useCallback(() => {
     fetchNextMessages({ throwOnError: true }).catch(() => {
       toast.error("Couldn't load more replies")
     })
   }, [fetchNextMessages])
 
-  useEffect(() => {
-    const sentinel = messagesSentinelRef.current
-    if (!sentinel) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextMessages && !isFetchingNextMessages) {
-          handleFetchNextMessages()
-        }
-      },
-      { threshold: 0.1 },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextMessages, isFetchingNextMessages, handleFetchNextMessages])
   const { data: participants } = useConversationParticipants(conversationId)
 
   const { heart, unheart } = useHeartConversation(
@@ -126,31 +104,23 @@ const ConversationDetailPage = () => {
 
   if (convLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">Conversation</h1>
-        </div>
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Conversation" leading="back" />
+        <PageContainer>
+          <CenteredSpinner label="Loading conversation" />
+        </PageContainer>
+      </>
     )
   }
 
   if (convError || !conversation) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">Conversation</h1>
-        </div>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Failed to load conversation. Please try again.</p>
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Conversation" leading="back" />
+        <PageContainer>
+          <ErrorState noun="this conversation" />
+        </PageContainer>
+      </>
     )
   }
 
@@ -159,24 +129,10 @@ const ConversationDetailPage = () => {
     !conversation.is_deleted && author?.id === user?.id
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-        <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-        <h1 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground px-16">
-          Community post
-        </h1>
-      </div>
+    <>
+      <AppBar title="Community post" leading="back" />
 
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="-ml-2 text-muted-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-
+      <PageContainer className="space-y-6 animate-fade-in">
         {/* Original conversation post */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           {author && (
@@ -189,7 +145,7 @@ const ConversationDetailPage = () => {
                     className="w-8 h-8 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-caption font-semibold">
                     {initials(author.name)}
                   </div>
                 )}
@@ -202,7 +158,7 @@ const ConversationDetailPage = () => {
                 {author.name}
               </Link>
               {conversation.prompt_type && (
-                <span className="ml-auto text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                <span className="ml-auto text-caption text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                   {conversation.prompt_type}
                 </span>
               )}
@@ -289,7 +245,7 @@ const ConversationDetailPage = () => {
                 })}
               />
               {errors.body && (
-                <p className="text-xs text-destructive">{errors.body.message}</p>
+                <p className="text-caption text-destructive">{errors.body.message}</p>
               )}
               <div className="flex gap-2">
                 <Button
@@ -316,10 +272,10 @@ const ConversationDetailPage = () => {
                 </Button>
               </div>
               {notice && (
-                <p className="text-xs text-destructive text-center">{notice}</p>
+                <p className="text-caption text-destructive text-center">{notice}</p>
               )}
               {createMessage.isError && !isBanned && !(axios.isAxiosError(createMessage.error) && createMessage.error.response?.status === 429) && (
-                <p className="text-xs text-destructive text-center">
+                <p className="text-caption text-destructive text-center">
                   Failed to send reply. Please try again.
                 </p>
               )}
@@ -342,19 +298,17 @@ const ConversationDetailPage = () => {
                   <ConversationMessage key={msg.id} message={msg} />
                 ))}
               </div>
-              <div ref={messagesSentinelRef} className="h-4" />
-              {isFetchingNextMessages && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                </div>
-              )}
+              <InfiniteSentinel
+                hasNextPage={hasNextMessages}
+                isFetchingNextPage={isFetchingNextMessages}
+                fetchNextPage={handleFetchNextMessages}
+                noun="replies"
+              />
             </>
           )}
         </div>
-      </div>
-
-      <BottomNav />
-    </div>
+      </PageContainer>
+    </>
   )
 }
 

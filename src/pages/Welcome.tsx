@@ -4,7 +4,7 @@ import { Mail } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/components/ui/use-toast'
+import { toastError } from '@/lib/toast'
 import { useEffect, useState } from 'react'
 import axiosPublic from '@/api/axiosPublic'
 import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
@@ -13,7 +13,6 @@ import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 
 const Welcome = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const { setAuth } = useAuth()
 
@@ -30,11 +29,7 @@ const Welcome = () => {
       const refresh_token = params.get('refresh_token')
 
       if (!access_token || !refresh_token) {
-        toast({
-          title: 'Sign in failed',
-          description: 'Invalid OAuth response.',
-          variant: 'destructive',
-        })
+        toastError('Sign in failed', 'Invalid OAuth response.')
         return
       }
 
@@ -80,7 +75,7 @@ const Welcome = () => {
           },
           accessToken,
         })
-        navigate(ROUTES.DISCOVER)
+        navigate(ROUTES.HOME_AFTER_AUTH)
       } catch (err: any) {
         if (err.response?.status === 404) {
           // no profile yet — commit token so SetupRoute allows access
@@ -89,11 +84,7 @@ const Welcome = () => {
           return
         }
         setAccessToken(null)
-        toast({
-          title: 'Sign in failed',
-          description: 'An error occurred during Google sign in.',
-          variant: 'destructive',
-        })
+        toastError('Sign in failed', 'An error occurred during Google sign in.')
       } finally {
         setIsLoading(false)
       }
@@ -117,11 +108,7 @@ const Welcome = () => {
         throw error
       }
     } catch (err) {
-      toast({
-        title: 'Sign in failed',
-        description: 'An error occurred while signing in with Google.',
-        variant: 'destructive',
-      })
+      toastError('Sign in failed', 'An error occurred while signing in with Google.')
     } finally {
       setIsLoading(false)
     }
@@ -130,7 +117,6 @@ const Welcome = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in text-center px-6">
         <div className="flex justify-center mt-12 mb-8">
@@ -143,8 +129,7 @@ const Welcome = () => {
 
         <div className="space-y-3">
           <p
-            className="text-2xl font-semibold"
-            style={{ color: '#000000' }}
+            className="text-2xl font-semibold text-foreground"
           >
             Empowering Fathers.
             <br />

@@ -1,34 +1,34 @@
 /**
- * Centralized Route Configuration
+ * Centralized route configuration.
  *
- * This file defines all routes in the application using clean, REST-style patterns.
- * All navigation should use these constants or helper functions.
+ * The app is organised by *object type*, not by membership state. Whether you
+ * have joined a community is a property of that community — rendered as a
+ * button label and a `scope` filter — not a separate section of the app. The
+ * previous split (browse-all under /discover, joined under /groups) meant the
+ * same card appeared in two places meaning two different things, which is why
+ * cards had to inspect the pathname to know how to render themselves.
  *
- * Route Structure:
- * ├── / (Welcome)
- * ├── /setup (Profile Setup)
- * ├── /match (Match Screen)
- * ├── /discover/:tab (Discover - dads, communities, events)
- * │   └── /discover/dads/:id (Profile from Discover)
- * ├── /communities/:communityId (Community Detail)
- * │   └── /communities/:communityId/members (Community Members)
- * ├── /groups/:tab (My Groups - communities, events)
- * │   └── /groups/:groupId/members (Group Members)
- * ├── /chats (Chats List)
- * │   ├── /chats/:id (Chat)
- * │   └── /chats/:id/manage (Group Chat Management)
- * ├── /profiles/:id (Profile Detail)
- * ├── /profile (Own Profile)
- * ├── /connections (Connections)
- * ├── /requests (Requests)
- * └── /events/:eventId (Event Detail)
+ * Route structure:
+ * ├── /                       Welcome
+ * ├── /setup                  Profile setup
+ * ├── /dads                   Browse dads
+ * │   └── /dads/:id           A dad's profile
+ * ├── /groups/:tab            Communities | Events, filtered by ?scope=joined|all
+ * │   ├── /communities/:id                        Community detail
+ * │   │   └── .../conversations/:conversationId   A post
+ * │   └── /events/:eventId                        Event detail
+ * ├── /chats                  Chat list
+ * │   ├── /chats/:id          A conversation
+ * │   └── /chats/:id/manage   Group management
+ * └── /you                    Your hub
+ *     ├── /you/edit           Edit profile
+ *     ├── /you/settings       Preferences, legal, account
+ *     ├── /you/connections    Accepted connections
+ *     └── /you/requests       Incoming and outgoing requests
  */
 
-// ============================================
-// Static Routes
-// ============================================
 export const ROUTES = {
-  // Auth & Onboarding
+  // Auth & onboarding
   WELCOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
@@ -36,131 +36,82 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   VERIFY_EMAIL: '/verify-email',
   SETUP: '/setup',
-  MATCH: '/match',
 
-  // Discover (tabbed)
-  DISCOVER: '/discover',
-  DISCOVER_DADS: '/discover/dads',
-  DISCOVER_COMMUNITIES: '/discover/communities',
-  DISCOVER_EVENTS: '/discover/events',
+  // Dads
+  DADS: '/dads',
+  DAD_DETAIL: '/dads/:id',
 
-  // Dad Detail (from Discover) - renders ProfileDetail with discover context
-  DAD_DETAIL: '/discover/dads/:id',
-
-  // Event Detail
-  EVENT_DETAIL: '/events/:eventId',
-
-  // Communities
-  COMMUNITIES: '/communities',
-
-  // Groups (My joined communities/events - tabbed)
+  // Groups
   GROUPS: '/groups',
   GROUPS_COMMUNITIES: '/groups/communities',
   GROUPS_EVENTS: '/groups/events',
+  COMMUNITY_DETAIL: '/communities/:communityId',
+  CONVERSATION_DETAIL: '/communities/:communityId/conversations/:conversationId',
+  EVENT_DETAIL: '/events/:eventId',
 
   // Chats
   CHATS: '/chats',
   CHAT: '/chats/:id',
   CHAT_MANAGE: '/chats/:id/manage',
 
-  // Profile
-  PROFILE: '/profile',
-  PROFILES: '/profiles',
-  CONNECTIONS: '/connections',
-  REQUESTS: '/requests',
+  // You
+  YOU: '/you',
+  YOU_EDIT: '/you/edit',
+  YOU_SETTINGS: '/you/settings',
+  CONNECTIONS: '/you/connections',
+  REQUESTS: '/you/requests',
 
   // Admin
   ADMIN: '/admin',
+
+  /**
+   * Where an authenticated user lands.
+   *
+   * Named separately so auth logic never compares against a tab route. The
+   * guards previously used ROUTES.DISCOVER as their "authenticated" sentinel,
+   * which would have kept type-checking but silently misbehaved the moment
+   * that route was renamed.
+   */
+  HOME_AFTER_AUTH: '/dads',
 } as const
 
 // ============================================
-// Dynamic Route Helpers
+// Types
 // ============================================
+export type GroupsTab = 'communities' | 'events'
 
-/**
- * Get route for a specific discover tab
- */
-export const discoverTab = (tab: 'dads' | 'communities' | 'events') =>
-  `/discover/${tab}` as const
+/** Whether a list shows only what you have joined, or everything. */
+export type GroupScope = 'joined' | 'all'
 
-/**
- * Get route for a dad detail page (from Discover)
- */
-export const dadDetail = (id: string) =>
-  `/discover/dads/${id}` as const
+// ============================================
+// Helpers
+// ============================================
+export const dadDetail = (id: string) => `/dads/${id}` as const
 
-/**
- * Get route for event detail page
- */
-export const eventDetail = (eventId: number | string) =>
-  `/events/${eventId}` as const
+export const groupsTab = (tab: GroupsTab, scope?: GroupScope) =>
+  scope ? `/groups/${tab}?scope=${scope}` : `/groups/${tab}`
 
-/**
- * Get route for a specific groups tab
- */
-export const groupsTab = (tab: 'communities' | 'events') =>
-  `/groups/${tab}` as const
-
-/**
- * Get route for community detail page
- */
 export const communityDetail = (communityId: number | string) =>
   `/communities/${communityId}` as const
 
-/**
- * Get route for a conversation within a community
- */
 export const conversationDetail = (communityId: string, conversationId: string) =>
   `/communities/${communityId}/conversations/${conversationId}` as const
 
-/**
- * Get route for community members
- */
-export const communityMembers = (communityId: number | string) =>
-  `/communities/${communityId}/members` as const
+export const eventDetail = (eventId: number | string) => `/events/${eventId}` as const
 
-/**
- * Get route for private group members (normalized pattern)
- */
-export const groupMembers = (groupId: string) =>
-  `/groups/${groupId}/members` as const
-
-// ============================================
-// Chat Route Helpers
-// ============================================
-
-/**
- * Get route for a chat
- */
+export const chat = (id: string) => `/chats/${id}` as const
 export const chatManage = (id: string) => `/chats/${id}/manage` as const
 
-export const chat = (id: string, from?: string) => {
-  const params = new URLSearchParams()
-  if (from) params.set('from', from)
-  const queryString = params.toString()
-  return queryString ? `/chats/${id}?${queryString}` : `/chats/${id}`
-}
-
-// ============================================
-// Profile Route Helpers
-// ============================================
-
 /**
- * Get route for a profile
+ * A dad's profile. There is one profile route now; the CTA is driven by the
+ * viewer's connection_status rather than by which section they arrived from.
  */
-export const profileDetail = (id: string) =>
-  `/profiles/${id}` as const
+export const profileDetail = dadDetail
 
 // ============================================
-// Route Params Types
-// ============================================
-export type DiscoverTab = 'dads' | 'communities' | 'events'
-export type GroupsTab = 'communities' | 'events'
-
-// ============================================
-// Navigation Defaults
+// Defaults
 // ============================================
 export const DEFAULTS = {
-  DISCOVER_TAB: 'dads' as DiscoverTab,
   GROUPS_TAB: 'communities' as GroupsTab,
+  GROUP_SCOPE: 'joined' as GroupScope,
 }

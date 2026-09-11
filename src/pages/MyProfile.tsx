@@ -1,9 +1,11 @@
+import type { UserStats } from '@/types/users'
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import BottomNav from '@/components/BottomNav'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
+import {} from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -15,15 +17,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Edit,
   MapPin,
   Calendar as CalendarIcon,
-  LogOut,
-  Share2,
   Pencil,
   Upload,
   Trash2,
-  Shield,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { Calendar } from '@/components/ui/calendar'
@@ -35,17 +33,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import avatarDefaultGrey from '@/assets/avatar-default-grey.png'
-import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
 import { useAuth } from '@/contexts/AuthContext'
 import axios from 'axios'
@@ -56,14 +45,8 @@ import {
   STAGE_OPTIONS,
   PROVINCE_OPTIONS,
 } from '@/config/constants'
-interface UserStats {
-  connections: number
-  requests: number
-  communities_joined: number
-  events_registered_for: number
-}
 import { getStageDisplayLabel } from '@/utils/users'
-import { useToast } from '@/hooks/use-toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 
 interface UserResponse {
   id: string
@@ -89,10 +72,10 @@ const MyProfile = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user, accessToken, setAuth } = useAuth()
-  const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [isEditing, setIsEditing] = useState(false)
+  // This route *is* the editor now; /you is the read-only hub.
+  const [isEditing, setIsEditing] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
@@ -176,20 +159,14 @@ const MyProfile = () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
       setCustomInterest('')
       setShowCustomInput(false)
-      setIsEditing(false)
-      toast({
-        title: 'Success',
-        description: 'Profile updated successfully.',
-      })
+      toastSuccess('Profile updated successfully.')
+      // This route is the editor; a successful save returns to the hub.
+      navigate(ROUTES.YOU)
     },
     onError: (error) => {
-      toast({
-        title: 'Error',
-        description: axios.isAxiosError(error) && error.response?.status === 429
+      toastError(axios.isAxiosError(error) && error.response?.status === 429
           ? 'Profile update limit reached. Please try again later.'
-          : 'Failed to update profile. Please try again.',
-        variant: 'destructive',
-      })
+          : 'Failed to update profile. Please try again.')
     },
     onSettled: () => {
       setIsLoading(false)
@@ -219,20 +196,13 @@ const MyProfile = () => {
       }
       setAvatarPreview(null)
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
-      toast({
-        title: 'Success',
-        description: 'Avatar updated successfully.',
-      })
+      toastSuccess('Avatar updated successfully.')
     },
     onError: (error) => {
       setAvatarPreview(null)
-      toast({
-        title: 'Error',
-        description: axios.isAxiosError(error) && error.response?.status === 429
+      toastError(axios.isAxiosError(error) && error.response?.status === 429
           ? 'Avatar upload limit reached. Please try again later.'
-          : 'Failed to upload avatar. Please try again.',
-        variant: 'destructive',
-      })
+          : 'Failed to upload avatar. Please try again.')
     },
     onSettled: () => {
       setIsLoading(false)
@@ -253,84 +223,19 @@ const MyProfile = () => {
         })
       }
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
-      toast({
-        title: 'Success',
-        description: 'Avatar removed successfully.',
-      })
+      toastSuccess('Avatar removed successfully.')
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to remove avatar. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to remove avatar. Please try again.')
     },
     onSettled: () => {
       setIsLoading(false)
     },
   })
 
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
 
-  const updatePreferences = useMutation({
-    mutationFn: (marketing_emails_opt_in: boolean) =>
-      axiosPrivate.patch('/api/users/me/preferences', { marketing_emails_opt_in }, {
-        timeout: TIMEOUT_LENGTH_MS,
-      }),
-    onSuccess: (_, marketing_emails_opt_in) => {
-      if (user) {
-        setAuth({
-          user: { ...user, preferences: { marketing_emails_opt_in } },
-          accessToken,
-        })
-      }
-    },
-    onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update preferences. Please try again.',
-        variant: 'destructive',
-      })
-    },
-  })
 
-  const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL as string
 
-  const handleDeleteAccount = async () => {
-    setIsDeletingAccount(true)
-    try {
-      await axiosPrivate.delete('/api/users/me', { timeout: TIMEOUT_LENGTH_MS })
-      queryClient.clear()
-      setAuth({ user: null, accessToken: null })
-      navigate(ROUTES.WELCOME)
-    } catch {
-      toast({ title: 'Error', description: 'Failed to delete account. Please try again.', variant: 'destructive' })
-      setShowDeleteDialog(false)
-    } finally {
-      setIsDeletingAccount(false)
-    }
-  }
-
-  const handleShareProfile = async () => {}
-
-  const handleLogout = async () => {
-    try {
-      await axiosPrivate.post(
-        '/api/auth/logout',
-        {},
-        {
-          timeout: TIMEOUT_LENGTH_MS,
-        },
-      )
-    } catch {
-      // logout locally even if server call fails
-    } finally {
-      queryClient.clear()
-      setAuth({ user: null, accessToken: null })
-      navigate(ROUTES.WELCOME)
-    }
-  }
 
   const handleAvatarClick = () => {
     if (!isLoading) {
@@ -360,20 +265,6 @@ const MyProfile = () => {
     deleteAvatar.mutate()
   }
 
-  const handleEditClick = () => {
-    if (user) {
-      setFormData({
-        name: user.name,
-        date_of_birth: user.date_of_birth ?? '',
-        city: user.city,
-        province: user.province,
-        about: user.about,
-        interests: [...user.interests],
-        children_age_ranges: [...user.children_age_ranges],
-      })
-    }
-    setIsEditing(true)
-  }
 
   const handleCancel = () => {
     // Reset form to current user values
@@ -391,6 +282,7 @@ const MyProfile = () => {
     setCustomInterest('')
     setShowCustomInput(false)
     setIsEditing(false)
+    navigate(ROUTES.YOU)
   }
 
   const handleAddCustomInterest = () => {
@@ -409,11 +301,7 @@ const MyProfile = () => {
     const city = formData.city.trim()
     const about = formData.about.trim()
     if (!name || !formData.date_of_birth || !city || !formData.province || !about || formData.children_age_ranges.length === 0) {
-      toast({
-        title: 'Please fill out all required fields',
-        description: 'Name, date of birth, city, province, about, and children\'s age are required.',
-        variant: 'destructive',
-      })
+      toastError('Please fill out all required fields', 'Name, date of birth, city, province, about, and children\'s age are required.')
       return
     }
     setIsLoading(true)
@@ -454,22 +342,10 @@ const MyProfile = () => {
   const displayAvatar = avatarPreview || user.avatarUrl || avatarDefaultGrey
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="bg-card border-b border-border px-6 py-5 relative">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
+    <>
+      <AppBar title="Edit profile" leading="back" backTo={ROUTES.YOU} />
 
-        <div className="flex items-center justify-center h-full">
-          <h1 className="text-2xl font-heading font-semibold text-foreground">
-            Profile
-          </h1>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-6 py-8 space-y-6 animate-fade-in">
+      <PageContainer className="space-y-6 animate-fade-in">
         {/* Avatar section - always interactive */}
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="relative">
@@ -551,7 +427,7 @@ const MyProfile = () => {
                 >
                   Requests
                   {userStats.requests > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-caption font-semibold rounded-full h-5 w-5 flex items-center justify-center">
                       {userStats.requests}
                     </span>
                   )}
@@ -570,19 +446,19 @@ const MyProfile = () => {
                 <p className="text-2xl font-heading font-semibold text-primary">
                   {userStats.connections}
                 </p>
-                <p className="text-sm text-muted-foreground">Connections</p>
+                <p className="text-body text-muted-foreground">Connections</p>
               </div>
               <div>
                 <p className="text-2xl font-heading font-semibold text-primary">
                   {userStats.communities_joined}
                 </p>
-                <p className="text-sm text-muted-foreground">Communities</p>
+                <p className="text-body text-muted-foreground">Communities</p>
               </div>
               <div>
                 <p className="text-2xl font-heading font-semibold text-primary">
                   {userStats.events_registered_for}
                 </p>
-                <p className="text-sm text-muted-foreground">Events</p>
+                <p className="text-body text-muted-foreground">Events</p>
               </div>
             </div>
           </div>
@@ -702,7 +578,7 @@ const MyProfile = () => {
               <h3 className="font-semibold text-foreground mb-2">
                 Children's Age
               </h3>
-              <p className="text-sm text-muted-foreground mb-2">
+              <p className="text-body text-muted-foreground mb-2">
                 Select all that apply
               </p>
               <div className="flex flex-wrap gap-2">
@@ -725,7 +601,7 @@ const MyProfile = () => {
 
             <div>
               <h3 className="font-semibold text-foreground mb-3">Interests</h3>
-              <p className="text-sm text-muted-foreground mb-2">
+              <p className="text-body text-muted-foreground mb-2">
                 Select your interests
               </p>
               <div className="flex flex-wrap gap-2">
@@ -854,125 +730,10 @@ const MyProfile = () => {
               Cancel
             </Button>
           </>
-        ) : (
-          <>
-            <Button
-              variant="outline"
-              className="w-full rounded-full border-2 border-primary hover:bg-primary hover:text-primary-foreground"
-              onClick={handleEditClick}
-              disabled={isLoading}
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Profile
-            </Button>
+        ) : null}
+      </PageContainer>
 
-            {/* <Button
-              variant="outline"
-              className="w-full rounded-full border-2 border-primary hover:bg-primary hover:text-primary-foreground"
-              onClick={handleShareProfile}
-              disabled={isLoading}
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share Profile
-            </Button> */}
-
-            {user?.isAdmin && (
-              <Button
-                variant="outline"
-                className="w-full rounded-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                onClick={() => navigate(ROUTES.ADMIN)}
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Moderation Dashboard
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              className="w-full rounded-full border-2 border-destructive text-destructive hover:bg-primary hover:text-primary-foreground hover:border-primary"
-              onClick={handleLogout}
-              disabled={isLoading}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Log Out
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full rounded-full border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              onClick={() => setShowDeleteDialog(true)}
-              disabled={isLoading}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete Account
-            </Button>
-          </>
-        )}
-
-        <div className="flex items-center justify-between gap-4">
-          <label htmlFor="marketing-toggle" className="text-sm text-muted-foreground leading-relaxed flex-1">
-            Receive occasional emails about new features, events, and updates from Next Level Dads.
-          </label>
-          <Switch
-            id="marketing-toggle"
-            checked={user.preferences.marketing_emails_opt_in}
-            disabled={updatePreferences.isPending}
-            onCheckedChange={(checked) => updatePreferences.mutate(checked)}
-          />
-        </div>
-
-        {/* Footer links */}
-        <div className="flex justify-center gap-6 pt-2 pb-2 text-xs text-muted-foreground">
-          <a
-            href={`${WEBSITE_BASE_URL}/terms`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4 hover:text-foreground transition-colors"
-          >
-            Terms and Conditions
-          </a>
-          <a
-            href={`${WEBSITE_BASE_URL}/privacy`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4 hover:text-foreground transition-colors"
-          >
-            Privacy Policy
-          </a>
-          <a
-            href={`${WEBSITE_BASE_URL}/community-guidelines`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4 hover:text-foreground transition-colors"
-          >
-            Community Guidelines
-          </a>
-        </div>
-      </div>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Account</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete your account? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingAccount}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAccount}
-              disabled={isDeletingAccount}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeletingAccount ? 'Deleting...' : 'Delete Account'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <BottomNav />
-    </div>
+    </>
   )
 }
 

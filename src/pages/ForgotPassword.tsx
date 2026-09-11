@@ -5,14 +5,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
-import { useToast } from '@/components/ui/use-toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 import validator from 'validator'
 import { supabase } from '@/lib/supabase'
 
 const ForgotPassword = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
-  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,19 +19,11 @@ const ForgotPassword = () => {
     if (isLoading) return
     const trimmedEmail = email.trim()
     if (!trimmedEmail) {
-      toast({
-        title: 'Missing email',
-        description: 'Please enter your email address.',
-        variant: 'destructive',
-      })
+      toastError('Missing email', 'Please enter your email address.')
       return
     }
     if (!validator.isEmail(trimmedEmail)) {
-      toast({
-        title: 'Invalid email address',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      })
+      toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
     setIsLoading(true)
@@ -46,17 +37,9 @@ const ForgotPassword = () => {
       if (error) {
         throw error
       }
-      toast({
-        title: 'Reset link sent',
-        description: 'Please check your email for the password reset link.',
-      })
+      toastSuccess('Reset link sent', 'Please check your email for the password reset link.')
     } catch (err: any) {
-      toast({
-        title: 'Error',
-        description:
-          err.message || 'An error occurred while sending the reset link.',
-        variant: 'destructive',
-      })
+      toastError(err.message || 'An error occurred while sending the reset link.')
     } finally {
       setIsLoading(false)
     }
@@ -65,7 +48,6 @@ const ForgotPassword = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
@@ -82,7 +64,7 @@ const ForgotPassword = () => {
               Forgot Password
             </h1>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="text-body text-muted-foreground">
               Enter your email address and we'll send you a link to reset your
               password.
             </p>
@@ -94,7 +76,7 @@ const ForgotPassword = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="email"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Email
                 </label>
@@ -112,20 +94,18 @@ const ForgotPassword = () => {
                 type="submit"
                 size="lg"
                 className="w-full rounded-full font-semibold text-base shadow-md"
-                style={{ backgroundColor: '#D8A24A' }}
                 disabled={isLoading}
               >
                 Send Reset Link
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-body text-muted-foreground">
               Remember your password?{' '}
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.LOGIN)}
-                className="font-semibold hover:underline"
-                style={{ color: '#D8A24A' }}
+                className="font-semibold text-primary hover:underline"
                 disabled={isLoading}
               >
                 Login

@@ -35,14 +35,14 @@ export function FilteredMessagesTab() {
       {data.map((item) => (
         <div key={item.id} className="border border-border rounded-lg p-4 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
               {item.content_type}
             </span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${LAYER_COLORS[item.layer]}`}>
+            <span className={`text-caption px-2 py-0.5 rounded-full font-medium ${LAYER_COLORS[item.layer]}`}>
               {LAYER_LABELS[item.layer]}
             </span>
             {item.score !== null && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-caption text-muted-foreground">
                 score: {item.score.toFixed(3)}
               </span>
             )}
@@ -52,13 +52,13 @@ export function FilteredMessagesTab() {
             {item.original_text}
           </blockquote>
 
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center justify-between text-caption text-muted-foreground">
             <span>by {item.author_name ?? 'unknown'}</span>
             <span>{new Date(item.created_at).toLocaleDateString()}</span>
           </div>
 
           {item.reason && (
-            <p className="text-xs text-muted-foreground">Reason: {item.reason}</p>
+            <p className="text-caption text-muted-foreground">Reason: {item.reason}</p>
           )}
         </div>
       ))}

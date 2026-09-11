@@ -1,18 +1,21 @@
 import { useEffect } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
-import BottomNav from '@/components/BottomNav'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
+import { ErrorState } from '@/components/feedback/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { MapPin, Calendar, ArrowLeft, Loader2 } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { MapPin, Calendar } from 'lucide-react'
 import { getStageDisplayLabel } from '@/utils/users'
+import { initials } from '@/utils/format'
 import { chat } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toast'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
 import type { Chat } from '@/types/chats'
@@ -26,21 +29,16 @@ async function fetchProfile(id: string): Promise<Profile> {
 
 const ProfileDetail = () => {
   const navigate = useNavigate()
-  const location = useLocation()
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  // Derive context from route path
-  const isFromDiscover = location.pathname.startsWith('/discover/dads')
 
   // Update profile in all list caches
   const updateProfileInLists = (profile: Profile) => {
     const { connection_status } = profile
 
-    // Update in discover profiles - keep only if null or pending_outgoing
+    // Browse list: keep the row, just refresh its status
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
-      { queryKey: ['discover', 'profiles'] },
+      { queryKey: ['dads'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
@@ -105,14 +103,6 @@ const ProfileDetail = () => {
     }
   }, [profile])
 
-  const initials = profile
-    ? profile.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-    : ''
-
   const handleBack = () => {
     navigate(-1)
   }
@@ -125,9 +115,9 @@ const ProfileDetail = () => {
       return { ...oldData, connection_status: newStatus }
     })
 
-    // Update in discover profiles - keep only if null or pending_outgoing
+    // Browse list: keep the row, just refresh its status
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
-      { queryKey: ['discover', 'profiles'] },
+      { queryKey: ['dads'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
@@ -199,11 +189,7 @@ const ProfileDetail = () => {
       if (err.response?.status === 409 && err.response.data?.connection_status) {
         updateStatusInCache(err.response.data.connection_status)
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to send connection request. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to send connection request. Please try again.')
       }
     },
   })
@@ -218,11 +204,7 @@ const ProfileDetail = () => {
       if (err.response?.status === 404) {
         updateStatusInCache(null)
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to accept connection. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to accept connection. Please try again.')
       }
     },
   })
@@ -258,11 +240,7 @@ const ProfileDetail = () => {
       }
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update connection. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to update connection. Please try again.')
     },
   })
 
@@ -295,11 +273,7 @@ const ProfileDetail = () => {
       navigate(chat(data.id))
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to open chat. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to open chat. Please try again.')
     },
   })
 
@@ -329,7 +303,6 @@ const ProfileDetail = () => {
         <div className="flex gap-2">
           <Button
             className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
             onClick={handleChat}
           >
             Chat
@@ -351,7 +324,6 @@ const ProfileDetail = () => {
         <div className="flex gap-2">
           <Button
             className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
             disabled={isMutating}
             onClick={handleAccept}
           >
@@ -372,8 +344,7 @@ const ProfileDetail = () => {
     if (connection_status === 'pending_outgoing') {
       return (
         <Button
-          className="w-full rounded-full font-semibold"
-          style={{ backgroundColor: '#9ca3af' }}
+          className="w-full rounded-full font-semibold bg-muted text-muted-foreground hover:bg-muted"
           disabled={isMutating}
           onClick={handleCancelRequest}
         >
@@ -386,7 +357,6 @@ const ProfileDetail = () => {
     return (
       <Button
         className="w-full rounded-full font-semibold"
-        style={{ backgroundColor: '#D8A24A' }}
         disabled={isMutating}
         onClick={handleConnect}
       >
@@ -397,204 +367,32 @@ const ProfileDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b border-border px-6 py-5 relative">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-          <div className="flex items-center justify-center h-full">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-heading font-semibold text-foreground">
-                Profile
-              </h1>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Profile" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <CenteredSpinner label="Loading profile" />
+        </PageContainer>
+      </>
     )
   }
 
   if (isError || !profile) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b border-border px-6 py-5 relative">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-          <div className="flex items-center justify-center h-full">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-heading font-semibold text-foreground">
-                Profile
-              </h1>
-            </div>
-          </div>
-        </div>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            Failed to load profile. Please try again.
-          </p>
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Profile" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <ErrorState noun="this profile" />
+        </PageContainer>
+      </>
     )
   }
 
   // Discover context: Card-based layout with Connect button (DadDetail style)
-  if (isFromDiscover) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b border-border px-6 py-5 relative">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-
-          <div className="flex items-center justify-center h-full">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-heading font-semibold text-foreground">
-                Profile
-              </h1>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-md mx-auto px-6 py-6">
-          <Card className="overflow-hidden shadow-md">
-            <CardContent className="p-6 space-y-4">
-              {/* Avatar and basic info */}
-              <div className="flex items-start gap-4">
-                {profile.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={profile.name}
-                    className="w-24 h-24 rounded-lg object-cover flex-shrink-0 aspect-square"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-semibold text-xl flex-shrink-0 aspect-square">
-                    {initials}
-                  </div>
-                )}
-
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-heading font-semibold text-foreground">
-                    {profile.name}, {profile.age ?? '—'}
-                  </h2>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>
-                      {profile.city}, {profile.province}
-                    </span>
-                  </div>
-                  {profile.children.length > 0 && (
-                    <Badge
-                      variant="soft"
-                      className="rounded-full mt-2"
-                    >
-                      {getStageDisplayLabel(profile.children[0])}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Bio */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground">About</h3>
-                <p className="text-foreground text-sm leading-relaxed">
-                  {profile.about}
-                </p>
-              </div>
-
-              {/* Interests */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground">
-                  Interests
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {profile.interests.map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant="outline"
-                      className="rounded-full"
-                      style={{ borderColor: '#D8A24A', color: '#D8A24A' }}
-                    >
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="mt-4">{renderButtons()}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <BottomNav />
-      </div>
-    )
-  }
-
-  // Default context: Full-width layout without Connect button (ProfileDetail style)
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="bg-card border-b border-border px-6 py-5 relative">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
+    <>
+      <AppBar title="Profile" leading="back" onBack={handleBack} />
 
-        <div className="flex items-center justify-center h-full">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              className="rounded-full"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-2xl font-heading font-semibold text-foreground">
-              Profile
-            </h1>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-6 py-8 space-y-6 animate-fade-in">
+      <PageContainer className="space-y-6 animate-fade-in">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="w-32 h-32 rounded-lg overflow-hidden border-4 border-primary/20">
             {profile.avatar_url ? (
@@ -605,7 +403,7 @@ const ProfileDetail = () => {
               />
             ) : (
               <div className="w-full h-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-2xl">
-                {initials}
+                {initials(profile?.name)}
               </div>
             )}
           </div>
@@ -674,10 +472,8 @@ const ProfileDetail = () => {
             <ReportUserButton userId={id} userName={profile.name} />
           </div>
         )}
-      </div>
-
-      <BottomNav />
-    </div>
+      </PageContainer>
+    </>
   )
 }
 
