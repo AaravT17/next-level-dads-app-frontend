@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Eye, EyeOff, XCircle } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
+import { getErrorMessage } from '@/utils/errors'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { MIN_PASSWORD_LENGTH } from '@/config/constants'
-import { supabase } from '@/lib/supabase'
+import { supabaseAuth } from '@/lib/supabase'
 import { isStrongPassword } from '@/utils/auth'
 
 const ResetPassword = () => {
@@ -56,7 +57,7 @@ const ResetPassword = () => {
       }
 
       // Establish Supabase session with recovery tokens
-      const { error: sessionError } = await supabase.auth.setSession({
+      const { error: sessionError } = await supabaseAuth.setSession({
         access_token,
         refresh_token,
       })
@@ -89,21 +90,24 @@ const ResetPassword = () => {
     }
     setIsLoading(true)
     try {
-      let res: any = await supabase.auth.updateUser({
+      const updated = await supabaseAuth.updateUser({
         password: newPassword,
       })
-      if (res.error) {
-        throw res.error
+      if (updated.error) {
+        throw updated.error
       }
-      res = await supabase.auth.signOut()
-      if (res.error) {
-        throw res.error
+      const signedOut = await supabaseAuth.signOut()
+      if (signedOut.error) {
+        throw signedOut.error
       }
       window.history.replaceState({}, document.title, ROUTES.RESET_PASSWORD) // clear query params from URL
       toastSuccess('Password reset successful', 'Your password has been reset.')
       navigate(ROUTES.LOGIN)
-    } catch (err: any) {
-      toastError('Password reset failed', err.message || 'An error occurred while resetting your password.')
+    } catch (err) {
+      toastError(
+        'Password reset failed',
+        getErrorMessage(err, 'An error occurred while resetting your password.'),
+      )
     } finally {
       setIsLoading(false)
     }
@@ -118,7 +122,7 @@ const ResetPassword = () => {
           <img
             src={logo}
             alt="Next Level Dads"
-            className="w-48 h-auto"
+            className="app-logo w-48 h-auto"
           />
         </div>
 
@@ -133,7 +137,7 @@ const ResetPassword = () => {
                 <p className="text-center text-muted-foreground">{linkError}</p>
                 <Button
                   size="lg"
-                  className="w-full rounded-full font-semibold text-base shadow-md"
+                  className="w-full rounded-md font-semibold text-base shadow-md"
                   onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
                 >
                   Request New Link
@@ -172,7 +176,7 @@ const ResetPassword = () => {
                     placeholder="Enter your new password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -202,7 +206,7 @@ const ResetPassword = () => {
                     placeholder="Confirm your new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -221,7 +225,7 @@ const ResetPassword = () => {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full rounded-full font-semibold text-base shadow-md"
+                className="w-full rounded-md font-semibold text-base shadow-md"
                 disabled={isLoading || !sessionReady}
               >
                 {sessionReady ? 'Reset Password' : 'Loading...'}

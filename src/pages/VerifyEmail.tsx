@@ -83,7 +83,7 @@ const VerifyEmail = () => {
           <img
             src={logo}
             alt="Next Level Dads"
-            className="w-48 h-auto"
+            className="app-logo w-48 h-auto"
           />
         </div>
 
@@ -117,7 +117,7 @@ const VerifyEmail = () => {
                 </p>
                 <Button
                   size="lg"
-                  className="w-full rounded-full font-semibold text-base shadow-md"
+                  className="w-full rounded-md font-semibold text-base shadow-md"
                   onClick={handleManualRedirect}
                 >
                   Go to Login
@@ -138,7 +138,7 @@ const VerifyEmail = () => {
                 </p>
                 <Button
                   size="lg"
-                  className="w-full rounded-full font-semibold text-base shadow-md bg-destructive hover:bg-destructive/90"
+                  className="w-full rounded-md font-semibold text-base shadow-md bg-destructive hover:bg-destructive/90"
                   onClick={handleManualRedirect}
                 >
                   Go to Register

@@ -74,6 +74,34 @@ export const CHATS_PAGE_LIMIT = 20
 export const MESSAGES_PAGE_LIMIT = 50
 export const PARTICIPANTS_PAGE_LIMIT = 20
 
+/** How many "get back into it" cards the Home rail asks for. */
+export const RESUME_PAGE_LIMIT = 10
+
+/**
+ * Whether anyone can set or change a community's photo from the UI.
+ *
+ * Off: no user, admins included, is offered the control. Photos still render
+ * wherever a community has one, and the whole upload path -- the API client,
+ * the mutation hooks, the editor component and the backend endpoints -- is left
+ * in place and working, so turning this back on is the only change needed.
+ *
+ * Typed as `boolean` rather than inferred as `false` so the gated branches stay
+ * type-checked instead of being narrowed away as dead code.
+ */
+export const COMMUNITY_PHOTO_EDITING_ENABLED: boolean = false
+
+/**
+ * Feed suggestion cadence: one suggestion card after every Nth post.
+ *
+ * Four keeps suggestions discoverable without the feed reading as promotional.
+ * The interleave is a pure function of this number, so tuning it is a one-line
+ * change with no layout work.
+ */
+export const FEED_SUGGESTION_INTERVAL = 4
+
+/** How many of each suggestion kind to hold, so the feed can scroll a while. */
+export const FEED_SUGGESTION_POOL_SIZE = 6
+
 export const DISCOVER_DADS_FILTERS_AGE_RANGES = [
   'Under 25',
   '25-29',

@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: '::',
     port: 3000,
+    //port: 5173,
     allowedHosts: ['.ngrok-free.dev', 'localhost'],
     proxy: {
       '/api': {
@@ -24,5 +25,12 @@ export default defineConfig(({ mode }) => ({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  test: {
+    // Pure logic only for now, so no DOM environment is needed. Adding
+    // component tests later means installing jsdom and switching this to
+    // 'jsdom' plus a setup file.
+    environment: 'node',
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 }))

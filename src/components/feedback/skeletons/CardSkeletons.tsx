@@ -17,8 +17,8 @@ export function DadCardSkeleton() {
           <Skeleton className="h-4 w-1/2" />
           <Skeleton className="h-3 w-1/3" />
           <div className="flex gap-2 pt-2">
-            <Skeleton className="h-5 w-16 rounded-full" />
-            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-md" />
+            <Skeleton className="h-5 w-20 rounded-md" />
           </div>
         </div>
       </CardContent>
@@ -29,10 +29,13 @@ export function DadCardSkeleton() {
 export function CommunityCardSkeleton() {
   return (
     <Card className="shadow-md">
-      <CardContent className="p-4 space-y-2">
-        <Skeleton className="h-4 w-2/5" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-3/4" />
+      <CardContent className="p-4 flex gap-4">
+        <Skeleton className="w-20 h-20 rounded-md shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-2/5" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-3/4" />
+        </div>
       </CardContent>
     </Card>
   )
@@ -62,7 +65,16 @@ export function ChatRowSkeleton() {
   )
 }
 
-export const DadListSkeleton = () => <ListSkeleton count={4} item={<DadCardSkeleton />} />
-export const CommunityListSkeleton = () => <ListSkeleton count={4} item={<CommunityCardSkeleton />} />
-export const EventListSkeleton = () => <ListSkeleton count={4} item={<EventCardSkeleton />} />
+/** Mirrors the grid the real lists use from sm upward. */
+const CARD_GRID = 'space-y-0 grid gap-4 sm:grid-cols-2'
+
+export const DadListSkeleton = () => (
+  <ListSkeleton count={6} item={<DadCardSkeleton />} className={CARD_GRID} />
+)
+export const CommunityListSkeleton = () => (
+  <ListSkeleton count={6} item={<CommunityCardSkeleton />} className={CARD_GRID} />
+)
+export const EventListSkeleton = () => (
+  <ListSkeleton count={6} item={<EventCardSkeleton />} className={CARD_GRID} />
+)
 export const ChatListSkeleton = () => <ListSkeleton count={6} item={<ChatRowSkeleton />} />

@@ -1,6 +1,6 @@
 // TODO: Add date separators between messages (e.g. "Today", "Yesterday", specific dates) so users can orient
 // themselves in longer conversations — currently messages only show time, no date context.
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   useQuery,
@@ -24,6 +24,8 @@ import {
 } from 'lucide-react'
 import { chatManage } from '@/lib/routes'
 import { UserAvatar } from '@/components/media/UserAvatar'
+import { AccountButton } from '@/components/layout/AccountButton'
+import { SharedCommunityCard } from '@/features/communities/components/SharedCommunityCard'
 import { formatClock } from '@/utils/format'
 import {
   type ChatType,
@@ -33,6 +35,7 @@ import {
 } from '@/types/chats'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChat } from '@/contexts/ChatContext'
+import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, MESSAGES_PAGE_LIMIT } from '@/config/constants'
@@ -57,6 +60,9 @@ const Chat = () => {
     useChat()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  // Same gate the community composers use, so a ban reads the same way
+  // wherever the user runs into it.
+  const { isBanned, notice: banNotice, handlePostError } = useModerationBan()
   const { id } = useParams<{ id: string }>()
 
   const chatId = id || ''
@@ -334,7 +340,9 @@ const Chat = () => {
       if (axios.isAxiosError(error) && error.response?.status === 429) {
         toast.error('Too many messages sent. Please slow down.')
       } else {
-        toast.error('Failed to send message.')
+        // Recognises the ban 403 and flips the composer to disabled, which
+        // covers a ban that lands mid-session.
+        handlePostError(error, 'message')
       }
     },
   })
@@ -458,14 +466,17 @@ const Chat = () => {
   // ============================================
 
   return (
-    <div className="flex-1 min-h-0 bg-background flex flex-col">
+    // `relative` so the scroll-to-latest button anchors to this pane rather
+    // than to the shell, whose bottom edge sits below the primary nav.
+    <div className="relative flex-1 min-h-0 bg-background flex flex-col">
       {/* Header */}
       <div className="bg-card border-b border-border shrink-0">
         <div className="px-6 py-4">
           <div className="flex items-center gap-4">
             <button
               onClick={handleBack}
-              className="text-muted-foreground"
+              aria-label="Back to conversations"
+              className="text-muted-foreground lg:hidden"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
@@ -495,6 +506,9 @@ const Chat = () => {
                 </div>
               </>
             )}
+
+            {/* On desktop this header is the window's top-right. */}
+            <AccountButton className="hidden lg:block ml-auto" />
           </div>
         </div>
       </div>
@@ -643,6 +657,13 @@ const Chat = () => {
                         >
                           {msg.is_deleted ? 'Message deleted' : msg.content}
                         </p>
+
+                        {/* Community invite. Withheld on delete both here and
+                            server-side, so a deleted invite stops linking on
+                            the deleter's screen too, not just after a refetch. */}
+                        {msg.shared_community && !msg.is_deleted && (
+                          <SharedCommunityCard community={msg.shared_community} />
+                        )}
                       </div>
 
                       {/* Hover actions */}
@@ -652,7 +673,7 @@ const Chat = () => {
                         >
                           <button
                             onClick={() => setReplyingTo(msg)}
-                            className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                            className="p-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                           >
                             <Reply className="w-3 h-3" />
                           </button>
@@ -663,13 +684,13 @@ const Chat = () => {
                                   setEditingId(msg.id)
                                   setEditContent(msg.content)
                                 }}
-                                className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                                className="p-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                               >
                                 <Pencil className="w-3 h-3" />
                               </button>
                               <button
                                 onClick={() => deleteMessage.mutate(msg.id)}
-                                className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                                className="p-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
@@ -705,7 +726,7 @@ const Chat = () => {
         <div className="absolute bottom-24 right-6">
           <button
             onClick={handleScrollToBottom}
-            className="relative bg-card border border-border rounded-full p-2 shadow-md text-muted-foreground hover:text-foreground"
+            className="relative bg-card border border-border rounded-md p-2 shadow-md text-muted-foreground hover:text-foreground"
           >
             <ChevronDown className="w-5 h-5" />
             {unreadCount > 0 && (
@@ -740,7 +761,7 @@ const Chat = () => {
         <div className="px-6 py-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Type a message..."
+              placeholder={isBanned ? 'Messaging is suspended' : 'Type a message...'}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyDown={(e) => {
@@ -749,13 +770,14 @@ const Chat = () => {
                   handleSend()
                 }
               }}
-              className="rounded-full"
+              disabled={isBanned}
+              className="rounded-md"
             />
             <Button
               size="icon"
               onClick={handleSend}
-              disabled={sendMessage.isPending || !messageInput.trim()}
-              className="rounded-full shrink-0 bg-gradient-gold"
+              disabled={isBanned || sendMessage.isPending || !messageInput.trim()}
+              className="rounded-md shrink-0 bg-gradient-gold"
             >
               {sendMessage.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -764,6 +786,9 @@ const Chat = () => {
               )}
             </Button>
           </div>
+          {banNotice && (
+            <p className="text-caption text-destructive mt-2">{banNotice}</p>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useLayoutEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import DadCard from '@/components/DadCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,35 +12,8 @@ import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { DadListSkeleton } from '@/components/feedback/skeletons/CardSkeletons'
 import { ROUTES } from '@/lib/routes'
-import axiosPrivate from '@/api/axiosPrivate'
-import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT } from '@/config/constants'
-import {
-  ConnectionResponse,
-  ConnectionsFilters,
-  ConnectionsCursor,
-} from '@/types/users'
-
-async function fetchRequests(
-  filters: ConnectionsFilters,
-  cursor?: ConnectionsCursor,
-): Promise<ConnectionResponse[]> {
-  const params = new URLSearchParams()
-  if (filters.name) {
-    params.append('name', filters.name)
-  }
-  if (cursor) {
-    params.append('cursor_id', cursor.cursor_id)
-    params.append('cursor_updated_at', cursor.cursor_updated_at)
-  }
-  const res = await axiosPrivate.get<ConnectionResponse[]>(
-    '/api/connections/requests',
-    {
-      params,
-      timeout: TIMEOUT_LENGTH_MS,
-    },
-  )
-  return res.data
-}
+import { useIncomingRequests } from '@/features/connections/hooks/useIncomingRequests'
+import { ConnectionsFilters } from '@/types/users'
 
 const Requests = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -77,21 +50,7 @@ const Requests = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['connections', 'requests', filters],
-    queryFn: ({ pageParam }) => fetchRequests(filters, pageParam),
-    initialPageParam: undefined as ConnectionsCursor | undefined,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 5, // 5 minutes
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
-      const lastItem = lastPage[lastPage.length - 1]
-      return {
-        cursor_id: lastItem.connection_id,
-        cursor_updated_at: lastItem.connection_updated_at,
-      }
-    },
-  })
+  } = useIncomingRequests(filters)
 
   const requests = useMemo(() => data?.pages.flat() ?? [], [data])
 
@@ -143,7 +102,7 @@ const Requests = () => {
               placeholder="Search requests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10 rounded-full"
+              className="pl-10 pr-10 rounded-md"
               aria-label="Search requests"
             />
             {searchQuery && (
@@ -191,7 +150,7 @@ const Requests = () => {
         <div className="pt-4">
           <Button
             variant="outline"
-            className="w-full rounded-full"
+            className="w-full rounded-md"
             onClick={handleRefresh}
           >
             <RefreshCw className="w-4 h-4 mr-2" />

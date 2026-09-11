@@ -1,8 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Users, Loader2, Plus } from 'lucide-react'
+import { Users, Loader2, Plus, UserPlus } from 'lucide-react'
 import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { ErrorState } from '@/components/feedback/ErrorState'
@@ -10,13 +9,14 @@ import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import axiosPrivate from '@/api/axiosPrivate'
-import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useCommunity } from '../hooks/useCommunity'
 import { useCommunityConversations } from '../hooks/useCommunityConversations'
-import { communityKeys } from '../hooks/communityKeys'
+import { useJoinCommunity, useLeaveCommunity } from '../hooks/useCommunityMembership'
 import { ConversationCard } from '../components/ConversationCard'
 import { ConversationComposer } from '../components/ConversationComposer'
+import { InviteFriendsDialog } from '../components/InviteFriendsDialog'
+import { CommunityPhotoEditor } from '../components/CommunityPhotoEditor'
+import { JoinNudgeProvider } from '../components/JoinNudgeProvider'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { conversationDetail } from '@/lib/routes'
 import type { ConversationSort, ConversationTimeWindow } from '@/types/communities'
@@ -35,11 +35,10 @@ const TIME_WINDOWS: { value: ConversationTimeWindow; label: string }[] = [
   { value: 'all', label: 'All Time' },
 ]
 
-const CommunityDetailPage = () => {
+const CommunityDetailBody = ({ communityId }: { communityId: string | undefined }) => {
   const navigate = useNavigate()
-  const { communityId } = useParams<{ communityId: string }>()
-  const queryClient = useQueryClient()
   const [composerOpen, setComposerOpen] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [activeFilter, setActiveFilter] = useState<ConversationSort>('recent')
   const [timeWindow, setTimeWindow] = useState<ConversationTimeWindow>('all')
 
@@ -69,29 +68,8 @@ const CommunityDetailPage = () => {
     })
   }, [fetchNextConversations])
 
-  const joinMutation = useMutation({
-    mutationFn: () =>
-      axiosPrivate.post(`/api/communities/${communityId}/members`, {}, {
-        timeout: TIMEOUT_LENGTH_MS,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
-      queryClient.invalidateQueries({ queryKey: ['communities'] })
-    },
-    onError: () => toast.error("Couldn't join community"),
-  })
-
-  const leaveMutation = useMutation({
-    mutationFn: () =>
-      axiosPrivate.delete(`/api/communities/${communityId}/members`, {
-        timeout: TIMEOUT_LENGTH_MS,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
-      queryClient.invalidateQueries({ queryKey: ['communities'] })
-    },
-    onError: () => toast.error("Couldn't leave community"),
-  })
+  const joinMutation = useJoinCommunity(communityId!)
+  const leaveMutation = useLeaveCommunity(communityId!)
 
   const handleConversationCreated = (conversationId: string) => {
     setComposerOpen(false)
@@ -125,19 +103,53 @@ const CommunityDetailPage = () => {
       <AppBar title={community.name} leading="back" />
 
       <PageContainer className="space-y-4 animate-fade-in">
+        {/*
+          Invite sits above the card and ahead of the community's own name:
+          it is the one action you take *on behalf of someone else*, so it
+          reads as an aside to the page rather than another membership control
+          competing with Join beneath the description.
+        */}
+        <div className="flex">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-md gap-1.5"
+            onClick={() => setInviteOpen(true)}
+          >
+            <UserPlus aria-hidden className="w-4 h-4" />
+            Invite a friend
+          </Button>
+        </div>
+
+        <InviteFriendsDialog
+          communityId={communityId!}
+          communityName={community.name}
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+        />
+
         {/* Community header card */}
         <div className="bg-card border-2 border-primary/30 rounded-xl p-5 space-y-4 shadow-md">
-          <h2 className="text-xl font-heading font-bold text-foreground">{community.name}</h2>
-          {community.description && (
-            <p className="text-muted-foreground leading-relaxed">{community.description}</p>
-          )}
+          <div className="flex items-start gap-4">
+            <CommunityPhotoEditor
+              communityId={communityId!}
+              imageUrl={community.image_url}
+              canEdit={community.role === 'admin'}
+            />
+            <div className="min-w-0 flex-1 space-y-2">
+              <h2 className="text-xl font-heading font-bold text-foreground">{community.name}</h2>
+              {community.description && (
+                <p className="text-muted-foreground leading-relaxed">{community.description}</p>
+              )}
+            </div>
+          </div>
           <div className="flex items-center gap-3 flex-wrap">
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Users className="w-4 h-4" />
               {community.member_count} members
             </span>
             {community.role && (
-              <Badge variant="soft" className="rounded-full text-caption">
+              <Badge variant="soft" className="rounded-md text-caption">
                 {community.role}
               </Badge>
             )}
@@ -146,7 +158,7 @@ const CommunityDetailPage = () => {
           {community.is_member ? (
             <Button
               variant="outline"
-              className="rounded-full"
+              className="rounded-md"
               onClick={() => leaveMutation.mutate()}
               disabled={leaveMutation.isPending}
             >
@@ -159,7 +171,7 @@ const CommunityDetailPage = () => {
           ) : (
             <Button
               variant="outline"
-              className="rounded-full"
+              className="rounded-md"
               onClick={() => joinMutation.mutate()}
               disabled={joinMutation.isPending}
             >
@@ -180,7 +192,7 @@ const CommunityDetailPage = () => {
             </h2>
             {!composerOpen && (
               <Button
-                className="rounded-full gap-1.5"
+                className="rounded-md gap-1.5"
                 onClick={() => setComposerOpen(true)}
               >
                 <Plus className="w-4 h-4" />
@@ -196,7 +208,7 @@ const CommunityDetailPage = () => {
                 <button
                   key={f.value}
                   onClick={() => setActiveFilter(f.value)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     activeFilter === f.value
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -212,7 +224,7 @@ const CommunityDetailPage = () => {
                   <button
                     key={w.value}
                     onClick={() => setTimeWindow(w.value)}
-                    className={`px-3 py-1 rounded-full text-caption font-medium transition-colors ${
+                    className={`px-3 py-1 rounded-md text-caption font-medium transition-colors ${
                       timeWindow === w.value
                         ? 'bg-foreground text-background'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -266,6 +278,21 @@ const CommunityDetailPage = () => {
         </div>
       </PageContainer>
     </>
+  )
+}
+
+/**
+ * The provider sits above the whole page so that every like, reply and post
+ * inside it — however deep — is counted toward the join prompt, and so the
+ * header's own Join button clears that count through the same context.
+ */
+const CommunityDetailPage = () => {
+  const { communityId } = useParams<{ communityId: string }>()
+
+  return (
+    <JoinNudgeProvider communityId={communityId}>
+      <CommunityDetailBody communityId={communityId} />
+    </JoinNudgeProvider>
   )
 }
 

@@ -11,11 +11,14 @@
  * Route structure:
  * ├── /                       Welcome
  * ├── /setup                  Profile setup
+ * ├── /home                   The cross-community feed
+ * │   └── /home/resume        Only the threads you have a stake in
  * ├── /dads                   Browse dads
  * │   └── /dads/:id           A dad's profile
- * ├── /groups/:tab            Communities | Events, filtered by ?scope=joined|all
- * │   ├── /communities/:id                        Community detail
- * │   │   └── .../conversations/:conversationId   A post
+ * ├── /groups                 Communities, filtered by ?scope=joined|all
+ * │   └── /communities/:id                        Community detail
+ * │       └── .../conversations/:conversationId   A post
+ * ├── /events                 Events, filtered by ?scope=joined|all
  * │   └── /events/:eventId                        Event detail
  * ├── /chats                  Chat list
  * │   ├── /chats/:id          A conversation
@@ -37,16 +40,27 @@ export const ROUTES = {
   VERIFY_EMAIL: '/verify-email',
   SETUP: '/setup',
 
+  // Home — the cross-community feed, first of the primary destinations
+  HOME: '/home',
+  /**
+   * "Get back into it" as a full page.
+   *
+   * A child of /home rather than a sibling so the Home tab stays lit while you
+   * are in it — useNavItems matches on the /home prefix.
+   */
+  HOME_RESUME: '/home/resume',
+
   // Dads
   DADS: '/dads',
   DAD_DETAIL: '/dads/:id',
 
-  // Groups
+  // Groups — the communities themselves; their feed lives on Home
   GROUPS: '/groups',
-  GROUPS_COMMUNITIES: '/groups/communities',
-  GROUPS_EVENTS: '/groups/events',
   COMMUNITY_DETAIL: '/communities/:communityId',
   CONVERSATION_DETAIL: '/communities/:communityId/conversations/:conversationId',
+
+  // Events
+  EVENTS: '/events',
   EVENT_DETAIL: '/events/:eventId',
 
   // Chats
@@ -78,8 +92,6 @@ export const ROUTES = {
 // ============================================
 // Types
 // ============================================
-export type GroupsTab = 'communities' | 'events'
-
 /** Whether a list shows only what you have joined, or everything. */
 export type GroupScope = 'joined' | 'all'
 
@@ -88,8 +100,13 @@ export type GroupScope = 'joined' | 'all'
 // ============================================
 export const dadDetail = (id: string) => `/dads/${id}` as const
 
-export const groupsTab = (tab: GroupsTab, scope?: GroupScope) =>
-  scope ? `/groups/${tab}?scope=${scope}` : `/groups/${tab}`
+/** Communities list, optionally scoped. */
+export const groups = (scope?: GroupScope) =>
+  scope ? `/groups?scope=${scope}` : '/groups'
+
+/** Events list, optionally scoped. */
+export const events = (scope?: GroupScope) =>
+  scope ? `/events?scope=${scope}` : '/events'
 
 export const communityDetail = (communityId: number | string) =>
   `/communities/${communityId}` as const
@@ -112,6 +129,5 @@ export const profileDetail = dadDetail
 // Defaults
 // ============================================
 export const DEFAULTS = {
-  GROUPS_TAB: 'communities' as GroupsTab,
   GROUP_SCOPE: 'joined' as GroupScope,
 }

@@ -1,33 +1,28 @@
 import type { ReactNode } from 'react'
+import { SystemBanners } from './SystemBanners'
 
 /**
- * The app frame.
+ * The app frame, responsive in two modes.
  *
- * A fixed-height flex column with the content area scrolling internally,
- * which is the model Chat.tsx already used. Adopting it everywhere buys three
- * things the old per-page `min-h-screen` + `fixed bottom-0` pattern could not:
+ * One column at every width, with the bottom bar spanning the full screen.
  *
- * - the bottom nav is a flex sibling, so no page needs pb-20 clearance
- * - system banners sit in normal flow instead of covering the header
- * - the desktop frame is just a max-width and a border, with no fixed-position
- *   element escaping it to span the full window
+ * A fixed-height shell with an internally scrolling content area, so the nav
+ * stays put and no page needs clearance padding. System banners sit above
+ * everything — they describe the whole app, not the current page.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="h-dvh bg-app-ambient flex justify-center overflow-hidden">
+    <div className="h-dvh overflow-hidden bg-background flex flex-col">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-1/2 focus:-translate-x-1/2 focus:z-50 focus:rounded-md focus:bg-card focus:px-4 focus:py-2 focus:shadow-md"
       >
         Skip to content
       </a>
-      <div
-        className="
-          relative flex w-full max-w-md flex-col overflow-hidden bg-background
-          md:my-6 md:h-[calc(100dvh-3rem)] md:rounded-lg
-          md:border md:border-foreground/10 md:shadow-lg
-        "
-      >
+
+      <SystemBanners />
+
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {children}
       </div>
     </div>

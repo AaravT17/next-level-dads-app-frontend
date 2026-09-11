@@ -7,8 +7,9 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  :root {
-    /* Next Level Dads Design System - Warm, Modern, Cozy */
+  :root,
+  .classic {
+    /* Classic — the original warm, cozy palette. Default theme. */
     
     /* Base Colors - Soft Neutral Beige from Flyer */
     --background: 35 37% 90%;  /* #EFE8DC soft neutral beige */
@@ -51,14 +52,14 @@ All colors MUST be HSL.
     --ring: 40 60% 57%;
 
     /* Border radius.
-       Was 1rem, which made rounded-lg 16px and rounded-md 12px — so shadcn
-       components came out larger than designed and nobody used the scale
-       (rounded-full appeared 169 times against rounded-lg's 40). At 0.75rem
-       the ladder lands on 8/12/16/24, and the three tiers are:
-         pill    rounded-full  avatars, chips, primary CTAs
+       Deliberately tight. Generous radii plus pill-shaped buttons everywhere
+       is the default look of generated UI; squaring it off reads as more
+       considered. The ladder is 2/4/6/8. Three tiers:
          card    rounded-lg    cards, dialogs, sheets
-         control rounded-md    inputs, secondary buttons, row surfaces */
-    --radius: 0.75rem;
+         control rounded-md    buttons, inputs, chips, row surfaces
+         circle  rounded-full  reserved for things that are actually round —
+                               avatars, count badges, toggles, spinners */
+    --radius: 0.25rem;
 
     /* Gradients */
     --gradient-warm: linear-gradient(135deg, hsl(35 37% 90%) 0%, hsl(35 30% 85%) 100%);
@@ -89,6 +90,119 @@ All colors MUST be HSL.
 
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ── Light ──────────────────────────────────────────────────────────────
+     Neutral and clean. Keeps gold as the brand accent, darkened so it still
+     clears contrast against white surfaces. */
+  .light {
+    --background: 220 20% 97%;
+    --foreground: 222 24% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 24% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 24% 14%;
+
+    /* Deep enough that white reads on it as a button fill (5.2:1) and it reads
+       as accent text on the page background (4.9:1) — one token, both jobs. */
+    --primary: 38 72% 33%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 91%;
+    --secondary-foreground: 222 24% 20%;
+
+    --muted: 220 14% 93%;
+    --muted-foreground: 220 10% 38%;
+
+    --accent: 38 72% 38%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 88%;
+    --input: 220 13% 90%;
+    --ring: 38 72% 33%;
+
+    --soft: 40 40% 94%;
+    --soft-foreground: 35 35% 26%;
+
+    --success: 145 45% 32%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 70% 40%;
+    --warning-foreground: 0 0% 100%;
+
+    --gradient-warm: linear-gradient(135deg, hsl(220 20% 98%) 0%, hsl(220 16% 94%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(38 72% 38%) 0%, hsl(36 70% 30%) 100%);
+    --app-ambient:
+      radial-gradient(50rem 34rem at 50% 0%, hsl(40 55% 55% / 0.10), transparent 65%),
+      linear-gradient(160deg, hsl(220 18% 93%) 0%, hsl(220 14% 88%) 100%);
+
+    --shadow-sm: 0 1px 2px 0 hsl(222 24% 14% / 0.06);
+    --shadow-md: 0 4px 12px -4px hsl(222 24% 14% / 0.10);
+    --shadow-lg: 0 12px 28px -8px hsl(222 24% 14% / 0.14);
+  }
+
+  /* ── Dark ───────────────────────────────────────────────────────────────
+     Cool near-black surfaces with the gold lifted so it reads as an accent
+     rather than a muddy brown. Text on gold flips to dark. */
+  .dark {
+    --background: 225 12% 10%;
+    --foreground: 220 14% 92%;
+
+    --card: 225 12% 14%;
+    --card-foreground: 220 14% 92%;
+
+    --popover: 225 12% 15%;
+    --popover-foreground: 220 14% 92%;
+
+    --primary: 40 65% 58%;
+    --primary-foreground: 225 20% 10%;
+
+    --secondary: 225 10% 24%;
+    --secondary-foreground: 220 14% 92%;
+
+    --muted: 225 10% 22%;
+    --muted-foreground: 220 10% 68%;
+
+    --accent: 40 60% 55%;
+    --accent-foreground: 225 20% 10%;
+
+    --destructive: 0 62% 54%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 225 10% 25%;
+    --input: 225 10% 27%;
+    --ring: 40 65% 58%;
+
+    --soft: 40 24% 22%;
+    --soft-foreground: 40 40% 84%;
+
+    --success: 145 42% 50%;
+    --success-foreground: 225 20% 10%;
+    --warning: 38 70% 58%;
+    --warning-foreground: 225 20% 10%;
+
+    --gradient-warm: linear-gradient(135deg, hsl(225 12% 13%) 0%, hsl(225 12% 9%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(40 65% 58%) 0%, hsl(38 60% 48%) 100%);
+    --app-ambient:
+      radial-gradient(50rem 34rem at 50% 0%, hsl(40 55% 55% / 0.10), transparent 65%),
+      linear-gradient(160deg, hsl(225 12% 12%) 0%, hsl(225 14% 8%) 100%);
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.40);
+    --shadow-md: 0 4px 14px -4px hsl(0 0% 0% / 0.50);
+    --shadow-lg: 0 14px 32px -10px hsl(0 0% 0% / 0.60);
+  }
+
+  /*
+    The wordmark is gold and near-black on transparent, so it disappears on a
+    dark surface. Flattening it to white keeps it legible; a proper dark-theme
+    asset would keep the gold.
+  */
+  .dark .app-logo {
+    filter: brightness(0) invert(1);
   }
 }
 

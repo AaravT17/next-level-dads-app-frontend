@@ -89,7 +89,7 @@ const EventCard = ({
     onSuccess: () => {
       updateAttendanceInCache(false)
     },
-    onError: (err: AxiosError) => {
+    onError: () => {
       toastError('Failed to unregister from event. Please try again.')
     },
   })
@@ -154,7 +154,7 @@ const EventCard = ({
 
           <Button
             variant={is_attending ? 'outline' : 'default'}
-            className="rounded-full"
+            className="rounded-md"
             onClick={(e) => {
               e.stopPropagation()
               if (is_attending) {

@@ -5,9 +5,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
+import { getErrorMessage } from '@/utils/errors'
 import { toastError, toastSuccess } from '@/lib/toast'
-import validator from 'validator'
-import { supabase } from '@/lib/supabase'
+import { isValidEmail } from '@/utils/auth'
+import { supabaseAuth } from '@/lib/supabase'
 
 const ForgotPassword = () => {
   const navigate = useNavigate()
@@ -22,13 +23,13 @@ const ForgotPassword = () => {
       toastError('Missing email', 'Please enter your email address.')
       return
     }
-    if (!validator.isEmail(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(
+      const { error } = await supabaseAuth.resetPasswordForEmail(
         trimmedEmail,
         {
           redirectTo: `${import.meta.env.VITE_FRONTEND_BASE_URL}${ROUTES.RESET_PASSWORD}`,
@@ -38,8 +39,8 @@ const ForgotPassword = () => {
         throw error
       }
       toastSuccess('Reset link sent', 'Please check your email for the password reset link.')
-    } catch (err: any) {
-      toastError(err.message || 'An error occurred while sending the reset link.')
+    } catch (err) {
+      toastError(getErrorMessage(err, 'An error occurred while sending the reset link.'))
     } finally {
       setIsLoading(false)
     }
@@ -54,7 +55,7 @@ const ForgotPassword = () => {
           <img
             src={logo}
             alt="Next Level Dads"
-            className="w-48 h-auto"
+            className="app-logo w-48 h-auto"
           />
         </div>
 
@@ -86,14 +87,14 @@ const ForgotPassword = () => {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-full"
+                  className="rounded-md"
                 />
               </div>
 
               <Button
                 type="submit"
                 size="lg"
-                className="w-full rounded-full font-semibold text-base shadow-md"
+                className="w-full rounded-md font-semibold text-base shadow-md"
                 disabled={isLoading}
               >
                 Send Reset Link

@@ -143,7 +143,7 @@ const Connections = () => {
               placeholder="Search connections..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10 rounded-full"
+              className="pl-10 pr-10 rounded-md"
               aria-label="Search connections"
             />
             {searchQuery && (
@@ -192,7 +192,7 @@ const Connections = () => {
         <div className="pt-4">
           <Button
             variant="outline"
-            className="w-full rounded-full"
+            className="w-full rounded-md"
             onClick={handleRefresh}
           >
             <RefreshCw className="w-4 h-4 mr-2" />

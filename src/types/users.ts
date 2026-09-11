@@ -47,6 +47,8 @@ export interface ConnectionResponse {
   created_at: string
   connection_id: string
   connection_updated_at: string
+  /** Optional message the sender attached to a pending request. */
+  note: string | null
   connection_status: ConnectionStatus
 }
 

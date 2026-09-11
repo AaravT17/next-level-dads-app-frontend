@@ -10,6 +10,7 @@ import { QueryState } from '@/components/feedback/QueryState'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { DadListSkeleton } from '@/components/feedback/skeletons/CardSkeletons'
 import DadCard from '@/components/DadCard'
+import { ConnectionRequestsPanel } from '@/features/connections/components/ConnectionRequestsPanel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,20 +72,35 @@ async function fetchInterests(): Promise<string[]> {
 }
 
 
+/**
+ * A repeatable search parameter as a referentially stable array.
+ *
+ * Serialising first means the identity only changes when that parameter's
+ * values do -- which is what the effects consuming these arrays depend on.
+ */
+function useArrayParam(searchParams: URLSearchParams, key: string): string[] {
+  const serialized = JSON.stringify(searchParams.getAll(key))
+  return useMemo(() => JSON.parse(serialized) as string[], [serialized])
+}
+
 const DadsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
 
-  const getArrayParam = useCallback((key: string) => searchParams.getAll(key), [searchParams])
   const getStringParam = useCallback((key: string) => searchParams.get(key) || '', [searchParams])
 
   const urlDadSearch = getStringParam('dad_name')
   const [dadSearchQuery, setDadSearchQuery] = useState(urlDadSearch)
 
-  const urlChildrenAges = useMemo(() => getArrayParam('children_age_ranges'), [getArrayParam])
-  const urlInterests = useMemo(() => getArrayParam('interests'), [getArrayParam])
-  const urlProvinces = useMemo(() => getArrayParam('provinces'), [getArrayParam])
-  const urlAgeRanges = useMemo(() => getArrayParam('age_ranges'), [getArrayParam])
+  // Keyed on the serialised values of *this* parameter rather than on a getter
+  // closed over searchParams. The getter changed identity whenever any search
+  // param changed, so submitting the name box gave all four filter arrays new
+  // identities, and the sync effect below then wiped in-progress selections out
+  // of the open filter sheet.
+  const urlChildrenAges = useArrayParam(searchParams, 'children_age_ranges')
+  const urlInterests = useArrayParam(searchParams, 'interests')
+  const urlProvinces = useArrayParam(searchParams, 'provinces')
+  const urlAgeRanges = useArrayParam(searchParams, 'age_ranges')
 
   const [pendingChildrenAges, setPendingChildrenAges] = useState<string[]>(urlChildrenAges)
   const [pendingInterests, setPendingInterests] = useState<string[]>(urlInterests)
@@ -249,16 +265,25 @@ const DadsPage = () => {
   const handleRefreshDads = () => {
     queryClient.removeQueries({ queryKey: ['dads'] })
     queryClient.removeQueries({ queryKey: ['profile'] })
+    // The requests panel sits on this page too, so Refresh has to mean it.
+    queryClient.removeQueries({ queryKey: ['connections', 'requests'] })
   }
 
   return (
     <>
-      <AppBar title="Dads" />
+      <AppBar title="Dads" width="wide" />
 
-      <PageContainer className="animate-fade-in">
+      <PageContainer width="wide" className="animate-fade-in">
   <div className="space-y-4 animate-fade-in">
+    {/*
+      Requests first: they are addressed to you, and browsing is what you do
+      when nothing is waiting. The panel removes itself when the list is empty.
+    */}
+    <ConnectionRequestsPanel />
+
+    <div className="mb-4 flex items-center gap-3">
     <form
-      className="relative mb-4"
+      className="relative flex-1 sm:max-w-md"
       onSubmit={(e) => {
         e.preventDefault()
         handleDadSearch()
@@ -269,7 +294,7 @@ const DadsPage = () => {
         placeholder="Search dads..."
         value={dadSearchQuery}
         onChange={(e) => setDadSearchQuery(e.target.value)}
-        className="pl-10 pr-10 rounded-full"
+        className="pl-10 pr-10 rounded-md"
       />
       {dadSearchQuery && (
         <button
@@ -282,7 +307,7 @@ const DadsPage = () => {
       )}
     </form>
 
-    <div className="flex justify-end mb-4">
+    <div className="shrink-0">
       <Sheet
         open={filtersOpen}
         onOpenChange={handleFiltersOpenChange}
@@ -290,7 +315,7 @@ const DadsPage = () => {
         <SheetTrigger asChild>
           <Button
             variant="outline"
-            className="rounded-full"
+            className="rounded-md"
           >
             <SlidersHorizontal className="w-4 h-4 mr-2" />
             Filters
@@ -324,7 +349,7 @@ const DadsPage = () => {
                         ? 'default'
                         : 'outline'
                     }
-                    className="cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-md"
                     onClick={() =>
                       togglePendingChildrenAge(stage.value)
                     }
@@ -350,7 +375,7 @@ const DadsPage = () => {
                     <Badge
                       key={interest}
                       variant="default"
-                      className="cursor-pointer rounded-full"
+                      className="cursor-pointer rounded-md"
                       onClick={() => togglePendingInterest(interest)}
                     >
                       {interest} ✕
@@ -429,7 +454,7 @@ const DadsPage = () => {
                         ? 'default'
                         : 'outline'
                     }
-                    className="cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-md"
                     onClick={() =>
                       togglePendingLocation(province.value)
                     }
@@ -456,7 +481,7 @@ const DadsPage = () => {
                         ? 'default'
                         : 'outline'
                     }
-                    className="cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-md"
                     onClick={() => togglePendingDadAge(range)}
                   >
                     {range}
@@ -483,6 +508,7 @@ const DadsPage = () => {
           </div>
         </SheetContent>
       </Sheet>
+    </div>
     </div>
 
     <div className="space-y-4">
@@ -515,7 +541,7 @@ const DadsPage = () => {
         }
       >
         {(items) => (
-          <ul role="list" className="space-y-4">
+          <ul role="list" className="grid gap-4 sm:grid-cols-2">
             {items.map((profile) => (
               <li key={profile.id}>
                 <DadCard {...profile} />
@@ -533,10 +559,10 @@ const DadsPage = () => {
       />
     </div>
 
-    <div className="pt-4">
+    <div className="pt-4 flex justify-center">
       <Button
         variant="outline"
-        className="w-full rounded-full"
+        className="w-full sm:w-auto sm:px-8 rounded-md"
         onClick={handleRefreshDads}
       >
         <RefreshCw className="w-4 h-4 mr-2" />

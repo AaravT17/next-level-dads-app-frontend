@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/r
 import { AxiosError } from 'axios'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatEventDate, formatEventTime, formatPrice } from '@/utils/format'
+import { formatEventDate, formatEventTime, formatPrice, mailtoHref, telHref } from '@/utils/format'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Calendar,
@@ -142,7 +142,7 @@ const EventDetail = () => {
     onSuccess: () => {
       updateAttendanceInCache(false)
     },
-    onError: (err: AxiosError) => {
+    onError: () => {
       toastError('Failed to unregister from event. Please try again.')
     },
   })
@@ -262,7 +262,7 @@ const EventDetail = () => {
                       <div className="pt-1 space-y-1">
                         {event.contact_email && (
                           <a
-                            href={`mailto:${event.contact_email}`}
+                            href={mailtoHref(event.contact_email)}
                             className="flex items-center gap-2 text-caption text-muted-foreground hover:text-primary transition-colors"
                           >
                             <Mail className="w-3.5 h-3.5" />
@@ -271,7 +271,7 @@ const EventDetail = () => {
                         )}
                         {event.contact_phone && (
                           <a
-                            href={`tel:${event.contact_phone}`}
+                            href={telHref(event.contact_phone)}
                             className="flex items-center gap-2 text-caption text-muted-foreground hover:text-primary transition-colors"
                           >
                             <Phone className="w-3.5 h-3.5" />
@@ -310,7 +310,7 @@ const EventDetail = () => {
 
             {/* Action Button */}
             <Button
-              className="w-full rounded-full"
+              className="w-full rounded-md"
               variant={event.is_attending ? 'outline' : 'default'}
               size="lg"
               onClick={event.is_attending ? handleUnregister : handleRegister}

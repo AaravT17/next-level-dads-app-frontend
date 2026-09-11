@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useAuth } from '@/contexts/AuthContext'
+import { ThemePicker } from '@/components/settings/ThemePicker'
 import { toastError } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -99,6 +100,11 @@ const SettingsPage = () => {
 
       <PageContainer className="space-y-8 animate-fade-in">
         <section className="space-y-3">
+          <h2 className="font-heading text-subhead text-foreground">Appearance</h2>
+          <ThemePicker />
+        </section>
+
+        <section className="space-y-3">
           <h2 className="font-heading text-subhead text-foreground">Email</h2>
           <div className="flex items-center justify-between gap-4 rounded-lg bg-card p-4 shadow-sm">
             <label htmlFor="marketing-toggle" className="flex-1 text-body text-muted-foreground">
@@ -134,13 +140,13 @@ const SettingsPage = () => {
 
         <section className="space-y-3">
           <h2 className="font-heading text-subhead text-foreground">Account</h2>
-          <Button variant="outline" className="w-full rounded-full" onClick={handleLogout}>
+          <Button variant="outline" className="w-full rounded-md" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-2" />
             Log out
           </Button>
           <Button
             variant="outline"
-            className="w-full rounded-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            className="w-full rounded-md border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
             onClick={() => setShowDeleteDialog(true)}
           >
             <Trash2 className="w-4 h-4 mr-2" />

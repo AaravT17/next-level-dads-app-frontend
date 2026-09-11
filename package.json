@@ -9,7 +9,9 @@
     "typecheck": "tsc -b",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -24,7 +26,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tooltip": "^1.2.7",
-    "@supabase/supabase-js": "^2.96.0",
+    "@supabase/auth-js": "^2.96.0",
     "@tanstack/react-query": "^5.83.0",
     "axios": "^1.13.5",
     "class-variance-authority": "^0.7.1",
@@ -61,6 +63,20 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^7.2.4"
-  }
+    "vite": "^7.2.4",
+    "vitest": "^5.0.0"
+  },
+  "description": "**URL**: https://lovable.dev/projects/a73315ec-1845-474f-af57-f8c6363012dd",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AaravT17/next-level-dads-app-frontend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AaravT17/next-level-dads-app-frontend/issues"
+  },
+  "homepage": "https://github.com/AaravT17/next-level-dads-app-frontend#readme"
 }

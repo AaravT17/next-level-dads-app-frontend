@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { Mail } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
-import { supabase } from '@/lib/supabase'
+import { supabaseAuth } from '@/lib/supabase'
 import { toastError } from '@/lib/toast'
 import { useEffect, useState } from 'react'
 import axiosPublic from '@/api/axiosPublic'
 import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
+import { isHttpStatus } from '@/utils/errors'
 import { useAuth } from '../contexts/AuthContext'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 
@@ -76,8 +77,8 @@ const Welcome = () => {
           accessToken,
         })
         navigate(ROUTES.HOME_AFTER_AUTH)
-      } catch (err: any) {
-        if (err.response?.status === 404) {
+      } catch (err) {
+        if (isHttpStatus(err, 404)) {
           // no profile yet — commit token so SetupRoute allows access
           setAuth({ user: null, accessToken })
           navigate(ROUTES.SETUP)
@@ -98,7 +99,7 @@ const Welcome = () => {
 
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabaseAuth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${import.meta.env.VITE_FRONTEND_BASE_URL}`,
@@ -107,7 +108,7 @@ const Welcome = () => {
       if (error) {
         throw error
       }
-    } catch (err) {
+    } catch {
       toastError('Sign in failed', 'An error occurred while signing in with Google.')
     } finally {
       setIsLoading(false)
@@ -123,7 +124,7 @@ const Welcome = () => {
           <img
             src={logo}
             alt="Next Level Dads"
-            className="w-[95%] h-auto"
+            className="app-logo w-[95%] h-auto"
           />
         </div>
 
@@ -140,7 +141,7 @@ const Welcome = () => {
         <div className="pt-6 space-y-3">
           <Button
             size="lg"
-            className="w-full rounded-full font-semibold text-base bg-accent text-white hover:shadow-lg transition-shadow"
+            className="w-full rounded-md font-semibold text-base bg-accent text-white hover:shadow-lg transition-shadow"
             onClick={() => navigate(ROUTES.LOGIN)}
             disabled={isLoading}
           >
@@ -150,7 +151,7 @@ const Welcome = () => {
 
           <Button
             size="lg"
-            className="w-full rounded-full font-semibold text-base bg-white hover:bg-white text-black border border-gray-300 hover:shadow-lg transition-shadow"
+            className="w-full rounded-md font-semibold text-base bg-white hover:bg-white text-black border border-gray-300 hover:shadow-lg transition-shadow"
             onClick={handleGoogleOAuth}
             disabled={isLoading}
           >

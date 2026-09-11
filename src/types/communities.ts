@@ -90,11 +90,20 @@ export interface Community {
   id: string
   name: string
   description: string | null
+  image_url: string | null
   member_count: number
   created_by: string | null
   created_at: string
   is_member: boolean
   role: CommunityRole
+}
+
+export interface CommunityInviteRequest {
+  recipient_ids: string[]
+}
+
+export interface CommunityInviteResponse {
+  invited_count: number
 }
 
 export interface DiscoverCommunitiesFilters {

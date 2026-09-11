@@ -207,7 +207,7 @@ export function MessageRepliesSection({
               type="submit"
               size="sm"
               disabled={createReply.isPending || isBanned}
-              className="flex-1 rounded-full"
+              className="flex-1 rounded-md"
             >
               {createReply.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin" />

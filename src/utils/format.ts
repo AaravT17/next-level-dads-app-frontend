@@ -20,6 +20,12 @@ export function initials(name: string | null | undefined): string {
   return letters || '?'
 }
 
+/** Just the given name: "Marcus Lee" -> "Marcus". Falls back to the whole string. */
+export function firstName(name: string | null | undefined): string {
+  if (!name) return ''
+  return name.trim().split(/\s+/)[0] || ''
+}
+
 /** Clock time only: "3:45 PM". For items already grouped under a known day. */
 export function formatClock(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -79,4 +85,36 @@ export function formatPrice(price: string): string {
   const value = Number(price)
   if (value === 0) return 'Free'
   return `$${value.toFixed(2)}`
+}
+
+/**
+ * `mailto:` / `tel:` hrefs built from API-supplied contact details.
+ *
+ * The values are typed by whoever submitted the event, not validated, and land
+ * straight in an href, so a value containing `?subject=`, `&bcc=`, a comma or a
+ * newline could otherwise add mail headers or extra recipients when the link
+ * opens.
+ *
+ * Only the characters that can do that are escaped. `encodeURIComponent` would
+ * also percent-encode `@`, and while RFC 6068 permits that, not every mail
+ * handler decodes it before parsing the address — so the safe-looking choice
+ * risks breaking ordinary addresses for no extra protection. `%` is in the set
+ * so an address containing one cannot smuggle an escape of its own; the single
+ * pass never re-reads what it emits.
+ */
+const MAILTO_UNSAFE = /[%?&#,;<>"\s]/g
+
+export function mailtoHref(email: string): string {
+  const encoded = email.replace(
+    MAILTO_UNSAFE,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`,
+  )
+  return `mailto:${encoded}`
+}
+
+/** Keeps only the characters a dial string can contain. */
+export function telHref(phone: string): string {
+  // A literal space, not \s: \s admits newlines and tabs, which have no place
+  // in a dial string.
+  return `tel:${phone.replace(/[^0-9+()\-.#* ]/g, '')}`
 }

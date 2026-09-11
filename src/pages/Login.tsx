@@ -10,8 +10,9 @@ import axiosPublic from '@/api/axiosPublic'
 import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useAuth } from '../contexts/AuthContext'
-import validator from 'validator'
+import { isValidEmail } from '@/utils/auth'
 import { toastError, toastSuccess } from '@/lib/toast'
+import { getErrorMessage, isHttpStatus } from '@/utils/errors'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -29,7 +30,7 @@ const Login = () => {
       toastError('Missing fields', 'Please fill in all fields.')
       return
     }
-    if (!validator.isEmail(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
@@ -73,16 +74,18 @@ const Login = () => {
       })
       toastSuccess('Login successful', 'Welcome back!')
       navigate(ROUTES.HOME_AFTER_AUTH)
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err) {
+      if (isHttpStatus(err, 404)) {
         // user exists but profile not set up — commit token so SetupRoute allows access
         setAuth({ user: null, accessToken })
         navigate(ROUTES.SETUP)
         return
       }
       setAccessToken(null)
-      toastError('Login failed', err.response?.data?.detail ||
-          'An error occurred while logging in. Please try again.')
+      toastError(
+        'Login failed',
+        getErrorMessage(err, 'An error occurred while logging in. Please try again.'),
+      )
     } finally {
       setIsLoading(false)
     }
@@ -97,7 +100,7 @@ const Login = () => {
           <img
             src={logo}
             alt="Next Level Dads"
-            className="w-48 h-auto"
+            className="app-logo w-48 h-auto"
           />
         </div>
 
@@ -124,7 +127,7 @@ const Login = () => {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-full"
+                  className="rounded-md"
                 />
               </div>
 
@@ -142,7 +145,7 @@ const Login = () => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -172,7 +175,7 @@ const Login = () => {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full rounded-full font-semibold text-base shadow-md"
+                className="w-full rounded-md font-semibold text-base shadow-md"
                 disabled={isLoading}
               >
                 Login

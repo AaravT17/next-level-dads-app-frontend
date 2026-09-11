@@ -1,31 +1,34 @@
+import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AppShell } from './AppShell'
-import { SystemBanners } from './SystemBanners'
 import { BottomNav } from './BottomNav'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
-
-export type AppLayoutProps = {
-  /**
-   * 'tabs'      — standard screens, with primary navigation.
-   * 'immersive' — full-height screens that own their chrome (Chat, ChatManage).
-   */
-  variant?: 'tabs' | 'immersive'
-}
 
 /**
  * Route-level layout. Replaces the header + pb-20 + <BottomNav /> triplet that
  * each of 14 pages assembled by hand.
+ *
+ * Every screen keeps the bottom bar, including an open chat thread: hiding it
+ * there left the thread with its own back button as the single way out, which
+ * strands anyone who arrives from a notification or a deep link.
  */
-export function AppLayout({ variant = 'tabs' }: AppLayoutProps) {
+export function AppLayout() {
   const { pathname } = useLocation()
 
   return (
     <AppShell>
-      <SystemBanners />
       <ErrorBoundary resetKey={pathname}>
-        <Outlet />
+        {/*
+          Routes are code-split, so navigating to one not yet downloaded
+          suspends. Keeping the boundary here rather than around <Routes> means
+          the shell and bottom nav stay put and only the pane swaps.
+        */}
+        <Suspense fallback={<CenteredSpinner />}>
+          <Outlet />
+        </Suspense>
       </ErrorBoundary>
-      {variant === 'tabs' ? <BottomNav /> : null}
+      <BottomNav />
     </AppShell>
   )
 }

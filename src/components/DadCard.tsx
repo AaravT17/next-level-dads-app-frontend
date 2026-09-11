@@ -1,4 +1,6 @@
-import { MapPin } from 'lucide-react'
+import { useState } from 'react'
+import { MapPin, MessageCircle, UserMinus, UserPlus, Check, X, Clock } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   useMutation,
@@ -7,8 +9,12 @@ import {
 } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import { Button } from './ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
+import { cn } from '@/lib/utils'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
+import { ConnectionNote } from '@/features/connections/components/ConnectionNote'
+import { ConnectRequestDialog } from '@/features/connections/components/ConnectRequestDialog'
 import { getStageDisplayLabel } from '@/utils/users'
 import { initials } from '@/utils/format'
 import { profileDetail, chat } from '@/lib/routes'
@@ -23,6 +29,17 @@ type ListContext = 'dads' | 'connections' | 'requests'
 interface DadCardProps extends Profile {
   connection_id?: string
   connection_updated_at?: string
+  /** Message attached to a pending request; only requests carry one. */
+  note?: string | null
+  /** Clamp a long note — the Dads panel sits above the browse grid. */
+  clampNote?: boolean
+  /**
+   * Which list this card belongs to, when the URL does not say.
+   *
+   * The Dads screen shows incoming requests above the browse grid, so the
+   * pathname alone can no longer tell the two apart on that page.
+   */
+  listContext?: ListContext
 }
 
 const DadCard = ({
@@ -36,10 +53,14 @@ const DadCard = ({
   interests,
   avatar_url,
   connection_status,
+  note,
+  clampNote = false,
+  listContext: listContextProp,
 }: DadCardProps) => {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
 
   /**
    * Which list this card sits in.
@@ -49,6 +70,7 @@ const DadCard = ({
    * button changed. The three lists mean different things.
    */
   const getListContext = (): ListContext => {
+    if (listContextProp) return listContextProp
     const { pathname } = location
     if (pathname.startsWith('/you/connections')) return 'connections'
     if (pathname.startsWith('/you/requests')) return 'requests'
@@ -134,21 +156,33 @@ const DadCard = ({
 
   // POST /api/connections/{id} - Send connection request
   const sendConnectionRequest = useMutation({
-    mutationFn: () =>
+    mutationFn: (note: string | null) =>
       axiosPrivate.post<{ connection_status: ConnectionStatus }>(
         `/api/connections/${id}`,
+        // Omit the body entirely when there is no note.
+        note ? { note } : undefined,
       ),
     onSuccess: (res) => {
+      setIsNoteDialogOpen(false)
       updateStatusInCache(res.data.connection_status)
     },
-    onError: (err: AxiosError<{ connection_status: ConnectionStatus }>) => {
+    onError: (err: AxiosError<{ connection_status: ConnectionStatus; detail?: string }>) => {
       if (
         err.response?.status === 409 &&
         err.response.data?.connection_status
       ) {
+        setIsNoteDialogOpen(false)
         updateStatusInCache(err.response.data.connection_status)
       } else if (err.response?.status === 429) {
         toastError('Connection request limit reached. Please try again later.')
+      } else if (err.response?.status === 400 || err.response?.status === 403) {
+        // The note was rejected. Leave the dialog open so it can be edited
+        // rather than retyped.
+        toastError(
+          typeof err.response.data?.detail === 'string'
+            ? err.response.data.detail
+            : 'Your note could not be sent. Please revise it and try again.',
+        )
       } else {
         toastError('Failed to send connection request. Please try again.')
       }
@@ -206,7 +240,7 @@ const DadCard = ({
   })
 
   const handleConnect = () => {
-    sendConnectionRequest.mutate()
+    setIsNoteDialogOpen(true)
   }
 
   const handleCancelRequest = () => {
@@ -256,95 +290,121 @@ const DadCard = ({
     removeConnection.isPending ||
     createChat.isPending
 
+  /**
+   * Round icon actions, pinned to the card's top-right.
+   *
+   * These stay circular against the otherwise squared-off system on purpose:
+   * a circle here is a *shape*, not a rounded rectangle pretending to be one,
+   * which is the same reason avatars and count badges kept their radius.
+   *
+   * Icon-only, so every one carries a label and a tooltip — the meaning of
+   * "unconnect" or "ignore" is not obvious from a glyph alone.
+   */
+  const IconAction = ({
+    label,
+    icon: Icon,
+    onClick,
+    variant = 'default',
+    disabled,
+  }: {
+    label: string
+    icon: LucideIcon
+    onClick: () => void
+    variant?: 'default' | 'outline' | 'muted'
+    disabled?: boolean
+  }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          size="icon"
+          variant={variant === 'outline' ? 'outline' : 'default'}
+          aria-label={label}
+          disabled={disabled}
+          className={cn(
+            // 44px — the standard touch-target size, and enough presence for
+            // Connect to read as the primary action on the browse screen.
+            'h-11 w-11 rounded-full shrink-0',
+            variant === 'muted' && 'bg-muted text-muted-foreground hover:bg-muted',
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClick()
+          }}
+        >
+          <Icon className="w-5 h-5" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
+
   const renderButtons = () => {
     if (connection_status === 'blocked') return null
 
     if (connection_status === 'connected') {
       return (
-        <div className="flex gap-2">
-          <Button
-            className="flex-1 rounded-full font-semibold"
-            onClick={(e) => {
-              e.stopPropagation()
-              handleChat()
-            }}
-          >
-            Chat
-          </Button>
-          <Button
-            className="flex-1 rounded-full font-semibold"
+        <div className="flex shrink-0 items-center gap-2">
+          <IconAction label="Message" icon={MessageCircle} onClick={handleChat} />
+          <IconAction
+            label="Remove connection"
+            icon={UserMinus}
             variant="outline"
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleUnconnect()
-            }}
-          >
-            Unconnect
-          </Button>
+            onClick={handleUnconnect}
+          />
         </div>
       )
     }
 
     if (connection_status === 'pending_incoming') {
       return (
-        <div className="flex gap-2">
-          <Button
-            className="flex-1 rounded-full font-semibold"
+        <div className="flex shrink-0 items-center gap-2">
+          <IconAction
+            label="Accept request"
+            icon={Check}
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleAccept()
-            }}
-          >
-            Accept
-          </Button>
-          <Button
-            className="flex-1 rounded-full font-semibold"
+            onClick={handleAccept}
+          />
+          <IconAction
+            label="Ignore request"
+            icon={X}
             variant="outline"
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleIgnore()
-            }}
-          >
-            Ignore
-          </Button>
+            onClick={handleIgnore}
+          />
         </div>
       )
     }
 
     if (connection_status === 'pending_outgoing') {
       return (
-        <Button
-          className="w-full rounded-full font-semibold bg-muted text-muted-foreground hover:bg-muted"
-          disabled={isLoading}
-          onClick={(e) => {
-            e.stopPropagation()
-            handleCancelRequest()
-          }}
-        >
-          Requested
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <IconAction
+            label="Cancel request"
+            icon={Clock}
+            variant="muted"
+            disabled={isLoading}
+            onClick={handleCancelRequest}
+          />
+        </div>
       )
     }
 
     // connection_status === null
     return (
-      <Button
-        className="w-full rounded-full font-semibold"
-        disabled={isLoading}
-        onClick={(e) => {
-          e.stopPropagation()
-          handleConnect()
-        }}
-      >
-        Connect
-      </Button>
+      <div className="flex shrink-0 items-center gap-2">
+        <IconAction
+          label={`Connect with ${name}`}
+          icon={UserPlus}
+          disabled={isLoading}
+          onClick={handleConnect}
+        />
+      </div>
     )
   }
 
   return (
+    <>
     <Card
       className="overflow-hidden shadow-md cursor-pointer"
       onClick={handleCardClick}
@@ -364,7 +424,7 @@ const DadCard = ({
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-subhead font-heading font-semibold text-foreground">
+            <h3 className="text-subhead font-heading font-semibold text-foreground truncate">
               {name}, {age ?? '—'}
             </h3>
             <div className="flex items-center gap-1 text-caption text-muted-foreground mt-0.5">
@@ -378,32 +438,49 @@ const DadCard = ({
                 <Badge
                   key={child}
                   variant="soft"
-                  className="rounded-full text-caption"
+                  className="rounded-md text-caption"
                 >
                   {getStageDisplayLabel(child)}
                 </Badge>
               ))}
             </div>
           </div>
+
+          {renderButtons()}
         </div>
 
         <p className="text-foreground text-body leading-relaxed">{about}</p>
+
+        {note && <ConnectionNote note={note} clamp={clampNote} />}
 
         <div className="flex flex-wrap gap-1.5">
           {interests.map((interest) => (
             <Badge
               key={interest}
               variant="interest"
-              className="rounded-full text-caption"
+              className="rounded-md text-caption"
             >
               {interest}
             </Badge>
           ))}
         </div>
-
-        {renderButtons()}
       </CardContent>
     </Card>
+
+    {/*
+      A sibling of Card, never a child. React synthetic events bubble through
+      the React tree rather than the DOM tree, so a dialog rendered inside
+      Card still fires Card's click-to-navigate handler even though Radix
+      portals it to <body> — closing the dialog would open the profile.
+    */}
+    <ConnectRequestDialog
+      open={isNoteDialogOpen}
+      onOpenChange={setIsNoteDialogOpen}
+      recipientName={name}
+      isSending={sendConnectionRequest.isPending}
+      onSend={(note) => sendConnectionRequest.mutate(note)}
+    />
+    </>
   )
 }
 

@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'sonner'
-import { Loader2, MessageCircle } from 'lucide-react'
+import { ChevronRight, Loader2, MessageCircle, Users } from 'lucide-react'
 import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { ErrorState } from '@/components/feedback/ErrorState'
@@ -25,18 +25,22 @@ import { ParticipantList } from '../components/ParticipantList'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { DeleteContentButton } from '../components/DeleteContentButton'
 import { useAuth } from '@/contexts/AuthContext'
-import { profileDetail } from '@/lib/routes'
+import { communityDetail, profileDetail } from '@/lib/routes'
 import { initials } from '@/utils/format'
+import { useCommunity } from '../hooks/useCommunity'
+import { JoinNudgeProvider } from '../components/JoinNudgeProvider'
 
 interface ReplyFormValues {
   body: string
 }
 
-const ConversationDetailPage = () => {
-  const { communityId, conversationId } = useParams<{
-    communityId: string
-    conversationId: string
-  }>()
+type BodyProps = {
+  communityId: string | undefined
+  conversationId: string | undefined
+}
+
+const ConversationDetailBody = ({ communityId, conversationId }: BodyProps) => {
+  const { data: community } = useCommunity(communityId)
   const [replyOpen, setReplyOpen] = useState(false)
   const { user } = useAuth()
 
@@ -133,6 +137,27 @@ const ConversationDetailPage = () => {
       <AppBar title="Community post" leading="back" />
 
       <PageContainer className="space-y-6 animate-fade-in">
+        {/*
+          Attribution, not navigation back — the AppBar already owns "back".
+          Arriving from the feed this is the only route to the community.
+        */}
+        {communityId && (
+          <div className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5">
+            <Users aria-hidden className="w-4 h-4 shrink-0 text-muted-foreground" />
+            <span className="text-label text-muted-foreground">Posted in</span>
+            <Link
+              to={communityDetail(communityId)}
+              className="group inline-flex min-w-0 items-center gap-1 text-label font-semibold text-primary hover:underline"
+            >
+              <span className="truncate">{community?.name ?? 'this community'}</span>
+              <ChevronRight
+                aria-hidden
+                className="w-4 h-4 shrink-0 transition-transform duration-fast group-hover:translate-x-0.5"
+              />
+            </Link>
+          </div>
+        )}
+
         {/* Original conversation post */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           {author && (
@@ -158,7 +183,7 @@ const ConversationDetailPage = () => {
                 {author.name}
               </Link>
               {conversation.prompt_type && (
-                <span className="ml-auto text-caption text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                <span className="ml-auto text-caption text-muted-foreground bg-muted px-2.5 py-1 rounded-md">
                   {conversation.prompt_type}
                 </span>
               )}
@@ -225,7 +250,7 @@ const ConversationDetailPage = () => {
             </h3>
             {!conversation.is_deleted && !replyOpen && (
               <Button
-                className="rounded-full px-12"
+                className="rounded-md px-12"
                 onClick={() => setReplyOpen(true)}
               >
                 Reply
@@ -262,7 +287,7 @@ const ConversationDetailPage = () => {
                 <Button
                   type="submit"
                   disabled={createMessage.isPending || isBanned}
-                  className="flex-1 rounded-full"
+                  className="flex-1 rounded-md"
                 >
                   {createMessage.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -309,6 +334,26 @@ const ConversationDetailPage = () => {
         </div>
       </PageContainer>
     </>
+  )
+}
+
+/**
+ * Replies and likes on this page belong to the community the post sits in, so
+ * the join prompt is scoped here just as it is on the community page itself.
+ */
+const ConversationDetailPage = () => {
+  const { communityId, conversationId } = useParams<{
+    communityId: string
+    conversationId: string
+  }>()
+
+  return (
+    <JoinNudgeProvider communityId={communityId}>
+      <ConversationDetailBody
+        communityId={communityId}
+        conversationId={conversationId}
+      />
+    </JoinNudgeProvider>
   )
 }
 

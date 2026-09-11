@@ -33,6 +33,21 @@ export interface ReplyTo {
   is_deleted: boolean
 }
 
+/**
+ * The community attached to an invite message.
+ *
+ * Present only on messages sent from a community's "Invite a friend" flow, and
+ * withheld once the message is deleted — the card links onward, so it should
+ * not outlive the message carrying it.
+ */
+export interface SharedCommunity {
+  id: string
+  name: string
+  description: string | null
+  image_url: string | null
+  member_count: number
+}
+
 export interface Message {
   id: string
   chat_id: string
@@ -44,6 +59,7 @@ export interface Message {
   is_deleted: boolean
   created_at: string
   reply_to: ReplyTo | null
+  shared_community: SharedCommunity | null
 }
 
 export interface ChatParticipant {

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import axios from 'axios'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
@@ -128,7 +127,7 @@ export function ConversationComposer({
             <Button
               type="submit"
               disabled={isPending || isBanned}
-              className="flex-1 rounded-full"
+              className="flex-1 rounded-md"
             >
               {isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

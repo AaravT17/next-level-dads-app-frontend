@@ -29,6 +29,7 @@ import {
 import axiosPrivate from '@/api/axiosPrivate'
 import { useAuth } from '@/contexts/AuthContext'
 import { toastError } from '@/lib/toast'
+import { getErrorMessage } from '@/utils/errors'
 
 const ProfileSetup = () => {
   const navigate = useNavigate()
@@ -208,9 +209,11 @@ const ProfileSetup = () => {
         accessToken,
       })
       navigate(ROUTES.HOME_AFTER_AUTH)
-    } catch (err: any) {
-      toastError('Profile creation failed', err.response?.data?.detail ||
-          'Failed to create profile. Please try again.')
+    } catch (err) {
+      toastError(
+        'Profile creation failed',
+        getErrorMessage(err, 'Failed to create profile. Please try again.'),
+      )
     } finally {
       setLoading(false)
     }
@@ -402,7 +405,7 @@ const ProfileSetup = () => {
                           ? 'default'
                           : 'soft'
                       }
-                      className="cursor-pointer rounded-full"
+                      className="cursor-pointer rounded-md"
                       onClick={() => toggleStage(stage.value)}
                     >
                       {stage.label}
@@ -432,7 +435,7 @@ const ProfileSetup = () => {
                   variant={
                     formData.interests.includes(interest) ? 'default' : 'soft'
                   }
-                  className="cursor-pointer rounded-full"
+                  className="cursor-pointer rounded-md"
                   onClick={() => toggleInterest(interest)}
                 >
                   {interest}
@@ -444,7 +447,7 @@ const ProfileSetup = () => {
                   <Badge
                     key={interest}
                     variant="default"
-                    className="cursor-pointer rounded-full bg-gradient-gold"
+                    className="cursor-pointer rounded-md bg-gradient-gold"
                     onClick={() => toggleInterest(interest)}
                   >
                     {interest}
@@ -453,7 +456,7 @@ const ProfileSetup = () => {
               {!showCustomInput ? (
                 <Badge
                   variant="outline"
-                  className="cursor-pointer rounded-full"
+                  className="cursor-pointer rounded-md"
                   onClick={() => {
                     if (loading) return
                     setShowCustomInput(true)
@@ -477,7 +480,7 @@ const ProfileSetup = () => {
                   <Button
                     size="sm"
                     onClick={handleAddCustomInterest}
-                    className="rounded-full"
+                    className="rounded-md"
                     disabled={
                       loading ||
                       !customInterest.trim() ||
@@ -527,7 +530,7 @@ const ProfileSetup = () => {
               />
               <Button
                 variant="outline"
-                className="rounded-full"
+                className="rounded-md"
                 onClick={() =>
                   document.getElementById('avatar-upload')?.click()
                 }
@@ -637,7 +640,7 @@ const ProfileSetup = () => {
 
         <Button
           size="lg"
-          className="w-full rounded-full bg-gradient-gold font-semibold"
+          className="w-full rounded-md bg-gradient-gold font-semibold"
           onClick={step < totalSteps ? handleNext : handleSubmit}
           disabled={loading}
         >

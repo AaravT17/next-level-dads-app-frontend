@@ -3,6 +3,7 @@ import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type {
   AnyConversationsCursor,
   Community,
+  CommunityInviteResponse,
   Conversation,
   ConversationCreate,
   ConversationMessage,
@@ -50,6 +51,35 @@ export const communitiesApi = {
       .get<Conversation[]>(`/api/communities/${communityId}/conversations`, { params, ...t })
       .then((r) => r.data)
   },
+
+  joinCommunity: (communityId: string) =>
+    axiosPrivate.post(`/api/communities/${communityId}/members`, {}, t),
+
+  leaveCommunity: (communityId: string) =>
+    axiosPrivate.delete(`/api/communities/${communityId}/members`, t),
+
+  updateCommunityImage: (communityId: string, file: File) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    return axiosPrivate
+      .put<{ image_url: string }>(`/api/communities/${communityId}/image`, formData, {
+        ...t,
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data)
+  },
+
+  deleteCommunityImage: (communityId: string) =>
+    axiosPrivate.delete(`/api/communities/${communityId}/image`, t),
+
+  inviteToCommunity: (communityId: string, recipientIds: string[]) =>
+    axiosPrivate
+      .post<CommunityInviteResponse>(
+        `/api/communities/${communityId}/invites`,
+        { recipient_ids: recipientIds },
+        t,
+      )
+      .then((r) => r.data),
 
   createConversation: (communityId: string, payload: ConversationCreate) =>
     axiosPrivate

@@ -7,9 +7,10 @@ import { Eye, EyeOff } from 'lucide-react'
 import logo from '@/assets/logo.png'
 import { ROUTES } from '@/lib/routes'
 import { toastError, toastSuccess } from '@/lib/toast'
+import { getErrorMessage } from '@/utils/errors'
 import axiosPublic from '@/api/axiosPublic'
 import { MIN_PASSWORD_LENGTH } from '@/config/constants'
-import validator from 'validator'
+import { isValidEmail } from '@/utils/auth'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { isStrongPassword } from '@/utils/auth'
 
@@ -30,7 +31,7 @@ const Register = () => {
       toastError('Missing fields', 'Please fill in all fields.')
       return
     }
-    if (!validator.isEmail(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
@@ -56,9 +57,11 @@ const Register = () => {
       )
       toastSuccess('Registration successful', res.data.detail)
       navigate(ROUTES.LOGIN)
-    } catch (err: any) {
-      toastError('Registration failed', err.response?.data?.detail ||
-          'Something went wrong. Please try again later.')
+    } catch (err) {
+      toastError(
+        'Registration failed',
+        getErrorMessage(err, 'Something went wrong. Please try again later.'),
+      )
     } finally {
       setIsLoading(false)
     }
@@ -73,7 +76,7 @@ const Register = () => {
           <img
             src={logo}
             alt="Next Level Dads"
-            className="w-48 h-auto"
+            className="app-logo w-48 h-auto"
           />
         </div>
 
@@ -100,7 +103,7 @@ const Register = () => {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-full"
+                  className="rounded-md"
                 />
               </div>
 
@@ -118,7 +121,7 @@ const Register = () => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -148,7 +151,7 @@ const Register = () => {
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -167,7 +170,7 @@ const Register = () => {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full rounded-full font-semibold text-base shadow-md"
+                className="w-full rounded-md font-semibold text-base shadow-md"
                 disabled={isLoading}
               >
                 Create Account
