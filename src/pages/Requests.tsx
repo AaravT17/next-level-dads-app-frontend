@@ -12,12 +12,17 @@ import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { DadListSkeleton } from '@/components/feedback/skeletons/CardSkeletons'
 import { ROUTES } from '@/lib/routes'
+import { useBackTarget } from '@/hooks/useBackTarget'
 import { useIncomingRequests } from '@/features/connections/hooks/useIncomingRequests'
 import { ConnectionsFilters } from '@/types/users'
 
 const Requests = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
+
+  // Reached from the You tab, from the profile screen, and from the requests
+  // panel on /dads. Back goes wherever the link came from.
+  const backTo = useBackTarget(ROUTES.YOU)
 
   // Parse URL params for initial state
   const getStringParam = useCallback(
@@ -87,7 +92,7 @@ const Requests = () => {
 
   return (
     <>
-      <AppBar title="Connection Requests" leading="back" backTo={ROUTES.YOU} />
+      <AppBar title="Connection Requests" leading="back" backTo={backTo} />
 
       <PageContainer className="space-y-4 animate-fade-in">
         <form

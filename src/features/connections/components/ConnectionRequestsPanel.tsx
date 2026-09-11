@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ArrowRight, UserPlus } from 'lucide-react'
 import DadCard from '@/components/DadCard'
 import { ROUTES } from '@/lib/routes'
@@ -25,6 +25,7 @@ import { useIncomingRequests, NO_REQUEST_FILTERS } from '../hooks/useIncomingReq
 const VISIBLE_REQUEST_LIMIT = 2
 
 export function ConnectionRequestsPanel() {
+  const { pathname, search } = useLocation()
   const { data, isPending, isError, hasNextPage } =
     useIncomingRequests(NO_REQUEST_FILTERS)
 
@@ -75,8 +76,15 @@ export function ConnectionRequestsPanel() {
       </ul>
 
       {hasMore && (
+        /*
+          `from` is what the back button on /you/requests reads. Without it
+          that screen falls back to /you and drops the user on a tab they were
+          never on. The search string rides along so back returns to the browse
+          filters they had set, not a reset grid.
+        */
         <Link
           to={ROUTES.REQUESTS}
+          state={{ from: `${pathname}${search}` }}
           className="flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-label font-medium text-primary transition-colors duration-fast hover:bg-primary/10"
         >
           See all requests

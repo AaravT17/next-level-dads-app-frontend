@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react'
 import axiosPublic from '@/api/axiosPublic'
 import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
 import { isHttpStatus } from '@/utils/errors'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 
 const Welcome = () => {
@@ -17,10 +17,21 @@ const Welcome = () => {
   const [isLoading, setIsLoading] = useState(false)
   const { setAuth } = useAuth()
 
+  // Runs once, against the OAuth fragment the provider redirected back with.
+  //
+  // The old `if (isLoading) return` guard was dead here: isLoading starts false
+  // and the effect only runs at mount.
+  //
+  // What keeps it single-run is that this screen lives at exactly one path.
+  // setAuth is memoised in AuthProvider, but navigate is *not* stable — under
+  // <BrowserRouter> useNavigate carries locationPathname in its own dependency
+  // array, so its identity changes whenever the path does. That never happens
+  // while Welcome is mounted, and the replaceState below clears the fragment
+  // without telling the router. Do not lift this effect onto a screen whose
+  // path can change underneath it: a re-run would POST the same tokens to
+  // /api/auth/oauth/session a second time.
   useEffect(() => {
     const handleOAuthCallback = async () => {
-      if (isLoading) return
-
       const hash = window.location.hash
       if (!hash.includes('access_token')) return
 
@@ -92,7 +103,7 @@ const Welcome = () => {
     }
 
     handleOAuthCallback()
-  }, [])
+  }, [navigate, setAuth])
 
   const handleGoogleOAuth = async () => {
     if (isLoading) return

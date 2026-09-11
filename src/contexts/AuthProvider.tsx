@@ -1,22 +1,20 @@
 import {
-  createContext,
-  useContext,
+  useCallback,
+  useMemo,
   useState,
   useEffect,
   ReactNode,
 } from 'react'
 import axios from 'axios'
-import { User, AuthState, AuthContextType } from '../types/auth'
+import { AuthContext } from '@/contexts/AuthContext'
+import { TIMEOUT_LENGTH_MS } from '@/config/constants'
+import { getErrorMessage } from '@/utils/errors'
+import { toastError } from '@/lib/toast'
+import { User, AuthState } from '../types/auth'
 import axiosPrivate, {
   registerAuthCallbacks,
   setAccessToken,
 } from '../api/axiosPrivate'
-import { TIMEOUT_LENGTH_MS } from '@/config/constants'
-import { getErrorMessage } from '@/utils/errors'
-import { toastError } from '@/lib/toast'
-
-// Context
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Provider
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -26,21 +24,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: true,
   })
 
-  const setAuth = (auth: { user: User | null; accessToken: string | null }) => {
-    setAccessToken(auth.accessToken)
-    setState((prev) => ({
-      ...prev,
-      user: auth.user,
-      accessToken: auth.accessToken,
-    }))
-  }
+  // Both setters are memoised, and the context value with them.
+  //
+  // They were rebuilt on every render, which made the value object new on
+  // every render too: all 23 useAuth() consumers re-rendered whenever anything
+  // in auth state changed, and no effect could honestly depend on setAuth
+  // without re-running constantly. Both updaters are already functional, so
+  // neither closes over state and an empty dep list is correct.
+  const setAuth = useCallback(
+    (auth: { user: User | null; accessToken: string | null }) => {
+      setAccessToken(auth.accessToken)
+      setState((prev) => ({
+        ...prev,
+        user: auth.user,
+        accessToken: auth.accessToken,
+      }))
+    },
+    [],
+  )
 
-  const setLoading = (loading: boolean) => {
+  const setLoading = useCallback((loading: boolean) => {
     setState((prev) => ({
       ...prev,
       loading,
     }))
-  }
+  }, [])
 
   useEffect(() => {
     registerAuthCallbacks({
@@ -101,19 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     hydrate()
-  }, [])
+    // setLoading is stable, so this still runs once on mount.
+  }, [setLoading])
 
-  return (
-    <AuthContext.Provider value={{ ...state, setAuth, setLoading }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ ...state, setAuth, setLoading }),
+    [state, setAuth, setLoading],
   )
-}
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

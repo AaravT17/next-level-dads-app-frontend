@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { UserAvatar } from '@/components/media/UserAvatar'
 import { usePendingRequestCount } from '@/hooks/useNavBadges'
 import { ROUTES } from '@/lib/routes'

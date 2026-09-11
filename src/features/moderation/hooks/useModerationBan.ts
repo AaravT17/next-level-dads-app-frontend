@@ -2,7 +2,7 @@ import axios from 'axios'
 import { formatDistanceToNow } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { moderationApi } from '../api/moderationApi'
 import { moderationKeys } from './moderationKeys'
 

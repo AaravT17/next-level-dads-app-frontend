@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import type { Community } from '@/types/communities'
 import { useCommunity } from '../hooks/useCommunity'
 import { useJoinCommunity } from '../hooks/useCommunityMembership'

@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { ThemePicker } from '@/components/settings/ThemePicker'
 import { toastError } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'

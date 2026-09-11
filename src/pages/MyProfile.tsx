@@ -1,7 +1,6 @@
-import type { UserStats } from '@/types/users'
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/button'
@@ -16,13 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  MapPin,
-  Calendar as CalendarIcon,
-  Pencil,
-  Upload,
-  Trash2,
-} from 'lucide-react'
+import { Calendar as CalendarIcon, Pencil, Upload, Trash2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -34,9 +27,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
 } from '@/components/ui/alert-dialog'
-import avatarDefaultGrey from '@/assets/avatar-default-grey.png'
 import { ROUTES } from '@/lib/routes'
-import { useAuth } from '@/contexts/AuthContext'
+import { ProfileHero } from '@/features/profile/components/ProfileHero'
+import {
+  ProfileCard,
+  ProfileSection,
+} from '@/features/profile/components/ProfileSection'
+import { useAuth } from '@/contexts/useAuth'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import {
@@ -45,7 +42,6 @@ import {
   STAGE_OPTIONS,
   PROVINCE_OPTIONS,
 } from '@/config/constants'
-import { getStageDisplayLabel } from '@/utils/users'
 import { toastError, toastSuccess } from '@/lib/toast'
 
 interface UserResponse {
@@ -61,13 +57,6 @@ interface UserResponse {
   children: string[]
 }
 
-async function fetchUserStats(): Promise<UserStats> {
-  const res = await axiosPrivate.get<UserStats>('/api/users/me/stats', {
-    timeout: TIMEOUT_LENGTH_MS,
-  })
-  return res.data
-}
-
 const MyProfile = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -75,7 +64,6 @@ const MyProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // This route *is* the editor now; /you is the read-only hub.
-  const [isEditing, setIsEditing] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
@@ -108,19 +96,6 @@ const MyProfile = () => {
       })
     }
   }, [user])
-
-  const {
-    data: userStats = {
-      connections: 0,
-      requests: 0,
-      communities_joined: 0,
-      events_registered_for: 0,
-    },
-  } = useQuery({
-    queryKey: ['user', 'stats'],
-    queryFn: fetchUserStats,
-    staleTime: 0,
-  })
 
   // Update profile mutation
   const updateProfile = useMutation({
@@ -233,10 +208,6 @@ const MyProfile = () => {
     },
   })
 
-
-
-
-
   const handleAvatarClick = () => {
     if (!isLoading) {
       fileInputRef.current?.click()
@@ -265,7 +236,6 @@ const MyProfile = () => {
     deleteAvatar.mutate()
   }
 
-
   const handleCancel = () => {
     // Reset form to current user values
     if (user) {
@@ -281,7 +251,6 @@ const MyProfile = () => {
     }
     setCustomInterest('')
     setShowCustomInput(false)
-    setIsEditing(false)
     navigate(ROUTES.YOU)
   }
 
@@ -338,401 +307,269 @@ const MyProfile = () => {
     return null
   }
 
-  // Determine which avatar to display
-  const displayAvatar = avatarPreview || user.avatarUrl || avatarDefaultGrey
+  // The uploaded preview wins while it is in flight; past that UserAvatar
+  // falls back to initials, which is what every other avatar in the app does.
+  const displayAvatar = avatarPreview || user.avatarUrl
 
   return (
     <>
       <AppBar title="Edit profile" leading="back" backTo={ROUTES.YOU} />
 
       <PageContainer className="space-y-6 animate-fade-in">
-        {/* Avatar section - always interactive */}
-        <div className="flex flex-col items-center text-center space-y-4">
-          <div className="relative">
-            <div className="w-32 h-32 rounded-lg overflow-hidden border-4 border-primary/20">
-              <img
-                src={displayAvatar}
-                alt={user.name}
-                className={`w-full h-full object-cover ${isLoading ? 'opacity-50' : ''}`}
-              />
-              {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-            </div>
+        <ProfileHero
+          // The hero previews the draft, so the name above the form and the
+          // name in it cannot disagree while you type. Falling back to the
+          // saved name keeps the heading from emptying out when the field is
+          // cleared. Age and location are omitted: both come from fields in
+          // the form below, where they are already shown and editable.
+          name={formData.name || user.name}
+          avatarUrl={displayAvatar}
+          isAvatarBusy={isLoading}
+          avatarAction={
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   size="icon"
                   variant="secondary"
-                  className="absolute -bottom-2 -right-2 rounded-full w-10 h-10 bg-gray-500 hover:bg-gray-600 text-white"
+                  aria-label="Change photo"
+                  className="absolute -bottom-2 -right-2 h-10 w-10 rounded-full shadow-md"
                   disabled={isLoading}
                 >
-                  <Pencil className="w-5 h-5" />
+                  <Pencil aria-hidden className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleAvatarClick}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Photo
+                  <Upload aria-hidden className="w-4 h-4 mr-2" />
+                  Upload photo
                 </DropdownMenuItem>
                 {user.avatarUrl && (
                   <DropdownMenuItem
                     onClick={handleRemoveAvatar}
                     className="text-destructive focus:text-destructive"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Remove Photo
+                    <Trash2 aria-hidden className="w-4 h-4 mr-2" />
+                    Remove photo
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
+          }
+        />
 
-          {/* View mode: Name/location outside card */}
-          {!isEditing && (
-            <>
-              <div>
-                <h2 className="text-2xl font-heading font-semibold text-foreground">
-                  {user.name}, {user.age ?? '—'}
-                </h2>
-                <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>
-                    {user.city}, {user.province}
-                  </span>
-                </div>
-              </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
 
-              <div className="flex gap-3 w-full max-w-sm">
+        <ProfileCard>
+          <ProfileSection title="Name">
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
+              }
+              placeholder="Your name"
+              className="rounded-lg"
+              disabled={isLoading}
+            />
+          </ProfileSection>
+
+          <ProfileSection title="Date of birth">
+            <Popover>
+              <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="flex-1 rounded-md border-2 border-primary hover:bg-primary hover:text-primary-foreground"
-                  onClick={() => navigate(ROUTES.CONNECTIONS)}
+                  className="w-full justify-start rounded-lg font-normal"
+                  disabled={isLoading}
                 >
-                  Connections
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 rounded-md border-2 border-primary hover:bg-primary hover:text-primary-foreground relative"
-                  onClick={() => navigate(ROUTES.REQUESTS)}
-                >
-                  Requests
-                  {userStats.requests > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-caption font-semibold rounded-full h-5 w-5 flex items-center justify-center">
-                      {userStats.requests}
-                    </span>
+                  <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                  {formData.date_of_birth ? (
+                    format(parseISO(formData.date_of_birth), 'MMMM d, yyyy')
+                  ) : (
+                    <span className="text-muted-foreground">Pick a date</span>
                   )}
                 </Button>
-              </div>
-            </>
-          )}
-        </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={formData.date_of_birth ? parseISO(formData.date_of_birth) : undefined}
+                  onSelect={(date) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      date_of_birth: date ? format(date, 'yyyy-MM-dd') : '',
+                    }))
+                  }
+                  disabled={(date) => date > new Date()}
+                  captionLayout="dropdown"
+                  fromYear={1900}
+                  toYear={new Date().getFullYear()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </ProfileSection>
 
-        {/* View mode: My Activity card */}
-        {!isEditing && (
-          <div className="bg-card rounded-lg p-6 shadow-md">
-            <h3 className="font-semibold text-foreground mb-4">My Activity</h3>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-heading font-semibold text-primary">
-                  {userStats.connections}
-                </p>
-                <p className="text-body text-muted-foreground">Connections</p>
-              </div>
-              <div>
-                <p className="text-2xl font-heading font-semibold text-primary">
-                  {userStats.communities_joined}
-                </p>
-                <p className="text-body text-muted-foreground">Communities</p>
-              </div>
-              <div>
-                <p className="text-2xl font-heading font-semibold text-primary">
-                  {userStats.events_registered_for}
-                </p>
-                <p className="text-body text-muted-foreground">Events</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit mode: All fields in one card */}
-        {isEditing ? (
-          <div className="bg-card rounded-lg p-6 space-y-6 shadow-md">
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">Name</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <ProfileSection title="City">
               <Input
-                id="name"
-                value={formData.name}
+                id="city"
+                value={formData.city}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                  setFormData((prev) => ({ ...prev, city: e.target.value }))
                 }
-                placeholder="Your name"
+                placeholder="City"
                 className="rounded-lg"
                 disabled={isLoading}
               />
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">Date of Birth</h3>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start rounded-lg font-normal"
-                    disabled={isLoading}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                    {formData.date_of_birth ? (
-                      format(parseISO(formData.date_of_birth), 'MMMM d, yyyy')
-                    ) : (
-                      <span className="text-muted-foreground">Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.date_of_birth ? parseISO(formData.date_of_birth) : undefined}
-                    onSelect={(date) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        date_of_birth: date ? format(date, 'yyyy-MM-dd') : '',
-                      }))
-                    }
-                    disabled={(date) => date > new Date()}
-                    captionLayout="dropdown"
-                    fromYear={1900}
-                    toYear={new Date().getFullYear()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-semibold text-foreground mb-2">City</h3>
-                <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, city: e.target.value }))
-                  }
-                  placeholder="City"
-                  className="rounded-lg"
-                  disabled={isLoading}
-                />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground mb-2">Province</h3>
-                <Select
-                  value={formData.province}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, province: value }))
-                  }
-                  disabled={isLoading}
-                >
-                  <SelectTrigger
-                    id="province"
-                    className="rounded-lg"
-                  >
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROVINCE_OPTIONS.map((p) => (
-                      <SelectItem
-                        key={p.value}
-                        value={p.value}
-                      >
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">About Me</h3>
-              <Textarea
-                value={formData.about}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, about: e.target.value }))
+            </ProfileSection>
+            <ProfileSection title="Province">
+              <Select
+                value={formData.province}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, province: value }))
                 }
-                placeholder="Tell other dads about yourself..."
-                className="rounded-lg min-h-32"
                 disabled={isLoading}
-              />
-            </div>
+              >
+                <SelectTrigger
+                  id="province"
+                  className="rounded-lg"
+                >
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROVINCE_OPTIONS.map((p) => (
+                    <SelectItem
+                      key={p.value}
+                      value={p.value}
+                    >
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ProfileSection>
+          </div>
 
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">
-                Children's Age
-              </h3>
-              <p className="text-body text-muted-foreground mb-2">
-                Select all that apply
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {STAGE_OPTIONS.map((stage) => (
-                  <Badge
-                    key={stage.value}
-                    variant={
-                      formData.children_age_ranges.includes(stage.value)
-                        ? 'default'
-                        : 'soft'
-                    }
-                    className="cursor-pointer rounded-md"
-                    onClick={() => !isLoading && toggleStage(stage.value)}
-                  >
-                    {stage.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+          <ProfileSection title="About me">
+            <Textarea
+              value={formData.about}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, about: e.target.value }))
+              }
+              placeholder="Tell other dads about yourself..."
+              className="rounded-lg min-h-32"
+              disabled={isLoading}
+            />
+          </ProfileSection>
 
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Interests</h3>
-              <p className="text-body text-muted-foreground mb-2">
-                Select your interests
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {INTEREST_OPTIONS.map((interest) => (
+          <ProfileSection title="Children's age" hint="Select all that apply">
+            <div className="flex flex-wrap gap-2">
+              {STAGE_OPTIONS.map((stage) => (
+                <Badge
+                  key={stage.value}
+                  variant={
+                    formData.children_age_ranges.includes(stage.value)
+                      ? 'default'
+                      : 'soft'
+                  }
+                  className="cursor-pointer rounded-md"
+                  onClick={() => !isLoading && toggleStage(stage.value)}
+                >
+                  {stage.label}
+                </Badge>
+              ))}
+            </div>
+          </ProfileSection>
+
+          <ProfileSection title="Interests" hint="Pick any that fit, or add your own">
+            <div className="flex flex-wrap gap-2">
+              {INTEREST_OPTIONS.map((interest) => (
+                <Badge
+                  key={interest}
+                  variant={
+                    formData.interests.includes(interest) ? 'default' : 'soft'
+                  }
+                  className="cursor-pointer rounded-md"
+                  onClick={() => !isLoading && toggleInterest(interest)}
+                >
+                  {interest}
+                </Badge>
+              ))}
+              {formData.interests
+                .filter((i) => !INTEREST_OPTIONS.includes(i))
+                .map((interest) => (
                   <Badge
                     key={interest}
-                    variant={
-                      formData.interests.includes(interest) ? 'default' : 'soft'
-                    }
-                    className="cursor-pointer rounded-md"
+                    variant="default"
+                    className="cursor-pointer rounded-md bg-gradient-gold"
                     onClick={() => !isLoading && toggleInterest(interest)}
                   >
                     {interest}
                   </Badge>
                 ))}
-                {formData.interests
-                  .filter((i) => !INTEREST_OPTIONS.includes(i))
-                  .map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant="default"
-                      className="cursor-pointer rounded-md bg-gradient-gold"
-                      onClick={() => !isLoading && toggleInterest(interest)}
-                    >
-                      {interest}
-                    </Badge>
-                  ))}
-                {!showCustomInput ? (
-                  <Badge
-                    variant="outline"
-                    className="cursor-pointer rounded-md"
-                    onClick={() => !isLoading && setShowCustomInput(true)}
-                  >
-                    + Add your own
-                  </Badge>
-                ) : (
-                  <div className="flex gap-2 w-full mt-2">
-                    <Input
-                      placeholder="Type your interest..."
-                      value={customInterest}
-                      onChange={(e) => setCustomInterest(e.target.value)}
-                      onKeyDown={(e) =>
-                        e.key === 'Enter' && handleAddCustomInterest()
-                      }
-                      className="rounded-lg"
-                      autoFocus
-                      disabled={isLoading}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleAddCustomInterest}
-                      className="rounded-md"
-                      disabled={
-                        isLoading ||
-                        !customInterest.trim() ||
-                        formData.interests.includes(customInterest.trim())
-                      }
-                    >
-                      Add
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* View mode: About/Children/Interests card */
-          <div className="bg-card rounded-lg p-6 space-y-4 shadow-md">
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">About Me</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {user.about}
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">
-                Children's Age
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {user.children_age_ranges.map((stage) => (
-                  <Badge
-                    key={stage}
-                    variant="soft"
+              {!showCustomInput ? (
+                <Badge
+                  variant="outline"
+                  className="cursor-pointer rounded-md"
+                  onClick={() => !isLoading && setShowCustomInput(true)}
+                >
+                  + Add your own
+                </Badge>
+              ) : (
+                <div className="flex gap-2 w-full mt-2">
+                  <Input
+                    placeholder="Type your interest..."
+                    value={customInterest}
+                    onChange={(e) => setCustomInterest(e.target.value)}
+                    onKeyDown={(e) =>
+                      e.key === 'Enter' && handleAddCustomInterest()
+                    }
+                    className="rounded-lg"
+                    autoFocus
+                    disabled={isLoading}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleAddCustomInterest}
                     className="rounded-md"
+                    disabled={
+                      isLoading ||
+                      !customInterest.trim() ||
+                      formData.interests.includes(customInterest.trim())
+                    }
                   >
-                    <CalendarIcon className="w-3 h-3 mr-1" />
-                    {getStageDisplayLabel(stage)}
-                  </Badge>
-                ))}
-              </div>
+                    Add
+                  </Button>
+                </div>
+              )}
             </div>
+          </ProfileSection>
+        </ProfileCard>
 
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Interests</h3>
-              <div className="flex flex-wrap gap-2">
-                {user.interests.map((interest) => (
-                  <Badge
-                    key={interest}
-                    variant="soft"
-                    className="rounded-md"
-                  >
-                    {interest}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isEditing ? (
-          <>
-            <Button
-              className="w-full rounded-md"
-              onClick={handleSave}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Saving...' : 'Save Changes'}
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full rounded-md"
-              onClick={handleCancel}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-          </>
-        ) : null}
+        <div className="space-y-3">
+          <Button
+            className="w-full rounded-md"
+            onClick={handleSave}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Saving…' : 'Save changes'}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full rounded-md"
+            onClick={handleCancel}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+        </div>
       </PageContainer>
-
     </>
   )
 }
