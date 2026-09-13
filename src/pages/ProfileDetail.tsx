@@ -8,9 +8,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { ErrorState } from '@/components/feedback/ErrorState'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { MapPin, Calendar } from 'lucide-react'
+import { Baby, MapPin } from 'lucide-react'
 import { getStageDisplayLabel } from '@/utils/users'
 import { initials } from '@/utils/format'
 import { chat } from '@/lib/routes'
@@ -418,41 +416,34 @@ const ProfileDetail = () => {
                 {profile.city}, {profile.province}
               </span>
             </div>
+            {profile.kid_count != null && profile.kid_count > 0 && (
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
+                <Baby className="w-4 h-4" />
+                <span>Dad of {profile.kid_count}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="bg-card rounded-lg p-6 space-y-4 shadow-md">
+        <div className="space-y-4">
           <div>
-            <h3 className="font-semibold text-foreground mb-2">About Me</h3>
+            <h3 className="font-semibold text-foreground mb-2">About</h3>
             <p className="text-muted-foreground leading-relaxed">
               {profile.about}
             </p>
           </div>
 
-          {profile.kid_count != null && profile.kid_count > 0 && (
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">Kids</h3>
-              <p className="text-muted-foreground">
-                {profile.kid_count} {profile.kid_count === 1 ? 'kid' : 'kids'}
-              </p>
-            </div>
-          )}
-
           {profile.children_age_ranges.length > 0 && (
             <div>
-              <h3 className="font-semibold text-foreground mb-2">
-                Children's Age
-              </h3>
+              <h3 className="font-semibold text-foreground mb-2">Kids' stages</h3>
               <div className="flex flex-wrap gap-2">
                 {profile.children_age_ranges.map((stage) => (
-                  <Badge
+                  <span
                     key={stage}
-                    variant="soft"
-                    className="rounded-md"
+                    className="rounded-md border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground"
                   >
-                    <Calendar className="w-3 h-3 mr-1" />
                     {getStageDisplayLabel(stage)}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             </div>
@@ -467,7 +458,7 @@ const ProfileDetail = () => {
                   return (
                     <div
                       key={interest.id}
-                      className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-background p-4 text-center"
+                      className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-card p-4 text-center"
                     >
                       <span className="text-2xl">{display?.emoji ?? '✨'}</span>
                       <span className="text-sm font-medium text-foreground">{display?.label ?? interest.slug}</span>
@@ -481,6 +472,7 @@ const ProfileDetail = () => {
 
         {profile.icebreakers && profile.icebreakers.length > 0 && (
           <div className="space-y-3">
+            <h3 className="font-semibold text-foreground">Get to know me</h3>
             {profile.icebreakers.map((ib) => {
               const prompt = ICEBREAKER_PROMPTS.find((p) => p.slug === ib.prompt_slug)
               return (

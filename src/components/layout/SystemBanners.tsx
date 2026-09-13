@@ -86,7 +86,7 @@ function IncompleteProfileBanner() {
       <span>Your profile is incomplete.</span>
       <button
         type="button"
-        onClick={() => navigate(ROUTES.YOU)}
+        onClick={() => navigate(ROUTES.YOU_EDIT)}
         className="underline font-semibold shrink-0"
       >
         Complete now

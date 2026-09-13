@@ -1,7 +1,10 @@
-import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  Baby,
   ChevronRight,
+  LogOut,
+  MapPin,
   Pencil,
   Settings,
   Shield,
@@ -12,6 +15,7 @@ import type { LucideIcon } from 'lucide-react'
 import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { UserAvatar } from '@/components/media/UserAvatar'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { ROUTES } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -21,10 +25,7 @@ import type { UserStats } from '@/types/users'
 /**
  * Your hub.
  *
- * Splits what used to be a single 979-line screen holding a profile view, an
- * edit form, connections, requests, preferences, legal links, logout and
- * account deletion. Incoming connection requests — a primary action — had no
- * entry point at all; they are now a badged row here.
+ * Shows your profile info, stats, and account navigation.
  */
 
 type Row = {
@@ -36,7 +37,9 @@ type Row = {
 }
 
 const YouPage = () => {
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { user, setAuth } = useAuth()
 
   const { data: stats } = useQuery({
     queryKey: ['user', 'stats'],
@@ -48,6 +51,18 @@ const YouPage = () => {
     },
     staleTime: 1000 * 60,
   })
+
+  const handleLogout = async () => {
+    try {
+      await axiosPrivate.post('/api/auth/logout', {}, { timeout: TIMEOUT_LENGTH_MS })
+    } catch {
+      // Log out locally even if the server call fails.
+    } finally {
+      queryClient.clear()
+      setAuth({ user: null, accessToken: null })
+      navigate(ROUTES.WELCOME)
+    }
+  }
 
   if (!user) return null
 
@@ -100,18 +115,27 @@ const YouPage = () => {
       <AppBar title="You" />
 
       <PageContainer className="space-y-6 animate-fade-in">
+        {/* Avatar + name + location + kids */}
         <section className="flex flex-col items-center text-center gap-3">
           <UserAvatar name={user.name} src={user.avatarUrl} size="xl" shape="rounded" />
           <div>
             <h2 className="font-heading text-heading text-foreground">{user.name}</h2>
             {(user.city || user.province) && (
-              <p className="text-body text-muted-foreground">
-                {[user.city, user.province].filter(Boolean).join(', ')}
-              </p>
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
+                <MapPin className="w-4 h-4" />
+                <span>{[user.city, user.province].filter(Boolean).join(', ')}</span>
+              </div>
+            )}
+            {user.kid_count != null && user.kid_count > 0 && (
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
+                <Baby className="w-4 h-4" />
+                <span>Dad of {user.kid_count}</span>
+              </div>
             )}
           </div>
         </section>
 
+        {/* Stats */}
         <section aria-label="Your activity" className="grid grid-cols-3 rounded-lg bg-card shadow-sm">
           {summary.map((item, i) => (
             <div
@@ -124,6 +148,7 @@ const YouPage = () => {
           ))}
         </section>
 
+        {/* Navigation */}
         <nav aria-label="Account">
           <ul role="list" className="overflow-hidden rounded-lg bg-card shadow-sm">
             {rows.map((row, i) => {
@@ -156,6 +181,12 @@ const YouPage = () => {
             })}
           </ul>
         </nav>
+
+        {/* Log out */}
+        <Button variant="outline" className="w-full rounded-md" onClick={handleLogout}>
+          <LogOut className="w-4 h-4 mr-2" />
+          Log out
+        </Button>
       </PageContainer>
     </>
   )
