@@ -78,7 +78,7 @@ export function SetupRoute() {
   if (loading) return <LoadingSpinner />
 
   if (!accessToken) return <Navigate to={ROUTES.WELCOME} replace />
-  if (user) return <Navigate to={ROUTES.HOME_AFTER_AUTH} replace />
+  if (user) return <Navigate to={ROUTES.ONBOARDING_WELCOME} replace />
 
   return <Outlet />
 }

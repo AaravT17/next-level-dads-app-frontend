@@ -22,6 +22,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import VerifyEmail from './pages/VerifyEmail'
 import ProfileSetup from './pages/ProfileSetup'
+import OnboardingWelcome from './pages/OnboardingWelcome'
 import Chat from './pages/Chat'
 import { ChatsLayout, ChatsEmptyPane } from './pages/chats/ChatsLayout'
 import ChatManage from './pages/ChatManage'
@@ -67,6 +68,7 @@ const AppContent = () => {
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
+            <Route path={ROUTES.ONBOARDING_WELCOME} element={<OnboardingWelcome />} />
             <Route element={<AppLayout />}>
               {/* Dads */}
               <Route path={ROUTES.DADS} element={<DadsPage />} />

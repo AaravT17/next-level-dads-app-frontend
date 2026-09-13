@@ -16,12 +16,11 @@ import {
 import {
   ArrowLeft,
   Check,
-  HandHeart,
   Lock,
-  PartyPopper,
+  Pencil,
   Search,
+  Trash2,
   UserRound,
-  Users,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { Calendar } from '@/components/ui/calendar'
@@ -70,24 +69,20 @@ type StepId =
   | 'stages'
   | 'goals'
   | 'connections'
-  | 'priorities'
   | 'interests'
   | 'icebreakers'
   | 'photo'
   | 'consent'
-  | 'welcome'
 
 const STEPS: StepId[] = [
   'basics',
   'stages',
   'goals',
   'connections',
-  'priorities',
   'interests',
   'icebreakers',
   'photo',
   'consent',
-  'welcome',
 ]
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -144,6 +139,7 @@ const ProfileSetup = () => {
   const [editingIcebreakerIndex, setEditingIcebreakerIndex] = useState<number | null>(null)
   const [selectedPromptSlug, setSelectedPromptSlug] = useState<string | null>(null)
   const [icebreakerAnswer, setIcebreakerAnswer] = useState('')
+  const [showPromptPicker, setShowPromptPicker] = useState(true)
 
   const [avatar, setAvatar] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -154,7 +150,7 @@ const ProfileSetup = () => {
   const [marketingOptIn, setMarketingOptIn] = useState(false)
 
   const step = STEPS[stepIndex]
-  const totalVisible = STEPS.length - 1 // welcome isn't a numbered step
+  const totalSteps = STEPS.length
   const age = ageFromDob(dob)
 
   // Fetch interest options (id + slug + name) on mount
@@ -235,8 +231,6 @@ const ProfileSetup = () => {
       }
       case 'connections':
         if (connectionStyles.length === 0) return 'Please select at least one connection style.'
-        return null
-      case 'priorities':
         if (matchPriorities.length === 0) return 'Please select at least one match priority.'
         return null
       case 'interests':
@@ -267,7 +261,27 @@ const ProfileSetup = () => {
     }
   }
 
-  const canContinue = (): boolean => validateStep() === null
+  /** Controls button disabled state — checks fields are filled, but not business rules like 18+. */
+  const isStepFilled = (): boolean => {
+    switch (step) {
+      case 'basics':
+        return !!name.trim() && !!dob && !!city.trim() && !!province && !!about.trim()
+      case 'stages':
+        return true
+      case 'goals':
+        return goals.length > 0 && (goals.length === 1 || !!primaryGoal)
+      case 'connections':
+        return connectionStyles.length > 0 && matchPriorities.length > 0
+      case 'interests':
+        return selectedInterestIds.length >= MIN_INTERESTS
+      case 'icebreakers':
+        return icebreakers.length >= MIN_ICEBREAKERS && icebreakers.every((ib) => !!ib.answer.trim())
+      case 'consent':
+        return agreedToTerms && agreedToPrivacy && confirmedAge
+      default:
+        return true
+    }
+  }
 
   // ── Navigation ───────────────────────────────────────────────────
 
@@ -354,7 +368,24 @@ const ProfileSetup = () => {
         timeout: TIMEOUT_LENGTH_MS,
       })
 
-      // Hydrate auth state immediately
+      let avatarUrl = res.data.avatar_url
+
+      // Step 2: Upload avatar if selected (failure doesn't block)
+      if (avatar) {
+        try {
+          const avatarData = new FormData()
+          avatarData.append('avatar', avatar)
+          const avatarRes = await axiosPrivate.put('/api/users/me/avatar', avatarData, {
+            timeout: TIMEOUT_LENGTH_MS,
+            headers: { 'Content-Type': 'multipart/form-data' },
+          })
+          avatarUrl = avatarRes.data.avatar_url
+        } catch {
+          toastError('Photo upload failed', 'No worries, you can add one later from your profile.')
+        }
+      }
+
+      // Hydrate auth state once at the end
       setAuth({
         user: {
           id: res.data.id,
@@ -364,7 +395,7 @@ const ProfileSetup = () => {
           city: res.data.city,
           province: res.data.province,
           about: res.data.about,
-          avatarUrl: res.data.avatar_url,
+          avatarUrl,
           interests: res.data.interests ?? [],
           children_age_ranges: res.data.children_age_ranges ?? [],
           kid_count: res.data.kid_count ?? null,
@@ -383,50 +414,7 @@ const ProfileSetup = () => {
         accessToken,
       })
 
-      // Step 2: Upload avatar if selected (failure doesn't block)
-      if (avatar) {
-        try {
-          const avatarData = new FormData()
-          avatarData.append('avatar', avatar)
-          const avatarRes = await axiosPrivate.put('/api/users/me/avatar', avatarData, {
-            timeout: TIMEOUT_LENGTH_MS,
-            headers: { 'Content-Type': 'multipart/form-data' },
-          })
-          // Update avatar URL in auth state
-          setAuth({
-            user: {
-              id: res.data.id,
-              name: res.data.name,
-              age: res.data.age,
-              date_of_birth: res.data.date_of_birth,
-              city: res.data.city,
-              province: res.data.province,
-              about: res.data.about,
-              avatarUrl: avatarRes.data.avatar_url,
-              interests: res.data.interests ?? [],
-              children_age_ranges: res.data.children_age_ranges ?? [],
-              kid_count: res.data.kid_count ?? null,
-              goals: res.data.goals ?? null,
-              primary_goal: res.data.primary_goal ?? null,
-              connection_styles: res.data.connection_styles ?? null,
-              match_priorities: res.data.match_priorities ?? null,
-              icebreakers: res.data.icebreakers ?? null,
-              isAdmin: res.data.is_admin ?? false,
-              preferences: {
-                marketing_emails_opt_in:
-                  res.data.preferences?.marketing_emails_opt_in ?? marketingOptIn,
-              },
-              legal_acceptances: { terms: true, privacy_policy: true },
-            },
-            accessToken,
-          })
-        } catch {
-          toastError('Photo upload failed', 'No worries — you can add one later from your profile.')
-        }
-      }
-
-      // Advance to welcome screen
-      setStepIndex(STEPS.indexOf('welcome'))
+      // setAuth triggers SetupRoute redirect to welcome screen
     } catch (err: unknown) {
       toastError(
         'Profile creation failed',
@@ -465,6 +453,7 @@ const ProfileSetup = () => {
     setSelectedPromptSlug(null)
     setIcebreakerAnswer('')
     setEditingIcebreakerIndex(null)
+    setShowPromptPicker(false)
   }
 
   const removeIcebreaker = (index: number) => {
@@ -482,81 +471,19 @@ const ProfileSetup = () => {
     setSelectedPromptSlug(null)
     setIcebreakerAnswer('')
     setEditingIcebreakerIndex(null)
+    setShowPromptPicker(false)
   }
 
-  // ── Welcome screen ─────────────────────────────────────────────
-
-  // Auto-redirect after 5 seconds on welcome screen
-  useEffect(() => {
-    if (step !== 'welcome') return
-    const timer = setTimeout(() => navigate(ROUTES.HOME_AFTER_AUTH), 5000)
-    return () => clearTimeout(timer)
-  }, [step, navigate])
-
-  if (step === 'welcome') {
-    const highlights = [
-      { icon: Users, title: 'Dads to connect with', copy: 'Matched on your stage, goals and interests.' },
-      { icon: HandHeart, title: 'Communities to join', copy: 'Built around what you actually care about.' },
-      { icon: PartyPopper, title: 'Things to do', copy: 'Meetups and events near you.' },
-    ]
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-          <div className="animate-fade-in space-y-8 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-lg bg-gradient-gold shadow-lg">
-              <Check className="h-10 w-10 text-primary-foreground" />
-            </div>
-            <div className="space-y-2">
-              <h1 className="font-heading text-3xl font-semibold leading-tight text-foreground">
-                You're in{name ? `, ${name.split(' ')[0]}` : ''}.
-              </h1>
-              <p className="text-lg text-muted-foreground">Welcome to Next Level Dads.</p>
-              <p className="pt-1 text-base font-medium text-foreground">Let's find your people.</p>
-            </div>
-
-            <div className="space-y-3 text-left">
-              {highlights.map((h, i) => (
-                <div
-                  key={h.title}
-                  className="flex animate-fade-in items-center gap-3 rounded-lg bg-card p-4 shadow-sm"
-                  style={{ animationDelay: `${150 + i * 120}ms`, animationFillMode: 'backwards' }}
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
-                    <h.icon className="h-5 w-5" />
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">{h.title}</span>
-                    <span className="block text-xs text-muted-foreground">{h.copy}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <Button
-              size="lg"
-              className="w-full rounded-md bg-gradient-gold text-base font-semibold shadow-md"
-              onClick={() => navigate(ROUTES.HOME_AFTER_AUTH)}
-            >
-              Start exploring
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              You can fine-tune your profile any time — no rush.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   // ── Progress ───────────────────────────────────────────────────
 
-  const progress = ((stepIndex + 1) / totalVisible) * 100
+  const progress = (stepIndex / totalSteps) * 100
 
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
       <div className="sticky top-0 z-10 border-b border-border bg-card">
-        <div className="mx-auto max-w-md px-6 py-3">
+        <div className="mx-auto max-w-md sm:max-w-lg md:max-w-2xl px-6 py-3">
           <div className="mb-3 flex items-center justify-between">
             <button
               onClick={goBack}
@@ -566,10 +493,7 @@ const ProfileSetup = () => {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <span className="text-sm font-medium text-muted-foreground">
-              Step {stepIndex + 1} of {totalVisible}
-            </span>
-            {isSkippable && (
+            {isSkippable ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -579,37 +503,47 @@ const ProfileSetup = () => {
               >
                 Skip
               </Button>
+            ) : (
+              <div className="w-12" />
             )}
-            {!isSkippable && <div className="w-12" />}
           </div>
-          <Progress value={progress} className="h-1.5" />
+          <Progress
+            value={progress}
+            className="h-1.5"
+          />
         </div>
       </div>
 
-      <div key={step} className="mx-auto max-w-md animate-fade-in space-y-6 px-6 py-7">
+      <div
+        key={step}
+        className="mx-auto max-w-md sm:max-w-lg md:max-w-2xl animate-fade-in space-y-6 px-6 py-7"
+      >
         {/* 1. Basics */}
         {step === 'basics' && (
           <>
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Let's start here</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                Let's start here
+              </p>
               <h2 className="font-heading text-2xl font-semibold text-foreground">
                 First, the basics
               </h2>
               <p className="text-sm text-muted-foreground">
-                Just enough for other dads to know who they're talking to — and for us to find dads close to you.
+                Just enough for other dads to know who they're talking to, and
+                for us to find dads close to you.
               </p>
             </div>
 
-            <div className="space-y-4 rounded-lg bg-card p-5 shadow-sm">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="name">What should dads call you?</Label>
+                <Label htmlFor="name">Your name</Label>
                 <Input
                   id="name"
-                  placeholder="First name or full name"
+                  placeholder="Full name"
                   maxLength={MAX_NAME_LENGTH}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="rounded-md"
+                  className="rounded-md border-border shadow-sm"
                   disabled={loading}
                 />
               </div>
@@ -620,22 +554,29 @@ const ProfileSetup = () => {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start rounded-md font-normal"
+                      className="w-full justify-start rounded-md font-normal px-3 border-border shadow-sm"
                       disabled={loading}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                      <CalendarIcon className="mr-1.5 h-4 w-4 text-muted-foreground" />
                       {dob ? (
                         format(parseISO(dob), 'MMMM d, yyyy')
                       ) : (
-                        <span className="text-muted-foreground">Pick a date</span>
+                        <span className="text-muted-foreground">
+                          Select your date of birth
+                        </span>
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent
+                    className="w-auto p-0"
+                    align="start"
+                  >
                     <Calendar
                       mode="single"
                       selected={dob ? parseISO(dob) : undefined}
-                      onSelect={(date) => setDob(date ? format(date, 'yyyy-MM-dd') : '')}
+                      onSelect={(date) =>
+                        setDob(date ? format(date, 'yyyy-MM-dd') : '')
+                      }
                       disabled={(date) => date > new Date()}
                       captionLayout="dropdown"
                       fromYear={1900}
@@ -646,12 +587,11 @@ const ProfileSetup = () => {
                 </Popover>
                 <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
                   <Lock className="mt-0.5 h-3 w-3 shrink-0" />
-                  Your birthday stays private. Other dads only see your age
-                  {age !== null ? ` — right now that's ${age}.` : '.'}
+                  Your birthday stays private. Other dads only see your age.
                 </p>
               </div>
 
-              <div className="grid grid-cols-[1fr,7rem] gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
                   <Input
@@ -660,19 +600,29 @@ const ProfileSetup = () => {
                     maxLength={MAX_CITY_LENGTH}
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="rounded-md"
+                    className="rounded-md border-border shadow-sm"
                     disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="province">Province</Label>
-                  <Select value={province} onValueChange={setProvince} disabled={loading}>
-                    <SelectTrigger id="province" className="rounded-md">
+                  <Select
+                    value={province}
+                    onValueChange={setProvince}
+                    disabled={loading}
+                  >
+                    <SelectTrigger
+                      id="province"
+                      className="rounded-md border-border shadow-sm"
+                    >
                       <SelectValue placeholder="—" />
                     </SelectTrigger>
                     <SelectContent>
                       {PROVINCE_OPTIONS.map((p) => (
-                        <SelectItem key={p.value} value={p.value}>
+                        <SelectItem
+                          key={p.value}
+                          value={p.value}
+                        >
                           {p.label}
                         </SelectItem>
                       ))}
@@ -685,12 +635,13 @@ const ProfileSetup = () => {
                 <Label htmlFor="about">About you</Label>
                 <Textarea
                   id="about"
-                  placeholder="Love hiking with my kids and exploring new coffee shops."
+                  placeholder="Tell us a bit about yourself."
                   value={about}
                   onChange={(e) => {
-                    if (e.target.value.length <= MAX_BIO_LENGTH) setAbout(e.target.value)
+                    if (e.target.value.length <= MAX_BIO_LENGTH)
+                      setAbout(e.target.value)
                   }}
-                  className="min-h-24 rounded-md"
+                  className="min-h-24 rounded-md border-border shadow-sm"
                   disabled={loading}
                 />
                 <p className="text-right text-xs text-muted-foreground">
@@ -705,42 +656,19 @@ const ProfileSetup = () => {
         {step === 'stages' && (
           <>
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Dad life</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                Dad life
+              </p>
               <h2 className="font-heading text-2xl font-semibold text-foreground">
                 Where are you at in dad life?
               </h2>
               <p className="text-sm text-muted-foreground">
-                We'll point you toward dads navigating similar stages. Pick all that apply.
+                We'll point you toward dads navigating similar stages.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {STAGE_OPTIONS.map((s) => {
-                const selected = stages.includes(s.value)
-                return (
-                  <button
-                    key={s.value}
-                    type="button"
-                    onClick={() => setStages(toggle(stages, s.value))}
-                    disabled={loading}
-                    className={cn(
-                      'rounded-md border px-3.5 py-2.5 text-sm font-medium transition-all active:scale-[0.97]',
-                      selected
-                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                        : 'border-border bg-card text-foreground hover:border-primary/50',
-                    )}
-                  >
-                    {s.label}
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="space-y-3 rounded-lg bg-card p-5 shadow-sm">
-              <div>
-                <p className="text-sm font-semibold text-foreground">How many kids do you have?</p>
-                <p className="text-xs text-muted-foreground">Helps with playdate matching.</p>
-              </div>
+            <div className="space-y-2">
+              <Label>How many kids do you have?</Label>
               <Input
                 type="number"
                 min={0}
@@ -751,9 +679,39 @@ const ProfileSetup = () => {
                   if (!Number.isNaN(v) && v >= 0 && v < 100) setKidCount(v)
                   else if (e.target.value === '') setKidCount(0)
                 }}
-                className="w-24 rounded-md"
+                className="w-24 rounded-md border-border shadow-sm"
                 disabled={loading}
               />
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                What stage are your kids at?
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Select all that apply.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {STAGE_OPTIONS.map((s) => {
+                  const selected = stages.includes(s.value)
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => setStages(toggle(stages, s.value))}
+                      disabled={loading}
+                      className={cn(
+                        'rounded-md border px-3.5 py-2.5 text-sm font-medium transition-all active:scale-[0.97]',
+                        selected
+                          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                          : 'border-border bg-card text-foreground hover:border-primary/50',
+                      )}
+                    >
+                      {s.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </>
         )}
@@ -762,16 +720,19 @@ const ProfileSetup = () => {
         {step === 'goals' && (
           <>
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Looking for</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                Looking for
+              </p>
               <h2 className="font-heading text-2xl font-semibold text-foreground">
                 What are you hoping to find here?
               </h2>
               <p className="text-sm text-muted-foreground">
-                Everyone joins for something a little different. Pick everything that sounds like you.
+                Everyone joins for something a little different. Pick everything
+                that sounds like you.
               </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {GOAL_OPTIONS.map((g) => {
                 const selected = goals.includes(g.value)
                 return (
@@ -781,7 +742,8 @@ const ProfileSetup = () => {
                     onClick={() => {
                       const next = toggle(goals, g.value)
                       setGoals(next)
-                      if (primaryGoal && !next.includes(primaryGoal)) setPrimaryGoal(null)
+                      if (primaryGoal && !next.includes(primaryGoal))
+                        setPrimaryGoal(null)
                     }}
                     disabled={loading}
                     className={cn(
@@ -802,7 +764,9 @@ const ProfileSetup = () => {
                       {selected && <Check className="h-3 w-3" />}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{g.label}</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {g.label}
+                      </p>
                       <p className="text-xs text-muted-foreground">{g.hint}</p>
                     </div>
                   </button>
@@ -817,7 +781,8 @@ const ProfileSetup = () => {
                     What matters most right now?
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    We'll lead with this when recommending dads, communities and events.
+                    We'll lead with this when recommending dads, communities and
+                    events.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -847,27 +812,33 @@ const ProfileSetup = () => {
           </>
         )}
 
-        {/* 4. Connection styles */}
+        {/* 4. Connection styles + match priorities */}
         {step === 'connections' && (
           <>
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Looking for</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                Looking for
+              </p>
               <h2 className="font-heading text-2xl font-semibold text-foreground">
                 What kind of connections are you after?
               </h2>
               <p className="text-sm text-muted-foreground">
-                Two dads can both want friends and mean totally different things. We'll introduce you to dads looking for something similar.
+                Two dads can both want friends and mean totally different
+                things. We'll introduce you to dads looking for something
+                similar.
               </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {CONNECTION_STYLE_OPTIONS.map((c) => {
                 const selected = connectionStyles.includes(c.value)
                 return (
                   <button
                     key={c.value}
                     type="button"
-                    onClick={() => setConnectionStyles(toggle(connectionStyles, c.value))}
+                    onClick={() =>
+                      setConnectionStyles(toggle(connectionStyles, c.value))
+                    }
                     disabled={loading}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-all active:scale-[0.99]',
@@ -887,49 +858,46 @@ const ProfileSetup = () => {
                       {selected && <Check className="h-3 w-3" />}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{c.label}</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {c.label}
+                      </p>
                       <p className="text-xs text-muted-foreground">{c.hint}</p>
                     </div>
                   </button>
                 )
               })}
             </div>
-          </>
-        )}
 
-        {/* 5. Match priorities */}
-        {step === 'priorities' && (
-          <>
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Your vibe</p>
-              <h2 className="font-heading text-2xl font-semibold text-foreground">
+            <div>
+              <p className="text-sm font-semibold text-foreground">
                 What matters most when meeting another dad?
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Pick what's important to you. We'll weight your recommendations around them.
               </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {MATCH_PRIORITY_OPTIONS.map((p) => {
-                const selected = matchPriorities.includes(p.value)
-                return (
-                  <button
-                    key={p.value}
-                    type="button"
-                    onClick={() => setMatchPriorities(toggle(matchPriorities, p.value))}
-                    disabled={loading}
-                    className={cn(
-                      'rounded-md border px-4 py-2.5 text-sm font-medium transition-all active:scale-[0.97]',
-                      selected
-                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                        : 'border-border bg-card text-foreground hover:border-primary/50',
-                    )}
-                  >
-                    {p.label}
-                  </button>
-                )
-              })}
+              <p className="text-xs text-muted-foreground mb-3">
+                We'll weight your recommendations around these.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {MATCH_PRIORITY_OPTIONS.map((p) => {
+                  const selected = matchPriorities.includes(p.value)
+                  return (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() =>
+                        setMatchPriorities(toggle(matchPriorities, p.value))
+                      }
+                      disabled={loading}
+                      className={cn(
+                        'rounded-md border px-4 py-2.5 text-sm font-medium transition-all active:scale-[0.97]',
+                        selected
+                          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                          : 'border-border bg-card text-foreground hover:border-primary/50',
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </>
         )}
@@ -937,34 +905,36 @@ const ProfileSetup = () => {
         {/* 6. Interests */}
         {step === 'interests' && (
           <>
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Your vibe</p>
-              <h2 className="font-heading text-2xl font-semibold text-foreground">
-                What are you into?
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Pick a few things you'd genuinely enjoy talking about or doing with another dad. Choose {MIN_INTERESTS}–{MAX_INTERESTS}.
-              </p>
-            </div>
-
-            <div className="sticky top-[5.5rem] z-[5] -mx-1 bg-background px-1 py-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={interestQuery}
-                  onChange={(e) => setInterestQuery(e.target.value)}
-                  placeholder="Search interests"
-                  className="rounded-md pl-9"
-                  disabled={loading}
-                />
+            <div>
+              <div className="space-y-1 mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  Your vibe
+                </p>
+                <h2 className="font-heading text-2xl font-semibold text-foreground">
+                  What are you into?
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Choose {MIN_INTERESTS}-{MAX_INTERESTS}.
+                </p>
               </div>
-              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                <span>{selectedInterestIds.length} selected</span>
-                <span>{MAX_INTERESTS - selectedInterestIds.length} left</span>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="sticky top-[5.5rem] z-[5] -mx-1 bg-background px-1 pt-2 pb-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={interestQuery}
+                    onChange={(e) => setInterestQuery(e.target.value)}
+                    placeholder="Search interests"
+                    className="rounded-md pl-9"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="mt-1.5 mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{selectedInterestIds.length} selected</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {filteredInterests.map((opt) => {
                 const selected = selectedInterestIds.includes(opt.slug)
                 const atMax = selectedInterestIds.length >= MAX_INTERESTS
@@ -975,7 +945,9 @@ const ProfileSetup = () => {
                     type="button"
                     disabled={loading || (!selected && atMax)}
                     onClick={() =>
-                      setSelectedInterestIds(toggle(selectedInterestIds, opt.slug, MAX_INTERESTS))
+                      setSelectedInterestIds(
+                        toggle(selectedInterestIds, opt.slug, MAX_INTERESTS),
+                      )
                     }
                     className={cn(
                       'flex flex-col items-center justify-center gap-1.5 rounded-lg border p-4 text-center transition-all active:scale-[0.97] disabled:opacity-40',
@@ -985,16 +957,19 @@ const ProfileSetup = () => {
                     )}
                   >
                     <span className="text-2xl">{display?.emoji ?? '✨'}</span>
-                    <span className="text-sm font-medium text-foreground">{display?.label ?? opt.name}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {display?.label ?? opt.name}
+                    </span>
                   </button>
                 )
               })}
+              </div>
+              {filteredInterests.length === 0 && (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  Nothing matches "{interestQuery}".
+                </p>
+              )}
             </div>
-            {filteredInterests.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                Nothing matches "{interestQuery}".
-              </p>
-            )}
           </>
         )}
 
@@ -1002,87 +977,165 @@ const ProfileSetup = () => {
         {step === 'icebreakers' && (
           <>
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Your vibe</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                Your vibe
+              </p>
               <h2 className="font-heading text-2xl font-semibold text-foreground">
                 Give dads something to start with
               </h2>
               <p className="text-sm text-muted-foreground">
-                Pick a question and make your profile feel like you. You can add up to {MAX_ICEBREAKERS}.
+                You can add up to {MAX_ICEBREAKERS}.
               </p>
             </div>
 
             {/* Saved icebreakers */}
             {icebreakers.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {icebreakers.map((ib, i) => {
-                  const prompt = ICEBREAKER_PROMPTS.find((p) => p.slug === ib.prompt_slug)
+                  const prompt = ICEBREAKER_PROMPTS.find(
+                    (p) => p.slug === ib.prompt_slug,
+                  )
+                  const isEditing = editingIcebreakerIndex === i
+
+                  if (isEditing) {
+                    return (
+                      <div
+                        key={ib.prompt_slug}
+                        className="animate-fade-in rounded-xl border-2 border-primary/30 bg-card p-5 shadow-md"
+                      >
+                        <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                          {prompt?.text ?? ib.prompt_slug}
+                        </p>
+                        <Textarea
+                          autoFocus
+                          value={icebreakerAnswer}
+                          onChange={(e) => {
+                            if (e.target.value.length <= MAX_ICEBREAKER_ANSWER_LENGTH)
+                              setIcebreakerAnswer(e.target.value)
+                          }}
+                          placeholder="Keep it short and real..."
+                          className="mt-3 min-h-24 rounded-md border-border shadow-sm"
+                          disabled={loading}
+                        />
+                        <div className="mt-3 flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            {icebreakerAnswer.length}/{MAX_ICEBREAKER_ANSWER_LENGTH}
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs text-muted-foreground"
+                              onClick={cancelIcebreakerEdit}
+                              disabled={loading}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="rounded-md"
+                              onClick={saveIcebreaker}
+                              disabled={loading || !icebreakerAnswer.trim()}
+                            >
+                              Update
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+
                   return (
-                    <div key={ib.prompt_slug} className="rounded-lg border border-border bg-card p-4 shadow-sm">
-                      <p className="text-xs font-semibold text-muted-foreground">{prompt?.text ?? ib.prompt_slug}</p>
-                      <p className="mt-1 text-sm text-foreground">{ib.answer}</p>
-                      <div className="mt-2 flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs text-muted-foreground"
+                    <div
+                      key={ib.prompt_slug}
+                      className="relative rounded-xl border-2 border-primary/30 bg-card px-6 py-5 shadow-lg"
+                    >
+                      <div className="absolute top-4 right-4 flex gap-1.5">
+                        <button
+                          type="button"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
                           onClick={() => editIcebreaker(i)}
                           disabled={loading}
                         >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs text-destructive"
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10"
                           onClick={() => removeIcebreaker(i)}
                           disabled={loading}
                         >
-                          Remove
-                        </Button>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
+                      <p className="text-sm font-semibold uppercase tracking-wider text-primary pr-16">
+                        {prompt?.text ?? ib.prompt_slug}
+                      </p>
+                      <p className="mt-3 text-base leading-relaxed text-foreground whitespace-pre-line">
+                        {ib.answer}
+                      </p>
                     </div>
                   )
                 })}
               </div>
             )}
 
-            {/* Prompt picker / answer editor */}
-            {selectedPromptSlug === null && icebreakers.length < MAX_ICEBREAKERS && (
-              <div className="space-y-2">
-                {ICEBREAKER_PROMPTS.filter((p) => !usedPromptSlugs.has(p.slug)).map((p) => (
-                  <button
-                    key={p.slug}
-                    type="button"
-                    onClick={() => {
-                      setSelectedPromptSlug(p.slug)
-                      setIcebreakerAnswer('')
-                      setEditingIcebreakerIndex(null)
-                    }}
-                    disabled={loading}
-                    className="w-full rounded-lg border border-border bg-card px-4 py-3 text-left text-sm text-foreground transition-colors hover:border-primary/50 hover:bg-muted/30"
-                  >
-                    {p.text}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Add another button — shown when there are saved icebreakers, picker is hidden, and not at max */}
+            {icebreakers.length > 0 &&
+              icebreakers.length < MAX_ICEBREAKERS &&
+              !showPromptPicker &&
+              editingIcebreakerIndex === null && (
+                <Button
+                  variant="outline"
+                  className="w-full rounded-lg border-2 border-dashed border-primary/40 py-6 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5"
+                  onClick={() => setShowPromptPicker(true)}
+                  disabled={loading}
+                >
+                  + Add another icebreaker
+                </Button>
+              )}
 
-            {selectedPromptSlug !== null && (
-              <div className="animate-fade-in space-y-3 rounded-lg border border-primary/30 bg-card p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="font-heading text-base font-semibold leading-snug text-foreground">
-                    {ICEBREAKER_PROMPTS.find((p) => p.slug === selectedPromptSlug)?.text}
+            {/* Prompt picker — shown on first visit (no icebreakers) or when "Add another" is clicked */}
+            {selectedPromptSlug === null &&
+              editingIcebreakerIndex === null &&
+              icebreakers.length < MAX_ICEBREAKERS &&
+              (icebreakers.length === 0 || showPromptPicker) && (
+                <div className="space-y-1.5">
+                  <p className="text-sm font-semibold text-foreground mb-2">
+                    Pick a prompt
                   </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 text-xs text-muted-foreground"
-                    onClick={cancelIcebreakerEdit}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {ICEBREAKER_PROMPTS.filter(
+                      (p) => !usedPromptSlugs.has(p.slug),
+                    ).map((p) => (
+                      <button
+                        key={p.slug}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPromptSlug(p.slug)
+                          setIcebreakerAnswer('')
+                          setEditingIcebreakerIndex(null)
+                        }}
+                        disabled={loading}
+                        className="w-full rounded-lg border border-border bg-card px-4 py-3 text-left text-sm text-foreground transition-colors hover:border-primary/50 hover:bg-primary/5"
+                      >
+                        {p.text}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              )}
+
+            {/* New answer editor — shown when a prompt is picked (not editing existing) */}
+            {selectedPromptSlug !== null && editingIcebreakerIndex === null && (
+              <div className="animate-fade-in rounded-xl border-2 border-primary/30 bg-card p-5 shadow-md">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  {
+                    ICEBREAKER_PROMPTS.find(
+                      (p) => p.slug === selectedPromptSlug,
+                    )?.text
+                  }
+                </p>
                 <Textarea
                   autoFocus
                   value={icebreakerAnswer}
@@ -1091,21 +1144,32 @@ const ProfileSetup = () => {
                       setIcebreakerAnswer(e.target.value)
                   }}
                   placeholder="Keep it short and real..."
-                  className="min-h-24 rounded-md"
+                  className="mt-3 min-h-24 rounded-md border-border shadow-sm"
                   disabled={loading}
                 />
-                <div className="flex items-center justify-between">
+                <div className="mt-3 flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">
                     {icebreakerAnswer.length}/{MAX_ICEBREAKER_ANSWER_LENGTH}
                   </p>
-                  <Button
-                    size="sm"
-                    className="rounded-md"
-                    onClick={saveIcebreaker}
-                    disabled={loading || !icebreakerAnswer.trim()}
-                  >
-                    {editingIcebreakerIndex !== null ? 'Update' : 'Save'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground"
+                      onClick={cancelIcebreakerEdit}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="rounded-md"
+                      onClick={saveIcebreaker}
+                      disabled={loading || !icebreakerAnswer.trim()}
+                    >
+                      Save
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1116,12 +1180,14 @@ const ProfileSetup = () => {
         {step === 'photo' && (
           <>
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Finishing up</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                Finishing up
+              </p>
               <h2 className="font-heading text-2xl font-semibold text-foreground">
                 Put a face to the name
               </h2>
               <p className="text-sm text-muted-foreground">
-                A photo helps other dads feel comfortable reaching out. Nothing fancy — a clear shot of you is plenty.
+                Say cheese!
               </p>
             </div>
 
@@ -1177,9 +1243,6 @@ const ProfileSetup = () => {
                   Remove
                 </Button>
               )}
-              <p className="text-center text-xs text-muted-foreground">
-                Dads with a photo get roughly twice as many first messages.
-              </p>
             </div>
           </>
         )}
@@ -1188,7 +1251,9 @@ const ProfileSetup = () => {
         {step === 'consent' && (
           <>
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Finishing up</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                Finishing up
+              </p>
               <h2 className="font-heading text-2xl font-semibold text-foreground">
                 Last quick thing
               </h2>
@@ -1292,10 +1357,10 @@ const ProfileSetup = () => {
 
       {/* Sticky footer CTA */}
       <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background px-6 py-4">
-        <div className="mx-auto max-w-md space-y-2">
+        <div className="mx-auto max-w-md sm:max-w-lg md:max-w-2xl space-y-2">
           <Button
             size="lg"
-            disabled={loading || !canContinue()}
+            disabled={loading || !isStepFilled()}
             className="w-full rounded-md bg-gradient-gold text-base font-semibold shadow-md disabled:opacity-40"
             onClick={step === 'consent' ? handleSubmit : goNext}
           >
@@ -1305,16 +1370,12 @@ const ProfileSetup = () => {
                 ? 'Join Next Level Dads'
                 : 'Continue'}
           </Button>
-          {step === 'interests' && selectedInterestIds.length < MIN_INTERESTS && (
-            <p className="text-center text-xs text-muted-foreground">
-              Pick at least {MIN_INTERESTS} so we can find common ground.
-            </p>
-          )}
-          {step === 'basics' && (
-            <p className="text-center text-xs text-muted-foreground">
-              Takes about 2 minutes. You can change anything later.
-            </p>
-          )}
+          {step === 'interests' &&
+            selectedInterestIds.length < MIN_INTERESTS && (
+              <p className="text-center text-xs text-muted-foreground">
+                Pick at least {MIN_INTERESTS} so we can find common ground.
+              </p>
+            )}
         </div>
       </div>
     </div>

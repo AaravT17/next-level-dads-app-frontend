@@ -37,6 +37,7 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   VERIFY_EMAIL: '/verify-email',
   SETUP: '/setup',
+  ONBOARDING_WELCOME: '/welcome',
 
   // Dads
   DADS: '/dads',
