@@ -1,3 +1,5 @@
+import type { InterestItem, IcebreakerEntry } from './users'
+
 // ── Conversation types ─────────────────────────────────────────────────────
 
 export interface AuthorInfo {
@@ -115,8 +117,10 @@ export interface CommunityMemberResponse {
   province: string
   about: string
   avatar_url: string | null
-  interests: string[]
-  children: string[]
+  interests: InterestItem[]
+  children_age_ranges: string[]
+  kid_count: number | null
+  icebreakers: IcebreakerEntry[] | null
   created_at: string
   joined_at: string
   role: 'admin' | 'member'

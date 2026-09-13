@@ -1,4 +1,4 @@
-import { MapPin, MessageCircle, UserMinus, UserPlus, Check, X, Clock } from 'lucide-react'
+import { MapPin, MessageCircle, UserMinus, UserPlus, Check, X, Clock, Baby } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
@@ -10,9 +10,7 @@ import { AxiosError } from 'axios'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 import { cn } from '@/lib/utils'
-import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
-import { getStageDisplayLabel } from '@/utils/users'
 import { initials } from '@/utils/format'
 import { profileDetail, chat } from '@/lib/routes'
 import { toastError } from '@/lib/toast'
@@ -34,9 +32,8 @@ const DadCard = ({
   age,
   city,
   province,
-  children,
   about,
-  interests,
+  kid_count,
   avatar_url,
   connection_status,
 }: DadCardProps) => {
@@ -401,35 +398,20 @@ const DadCard = ({
                 {city}, {province}
               </span>
             </div>
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {children.map((child) => (
-                <Badge
-                  key={child}
-                  variant="soft"
-                  className="rounded-md text-caption"
-                >
-                  {getStageDisplayLabel(child)}
-                </Badge>
-              ))}
-            </div>
+            {kid_count != null && kid_count > 0 && (
+              <div className="flex items-center gap-1 text-caption text-muted-foreground mt-0.5">
+                <Baby className="w-3 h-3" />
+                <span>
+                  {kid_count} {kid_count === 1 ? 'kid' : 'kids'}
+                </span>
+              </div>
+            )}
           </div>
 
           {renderButtons()}
         </div>
 
-        <p className="text-foreground text-body leading-relaxed">{about}</p>
-
-        <div className="flex flex-wrap gap-1.5">
-          {interests.map((interest) => (
-            <Badge
-              key={interest}
-              variant="interest"
-              className="rounded-md text-caption"
-            >
-              {interest}
-            </Badge>
-          ))}
-        </div>
+        <p className="text-foreground text-body leading-relaxed line-clamp-2">{about}</p>
       </CardContent>
     </Card>
   )

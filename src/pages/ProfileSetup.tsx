@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -13,138 +13,277 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowLeft, CalendarIcon } from 'lucide-react'
+import {
+  ArrowLeft,
+  Check,
+  HandHeart,
+  Lock,
+  PartyPopper,
+  Search,
+  UserRound,
+  Users,
+} from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CalendarIcon } from 'lucide-react'
 import { ROUTES } from '@/lib/routes'
 import {
   MAX_BIO_LENGTH,
+  MAX_NAME_LENGTH,
+  MAX_CITY_LENGTH,
+  MAX_ICEBREAKER_ANSWER_LENGTH,
+  MIN_INTERESTS,
+  MAX_INTERESTS,
+  MIN_ICEBREAKERS,
+  MAX_ICEBREAKERS,
   TIMEOUT_LENGTH_MS,
-  INTEREST_OPTIONS,
   STAGE_OPTIONS,
   PROVINCE_OPTIONS,
+  INTEREST_DISPLAY_MAP,
+  GOAL_OPTIONS,
+  CONNECTION_STYLE_OPTIONS,
+  MATCH_PRIORITY_OPTIONS,
+  ICEBREAKER_PROMPTS,
 } from '@/config/constants'
 import axiosPrivate from '@/api/axiosPrivate'
 import { useAuth } from '@/contexts/AuthContext'
-import { toastError } from '@/lib/toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 import { getErrorMessage } from '@/utils/errors'
+import { cn } from '@/lib/utils'
+
+// ── Types ────────────────────────────────────────────────────────────
+
+interface InterestOption {
+  id: string
+  slug: string
+  name: string
+}
+
+interface IcebreakerDraft {
+  prompt_slug: string
+  answer: string
+}
+
+type StepId =
+  | 'basics'
+  | 'stages'
+  | 'goals'
+  | 'connections'
+  | 'priorities'
+  | 'interests'
+  | 'icebreakers'
+  | 'photo'
+  | 'consent'
+  | 'welcome'
+
+const STEPS: StepId[] = [
+  'basics',
+  'stages',
+  'goals',
+  'connections',
+  'priorities',
+  'interests',
+  'icebreakers',
+  'photo',
+  'consent',
+  'welcome',
+]
+
+// ── Helpers ──────────────────────────────────────────────────────────
+
+const toggle = <T,>(list: T[], value: T, max?: number): T[] => {
+  if (list.includes(value)) return list.filter((v) => v !== value)
+  if (max && list.length >= max) return list
+  return [...list, value]
+}
+
+const ageFromDob = (dob: string): number | null => {
+  if (!dob) return null
+  const d = new Date(dob)
+  if (Number.isNaN(d.getTime())) return null
+  const now = new Date()
+  let age = now.getFullYear() - d.getFullYear()
+  const m = now.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
+  return age >= 0 && age < 120 ? age : null
+}
+
+// ── Component ────────────────────────────────────────────────────────
 
 const ProfileSetup = () => {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
   const { accessToken, setAuth } = useAuth()
-  const [step, setStep] = useState(1)
-  const totalSteps = 5
+  const [loading, setLoading] = useState(false)
+  const [stepIndex, setStepIndex] = useState(0)
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  const [formData, setFormData] = useState({
-    name: '',
-    date_of_birth: '',
-    city: '',
-    province: '',
-    about: '',
-    interests: [] as string[],
-    stages: [] as string[],
-  })
+  const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL as string
 
-  const [customInterest, setCustomInterest] = useState('')
-  const [showCustomInput, setShowCustomInput] = useState(false)
+  // Form state
+  const [name, setName] = useState('')
+  const [dob, setDob] = useState('')
+  const [city, setCity] = useState('')
+  const [province, setProvince] = useState('')
+  const [about, setAbout] = useState('')
+
+  const [stages, setStages] = useState<string[]>([])
+  const [kidCount, setKidCount] = useState<number>(0)
+
+  const [goals, setGoals] = useState<string[]>([])
+  const [primaryGoal, setPrimaryGoal] = useState<string | null>(null)
+
+  const [connectionStyles, setConnectionStyles] = useState<string[]>([])
+  const [matchPriorities, setMatchPriorities] = useState<string[]>([])
+
+  const [selectedInterestIds, setSelectedInterestIds] = useState<string[]>([])
+  const [interestOptions, setInterestOptions] = useState<InterestOption[]>([])
+  const [interestQuery, setInterestQuery] = useState('')
+
+  const [icebreakers, setIcebreakers] = useState<IcebreakerDraft[]>([])
+  const [editingIcebreakerIndex, setEditingIcebreakerIndex] = useState<number | null>(null)
+  const [selectedPromptSlug, setSelectedPromptSlug] = useState<string | null>(null)
+  const [icebreakerAnswer, setIcebreakerAnswer] = useState('')
 
   const [avatar, setAvatar] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false)
   const [confirmedAge, setConfirmedAge] = useState(false)
   const [marketingOptIn, setMarketingOptIn] = useState(false)
 
-  const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL as string
+  const step = STEPS[stepIndex]
+  const totalVisible = STEPS.length - 1 // welcome isn't a numbered step
+  const age = ageFromDob(dob)
 
-  const toggleInterest = (interest: string) => {
-    if (loading) return
-    setFormData((prev) => ({
-      ...prev,
-      interests: prev.interests.includes(interest)
-        ? prev.interests.filter((i) => i !== interest)
-        : [...prev.interests, interest],
-    }))
-  }
+  // Fetch interest options (id + slug + name) on mount
+  useEffect(() => {
+    axiosPrivate
+      .get<InterestOption[]>('/api/interests/', { timeout: TIMEOUT_LENGTH_MS })
+      .then((res) => setInterestOptions(res.data))
+      .catch(() => {})
+  }, [])
 
-  const toggleStage = (stage: string) => {
-    if (loading) return
-    setFormData((prev) => ({
-      ...prev,
-      stages: prev.stages.includes(stage)
-        ? prev.stages.filter((s) => s !== stage)
-        : [...prev.stages, stage],
-    }))
-  }
-
-  const handleAddCustomInterest = () => {
-    if (loading) return
-    const trimmed = customInterest.trim()
-    if (!trimmed || formData.interests.includes(trimmed)) return
-    setFormData((prev) => ({
-      ...prev,
-      interests: [...prev.interests, trimmed],
-    }))
-    setCustomInterest('')
-    setShowCustomInput(false)
-  }
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (loading) return
-    const file = e.target.files?.[0] ?? null
-    if (!file) return // user cancelled, keep existing selection
-
-    // revoke old preview URL
-    if (avatarPreview) {
-      URL.revokeObjectURL(avatarPreview)
+  // Build a slug→id map for submission
+  const slugToId = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const opt of interestOptions) {
+      map[opt.slug] = opt.id
     }
+    return map
+  }, [interestOptions])
 
-    setAvatar(file)
-    setAvatarPreview(URL.createObjectURL(file))
-  }
+  // Interest filtering
+  const filteredInterests = useMemo(() => {
+    const q = interestQuery.trim().toLowerCase()
+    const opts = interestOptions.map((o) => ({
+      ...o,
+      display: INTEREST_DISPLAY_MAP[o.slug],
+    }))
+    if (!q) return opts
+    return opts.filter(
+      (o) =>
+        o.name.toLowerCase().includes(q) ||
+        o.display?.label.toLowerCase().includes(q),
+    )
+  }, [interestQuery, interestOptions])
 
-  const handleNext = () => {
-    if (loading) return
-    if (step >= totalSteps) return
-    if (step === 1) {
-      const name = formData.name.trim()
-      const city = formData.city.trim()
-      if (!name || !formData.date_of_birth || !city || !formData.province) {
-        toastError('Please fill out all required fields', 'Name, date of birth, city, and province are required.')
-        return
+  // Used icebreaker slugs (can't pick the same prompt twice)
+  const usedPromptSlugs = useMemo(
+    () => new Set(icebreakers.map((ib) => ib.prompt_slug)),
+    [icebreakers],
+  )
+
+  // ── Validation ───────────────────────────────────────────────────
+
+  /** Returns null if valid, or an error message string. */
+  const validateStep = (): string | null => {
+    switch (step) {
+      case 'basics': {
+        const n = name.trim()
+        if (!n) return 'Name cannot be empty.'
+        if (n.length > MAX_NAME_LENGTH) return `Name must be ${MAX_NAME_LENGTH} characters or less.`
+        if (!dob) return 'Date of birth is required.'
+        const c = city.trim()
+        if (!c) return 'City cannot be empty.'
+        if (c.length > MAX_CITY_LENGTH) return `City must be ${MAX_CITY_LENGTH} characters or less.`
+        if (!province) return 'Province is required.'
+        const a = about.trim()
+        if (!a) return 'Bio cannot be empty.'
+        if (a.length > MAX_BIO_LENGTH) return `Bio must be ${MAX_BIO_LENGTH} characters or less.`
+        return null
       }
-    } else if (step === 2) {
-      const about = formData.about.trim()
-      if (!about) {
-        toastError('Please fill out the about section', 'Tell us a bit about yourself.')
-        return
+      case 'stages': {
+        if (kidCount < 0 || kidCount >= 100) return 'Kid count must be between 0 and 99.'
+        return null // stages optional
       }
-      if (formData.stages.length === 0) {
-        toastError("Please select at least one children's age range", 'This helps us connect you with similar dads.')
-        return
+      case 'goals': {
+        if (goals.length === 0) return 'Please select at least one goal.'
+        if (goals.length > 1 && !primaryGoal) return 'Please select a primary goal.'
+        return null
       }
+      case 'connections':
+        if (connectionStyles.length === 0) return 'Please select at least one connection style.'
+        return null
+      case 'priorities':
+        if (matchPriorities.length === 0) return 'Please select at least one match priority.'
+        return null
+      case 'interests':
+        if (selectedInterestIds.length < MIN_INTERESTS)
+          return `Please select at least ${MIN_INTERESTS} interests.`
+        if (selectedInterestIds.length > MAX_INTERESTS)
+          return `You can select at most ${MAX_INTERESTS} interests.`
+        return null
+      case 'icebreakers': {
+        if (icebreakers.length < MIN_ICEBREAKERS)
+          return `Please add at least ${MIN_ICEBREAKERS} icebreaker.`
+        if (icebreakers.length > MAX_ICEBREAKERS)
+          return `You can have at most ${MAX_ICEBREAKERS} icebreakers.`
+        for (const ib of icebreakers) {
+          if (!ib.answer.trim()) return 'Icebreaker answers cannot be empty.'
+          if (ib.answer.length > MAX_ICEBREAKER_ANSWER_LENGTH)
+            return `Icebreaker answers must be ${MAX_ICEBREAKER_ANSWER_LENGTH} characters or less.`
+        }
+        return null
+      }
+      case 'consent':
+        if (!agreedToTerms) return 'You must agree to the Terms & Conditions.'
+        if (!agreedToPrivacy) return 'You must acknowledge the Privacy Policy.'
+        if (!confirmedAge) return 'You must confirm you are 18 or older.'
+        return null
+      default:
+        return null
     }
-    // no required fields on step 3
-    setStep(step + 1)
   }
 
-  const handleBack = async () => {
+  const canContinue = (): boolean => validateStep() === null
+
+  // ── Navigation ───────────────────────────────────────────────────
+
+  const goNext = () => {
+    if (loading || stepIndex >= STEPS.length - 1) return
+    const error = validateStep()
+    if (error) {
+      toastError(error)
+      return
+    }
+    // Auto-set primary goal if only one selected
+    if (step === 'goals' && goals.length === 1) {
+      setPrimaryGoal(goals[0])
+    }
+    setStepIndex(stepIndex + 1)
+    window.scrollTo({ top: 0 })
+  }
+
+  const goBack = async () => {
     if (loading) return
-    if (step > 1) {
-      setStep(step - 1)
+    if (stepIndex > 0) {
+      setStepIndex(stepIndex - 1)
+      window.scrollTo({ top: 0 })
     } else {
-      // if we're at step 1, treat back as a cancel and log the user out
       try {
-        await axiosPrivate.post(
-          '/api/auth/logout',
-          {},
-          {
-            timeout: TIMEOUT_LENGTH_MS,
-          },
-        )
+        await axiosPrivate.post('/api/auth/logout', {}, { timeout: TIMEOUT_LENGTH_MS })
       } catch {
         // logout locally even if server call fails
       } finally {
@@ -154,37 +293,58 @@ const ProfileSetup = () => {
     }
   }
 
+  const isSkippable = step === 'photo'
+
+  // ── Submit ───────────────────────────────────────────────────────
+
   const handleSubmit = async () => {
     if (loading) return
-    if (!agreedToTerms || !confirmedAge) {
-      toastError('Please accept all required agreements', 'You must agree to the Terms and Conditions, Privacy Policy, and confirm your age.')
+
+    // Final consent validation
+    const error = validateStep()
+    if (error) {
+      toastError(error)
       return
     }
-    const profileData = new FormData()
-    profileData.append('name', formData.name)
-    profileData.append('date_of_birth', formData.date_of_birth)
-    profileData.append('city', formData.city)
-    profileData.append('province', formData.province)
-    profileData.append('about', formData.about)
-    formData.interests.forEach((i) => profileData.append('interests', i))
-    formData.stages.forEach((stage) =>
-      profileData.append('children_age_ranges', stage),
-    )
-    if (avatar) {
-      profileData.append('avatar', avatar)
+
+    // Resolve interest UUIDs from selected slugs
+    const interestUuids = selectedInterestIds
+      .map((slug) => slugToId[slug])
+      .filter(Boolean)
+
+    const effectivePrimaryGoal = goals.length === 1 ? goals[0] : primaryGoal
+
+    const body = {
+      name: name.trim(),
+      date_of_birth: dob,
+      city: city.trim(),
+      province,
+      about: about.trim(),
+      interests: interestUuids,
+      children_age_ranges: stages,
+      kid_count: kidCount,
+      goals,
+      primary_goal: effectivePrimaryGoal,
+      connection_styles: connectionStyles,
+      match_priorities: matchPriorities,
+      icebreakers: icebreakers.map((ib) => ({
+        prompt_slug: ib.prompt_slug,
+        answer: ib.answer.trim(),
+      })),
+      accepted_terms: true,
+      accepted_privacy_policy: true,
+      marketing_emails_opt_in: marketingOptIn,
     }
-    profileData.append('accepted_terms', 'true')
-    profileData.append('accepted_privacy_policy', 'true')
-    profileData.append('marketing_emails_opt_in', String(marketingOptIn))
 
     try {
       setLoading(true)
-      const res = await axiosPrivate.post('/api/users/', profileData, {
+
+      // Step 1: Create profile (JSON)
+      const res = await axiosPrivate.post('/api/users/', body, {
         timeout: TIMEOUT_LENGTH_MS,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
       })
+
+      // Hydrate auth state immediately
       setAuth({
         user: {
           id: res.data.id,
@@ -195,21 +355,69 @@ const ProfileSetup = () => {
           province: res.data.province,
           about: res.data.about,
           avatarUrl: res.data.avatar_url,
-          interests: res.data.interests,
-          children_age_ranges: res.data.children,
+          interests: res.data.interests ?? [],
+          children_age_ranges: res.data.children_age_ranges ?? [],
+          kid_count: res.data.kid_count ?? null,
+          goals: res.data.goals ?? null,
+          primary_goal: res.data.primary_goal ?? null,
+          connection_styles: res.data.connection_styles ?? null,
+          match_priorities: res.data.match_priorities ?? null,
+          icebreakers: res.data.icebreakers ?? null,
           isAdmin: res.data.is_admin ?? false,
           preferences: {
-            marketing_emails_opt_in: res.data.preferences?.marketing_emails_opt_in ?? marketingOptIn,
+            marketing_emails_opt_in:
+              res.data.preferences?.marketing_emails_opt_in ?? marketingOptIn,
           },
-          legal_acceptances: {
-            terms: true,
-            privacy_policy: true,
-          },
+          legal_acceptances: { terms: true, privacy_policy: true },
         },
         accessToken,
       })
-      navigate(ROUTES.HOME_AFTER_AUTH)
-    } catch (err: any) {
+
+      // Step 2: Upload avatar if selected (failure doesn't block)
+      if (avatar) {
+        try {
+          const avatarData = new FormData()
+          avatarData.append('avatar', avatar)
+          const avatarRes = await axiosPrivate.put('/api/users/me/avatar', avatarData, {
+            timeout: TIMEOUT_LENGTH_MS,
+            headers: { 'Content-Type': 'multipart/form-data' },
+          })
+          // Update avatar URL in auth state
+          setAuth({
+            user: {
+              id: res.data.id,
+              name: res.data.name,
+              age: res.data.age,
+              date_of_birth: res.data.date_of_birth,
+              city: res.data.city,
+              province: res.data.province,
+              about: res.data.about,
+              avatarUrl: avatarRes.data.avatar_url,
+              interests: res.data.interests ?? [],
+              children_age_ranges: res.data.children_age_ranges ?? [],
+              kid_count: res.data.kid_count ?? null,
+              goals: res.data.goals ?? null,
+              primary_goal: res.data.primary_goal ?? null,
+              connection_styles: res.data.connection_styles ?? null,
+              match_priorities: res.data.match_priorities ?? null,
+              icebreakers: res.data.icebreakers ?? null,
+              isAdmin: res.data.is_admin ?? false,
+              preferences: {
+                marketing_emails_opt_in:
+                  res.data.preferences?.marketing_emails_opt_in ?? marketingOptIn,
+              },
+              legal_acceptances: { terms: true, privacy_policy: true },
+            },
+            accessToken,
+          })
+        } catch {
+          toastError('Photo upload failed', 'No worries — you can add one later from your profile.')
+        }
+      }
+
+      // Advance to welcome screen
+      setStepIndex(STEPS.indexOf('welcome'))
+    } catch (err: unknown) {
       toastError(
         'Profile creation failed',
         getErrorMessage(err, 'Failed to create profile. Please try again.'),
@@ -219,78 +427,195 @@ const ProfileSetup = () => {
     }
   }
 
-  const progress = (step / totalSteps) * 100
+  // ── Photo handling ───────────────────────────────────────────────
+
+  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+    setAvatar(file)
+    setAvatarPreview(URL.createObjectURL(file))
+  }
+
+  // ── Icebreaker helpers ───────────────────────────────────────────
+
+  const saveIcebreaker = () => {
+    if (!selectedPromptSlug || !icebreakerAnswer.trim()) return
+    const entry: IcebreakerDraft = {
+      prompt_slug: selectedPromptSlug,
+      answer: icebreakerAnswer.trim(),
+    }
+    if (editingIcebreakerIndex !== null) {
+      setIcebreakers((prev) =>
+        prev.map((ib, i) => (i === editingIcebreakerIndex ? entry : ib)),
+      )
+    } else {
+      setIcebreakers((prev) => [...prev, entry])
+    }
+    setSelectedPromptSlug(null)
+    setIcebreakerAnswer('')
+    setEditingIcebreakerIndex(null)
+  }
+
+  const removeIcebreaker = (index: number) => {
+    setIcebreakers((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const editIcebreaker = (index: number) => {
+    const ib = icebreakers[index]
+    setSelectedPromptSlug(ib.prompt_slug)
+    setIcebreakerAnswer(ib.answer)
+    setEditingIcebreakerIndex(index)
+  }
+
+  const cancelIcebreakerEdit = () => {
+    setSelectedPromptSlug(null)
+    setIcebreakerAnswer('')
+    setEditingIcebreakerIndex(null)
+  }
+
+  // ── Welcome screen ─────────────────────────────────────────────
+
+  // Auto-redirect after 5 seconds on welcome screen
+  useEffect(() => {
+    if (step !== 'welcome') return
+    const timer = setTimeout(() => navigate(ROUTES.HOME_AFTER_AUTH), 5000)
+    return () => clearTimeout(timer)
+  }, [step, navigate])
+
+  if (step === 'welcome') {
+    const highlights = [
+      { icon: Users, title: 'Dads to connect with', copy: 'Matched on your stage, goals and interests.' },
+      { icon: HandHeart, title: 'Communities to join', copy: 'Built around what you actually care about.' },
+      { icon: PartyPopper, title: 'Things to do', copy: 'Meetups and events near you.' },
+    ]
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
+          <div className="animate-fade-in space-y-8 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-lg bg-gradient-gold shadow-lg">
+              <Check className="h-10 w-10 text-primary-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="font-heading text-3xl font-semibold leading-tight text-foreground">
+                You're in{name ? `, ${name.split(' ')[0]}` : ''}.
+              </h1>
+              <p className="text-lg text-muted-foreground">Welcome to Next Level Dads.</p>
+              <p className="pt-1 text-base font-medium text-foreground">Let's find your people.</p>
+            </div>
+
+            <div className="space-y-3 text-left">
+              {highlights.map((h, i) => (
+                <div
+                  key={h.title}
+                  className="flex animate-fade-in items-center gap-3 rounded-lg bg-card p-4 shadow-sm"
+                  style={{ animationDelay: `${150 + i * 120}ms`, animationFillMode: 'backwards' }}
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
+                    <h.icon className="h-5 w-5" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-foreground">{h.title}</span>
+                    <span className="block text-xs text-muted-foreground">{h.copy}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full rounded-md bg-gradient-gold text-base font-semibold shadow-md"
+              onClick={() => navigate(ROUTES.HOME_AFTER_AUTH)}
+            >
+              Start exploring
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              You can fine-tune your profile any time — no rush.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Progress ───────────────────────────────────────────────────
+
+  const progress = ((stepIndex + 1) / totalVisible) * 100
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="bg-card border-b border-border">
-        <div className="max-w-md mx-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
+    <div className="min-h-screen bg-background pb-28">
+      {/* Header */}
+      <div className="sticky top-0 z-10 border-b border-border bg-card">
+        <div className="mx-auto max-w-md px-6 py-3">
+          <div className="mb-3 flex items-center justify-between">
             <button
-              onClick={handleBack}
-              className="text-muted-foreground"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <span className="text-sm font-medium text-muted-foreground">
-              Step {step} of {totalSteps}
-            </span>
-            {/* <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(ROUTES.DADS)}
-              className="text-muted-foreground hover:text-foreground"
+              onClick={goBack}
+              aria-label="Back"
+              className="-ml-1 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
               disabled={loading}
             >
-              Skip
-            </Button> */}
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <span className="text-sm font-medium text-muted-foreground">
+              Step {stepIndex + 1} of {totalVisible}
+            </span>
+            {isSkippable && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goNext}
+                className="text-muted-foreground hover:text-foreground"
+                disabled={loading}
+              >
+                Skip
+              </Button>
+            )}
+            {!isSkippable && <div className="w-12" />}
           </div>
-          <Progress
-            value={progress}
-            className="h-2"
-          />
+          <Progress value={progress} className="h-1.5" />
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-6 py-8 space-y-6 animate-fade-in">
-        {step === 1 && (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-heading font-semibold text-foreground">
-                Tell us about yourself
+      <div key={step} className="mx-auto max-w-md animate-fade-in space-y-6 px-6 py-7">
+        {/* 1. Basics */}
+        {step === 'basics' && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Let's start here</p>
+              <h2 className="font-heading text-2xl font-semibold text-foreground">
+                First, the basics
               </h2>
-              <p className="text-muted-foreground">
-                Let's start with the basics
+              <p className="text-sm text-muted-foreground">
+                Just enough for other dads to know who they're talking to — and for us to find dads close to you.
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 rounded-lg bg-card p-5 shadow-sm">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">What should dads call you?</Label>
                 <Input
                   id="name"
-                  placeholder="Your name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="rounded-lg"
+                  placeholder="First name or full name"
+                  maxLength={MAX_NAME_LENGTH}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="rounded-md"
                   disabled={loading}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Date of Birth</Label>
+                <Label htmlFor="dob">Date of birth</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start rounded-lg font-normal"
+                      className="w-full justify-start rounded-md font-normal"
                       disabled={loading}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                      {formData.date_of_birth ? (
-                        format(parseISO(formData.date_of_birth), 'MMMM d, yyyy')
+                      {dob ? (
+                        format(parseISO(dob), 'MMMM d, yyyy')
                       ) : (
                         <span className="text-muted-foreground">Pick a date</span>
                       )}
@@ -299,13 +624,8 @@ const ProfileSetup = () => {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={formData.date_of_birth ? parseISO(formData.date_of_birth) : undefined}
-                      onSelect={(date) =>
-                        setFormData({
-                          ...formData,
-                          date_of_birth: date ? format(date, 'yyyy-MM-dd') : '',
-                        })
-                      }
+                      selected={dob ? parseISO(dob) : undefined}
+                      onSelect={(date) => setDob(date ? format(date, 'yyyy-MM-dd') : '')}
                       disabled={(date) => date > new Date()}
                       captionLayout="dropdown"
                       fromYear={1900}
@@ -314,229 +634,522 @@ const ProfileSetup = () => {
                     />
                   </PopoverContent>
                 </Popover>
+                <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                  <Lock className="mt-0.5 h-3 w-3 shrink-0" />
+                  Your birthday stays private. Other dads only see your age
+                  {age !== null ? ` — right now that's ${age}.` : '.'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-[1fr,7rem] gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    placeholder="e.g. Toronto"
+                    maxLength={MAX_CITY_LENGTH}
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="rounded-md"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="province">Province</Label>
+                  <Select value={province} onValueChange={setProvince} disabled={loading}>
+                    <SelectTrigger id="province" className="rounded-md">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROVINCE_OPTIONS.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  placeholder="Your city"
-                  value={formData.city}
-                  onChange={(e) =>
-                    setFormData({ ...formData, city: e.target.value })
-                  }
-                  className="rounded-lg"
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="province">Province</Label>
-                <Select
-                  value={formData.province}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, province: value })
-                  }
-                  disabled={loading}
-                >
-                  <SelectTrigger
-                    id="province"
-                    className="rounded-lg"
-                  >
-                    <SelectValue placeholder="Select your province" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROVINCE_OPTIONS.map((province) => (
-                      <SelectItem
-                        key={province.value}
-                        value={province.value}
-                      >
-                        {province.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-heading font-semibold text-foreground">
-                Share your story
-              </h2>
-              <p className="text-muted-foreground">
-                Help others get to know you
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="about">About You</Label>
+                <Label htmlFor="about">About you</Label>
                 <Textarea
                   id="about"
                   placeholder="Love hiking with my kids and exploring new coffee shops."
-                  value={formData.about}
+                  value={about}
                   onChange={(e) => {
-                    if (e.target.value.length <= MAX_BIO_LENGTH) {
-                      setFormData({ ...formData, about: e.target.value })
-                    }
+                    if (e.target.value.length <= MAX_BIO_LENGTH) setAbout(e.target.value)
                   }}
-                  className="rounded-lg min-h-32"
-                  maxLength={MAX_BIO_LENGTH}
-                  required
+                  className="min-h-24 rounded-md"
                   disabled={loading}
                 />
-                <div className="text-caption text-muted-foreground text-right">
-                  {formData.about.length}/{MAX_BIO_LENGTH}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Children's Age (Select all that apply)</Label>
-                <div className="flex flex-wrap gap-2">
-                  {STAGE_OPTIONS.map((stage) => (
-                    <Badge
-                      key={stage.value}
-                      variant={
-                        formData.stages.includes(stage.value)
-                          ? 'default'
-                          : 'soft'
-                      }
-                      className="cursor-pointer rounded-md"
-                      onClick={() => toggleStage(stage.value)}
-                    >
-                      {stage.label}
-                    </Badge>
-                  ))}
-                </div>
+                <p className="text-right text-xs text-muted-foreground">
+                  {about.length}/{MAX_BIO_LENGTH}
+                </p>
               </div>
             </div>
-          </div>
+          </>
         )}
 
-        {step === 3 && (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-heading font-semibold text-foreground">
-                Your interests
+        {/* 2. Stages + kid count */}
+        {step === 'stages' && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Dad life</p>
+              <h2 className="font-heading text-2xl font-semibold text-foreground">
+                Where are you at in dad life?
               </h2>
-              <p className="text-muted-foreground">
-                Select what you enjoy doing
+              <p className="text-sm text-muted-foreground">
+                We'll point you toward dads navigating similar stages. Pick all that apply.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {INTEREST_OPTIONS.map((interest) => (
-                <Badge
-                  key={interest}
-                  variant={
-                    formData.interests.includes(interest) ? 'default' : 'soft'
-                  }
-                  className="cursor-pointer rounded-md"
-                  onClick={() => toggleInterest(interest)}
-                >
-                  {interest}
-                </Badge>
-              ))}
-              {formData.interests
-                .filter((i) => !INTEREST_OPTIONS.includes(i))
-                .map((interest) => (
-                  <Badge
-                    key={interest}
-                    variant="default"
-                    className="cursor-pointer rounded-md bg-gradient-gold"
-                    onClick={() => toggleInterest(interest)}
-                  >
-                    {interest}
-                  </Badge>
-                ))}
-              {!showCustomInput ? (
-                <Badge
-                  variant="outline"
-                  className="cursor-pointer rounded-md"
-                  onClick={() => {
-                    if (loading) return
-                    setShowCustomInput(true)
-                  }}
-                >
-                  + Add your own
-                </Badge>
-              ) : (
-                <div className="flex gap-2 w-full">
-                  <Input
-                    placeholder="Type your interest..."
-                    value={customInterest}
-                    onChange={(e) => setCustomInterest(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' && handleAddCustomInterest()
-                    }
-                    className="rounded-lg"
-                    autoFocus
+              {STAGE_OPTIONS.map((s) => {
+                const selected = stages.includes(s.value)
+                return (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => setStages(toggle(stages, s.value))}
                     disabled={loading}
-                  />
-                  <Button
-                    size="sm"
-                    onClick={handleAddCustomInterest}
-                    className="rounded-md"
-                    disabled={
-                      loading ||
-                      !customInterest.trim() ||
-                      formData.interests.includes(customInterest.trim())
-                    }
+                    className={cn(
+                      'rounded-md border px-3.5 py-2.5 text-sm font-medium transition-all active:scale-[0.97]',
+                      selected
+                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                        : 'border-border bg-card text-foreground hover:border-primary/50',
+                    )}
                   >
-                    Add
-                  </Button>
-                </div>
-              )}
+                    {s.label}
+                  </button>
+                )
+              })}
             </div>
-          </div>
+
+            <div className="space-y-3 rounded-lg bg-card p-5 shadow-sm">
+              <div>
+                <p className="text-sm font-semibold text-foreground">How many kids do you have?</p>
+                <p className="text-xs text-muted-foreground">Helps with playdate matching.</p>
+              </div>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                value={kidCount}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10)
+                  if (!Number.isNaN(v) && v >= 0 && v < 100) setKidCount(v)
+                  else if (e.target.value === '') setKidCount(0)
+                }}
+                className="w-24 rounded-md"
+                disabled={loading}
+              />
+            </div>
+          </>
         )}
 
-        {step === 4 && (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-heading font-semibold text-foreground">
-                Add a Photo (Optional)
+        {/* 3. Goals */}
+        {step === 'goals' && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Looking for</p>
+              <h2 className="font-heading text-2xl font-semibold text-foreground">
+                What are you hoping to find here?
               </h2>
-              <p className="text-muted-foreground">
-                Help other dads recognize you
+              <p className="text-sm text-muted-foreground">
+                Everyone joins for something a little different. Pick everything that sounds like you.
               </p>
             </div>
 
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+            <div className="space-y-2">
+              {GOAL_OPTIONS.map((g) => {
+                const selected = goals.includes(g.value)
+                return (
+                  <button
+                    key={g.value}
+                    type="button"
+                    onClick={() => {
+                      const next = toggle(goals, g.value)
+                      setGoals(next)
+                      if (primaryGoal && !next.includes(primaryGoal)) setPrimaryGoal(null)
+                    }}
+                    disabled={loading}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-all active:scale-[0.99]',
+                      selected
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-border bg-card hover:border-primary/50',
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors',
+                        selected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-muted-foreground/30',
+                      )}
+                    >
+                      {selected && <Check className="h-3 w-3" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{g.label}</p>
+                      <p className="text-xs text-muted-foreground">{g.hint}</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {goals.length > 1 && (
+              <div className="animate-fade-in space-y-3 rounded-lg bg-card p-5 shadow-sm">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    What matters most right now?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    We'll lead with this when recommending dads, communities and events.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {goals.map((g) => {
+                    const opt = GOAL_OPTIONS.find((o) => o.value === g)
+                    const active = primaryGoal === g
+                    return (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setPrimaryGoal(g)}
+                        disabled={loading}
+                        className={cn(
+                          'rounded-md border px-3 py-2 text-xs font-semibold transition-all active:scale-[0.97]',
+                          active
+                            ? 'border-primary bg-gradient-gold text-primary-foreground shadow-sm'
+                            : 'border-border bg-background text-foreground hover:border-primary/50',
+                        )}
+                      >
+                        {opt?.label ?? g}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 4. Connection styles */}
+        {step === 'connections' && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Looking for</p>
+              <h2 className="font-heading text-2xl font-semibold text-foreground">
+                What kind of connections are you after?
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Two dads can both want friends and mean totally different things. We'll introduce you to dads looking for something similar.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {CONNECTION_STYLE_OPTIONS.map((c) => {
+                const selected = connectionStyles.includes(c.value)
+                return (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setConnectionStyles(toggle(connectionStyles, c.value))}
+                    disabled={loading}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-all active:scale-[0.99]',
+                      selected
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-border bg-card hover:border-primary/50',
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors',
+                        selected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-muted-foreground/30',
+                      )}
+                    >
+                      {selected && <Check className="h-3 w-3" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{c.label}</p>
+                      <p className="text-xs text-muted-foreground">{c.hint}</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        {/* 5. Match priorities */}
+        {step === 'priorities' && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Your vibe</p>
+              <h2 className="font-heading text-2xl font-semibold text-foreground">
+                What matters most when meeting another dad?
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Pick what's important to you. We'll weight your recommendations around them.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {MATCH_PRIORITY_OPTIONS.map((p) => {
+                const selected = matchPriorities.includes(p.value)
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setMatchPriorities(toggle(matchPriorities, p.value))}
+                    disabled={loading}
+                    className={cn(
+                      'rounded-md border px-4 py-2.5 text-sm font-medium transition-all active:scale-[0.97]',
+                      selected
+                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                        : 'border-border bg-card text-foreground hover:border-primary/50',
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        {/* 6. Interests */}
+        {step === 'interests' && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Your vibe</p>
+              <h2 className="font-heading text-2xl font-semibold text-foreground">
+                What are you into?
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Pick a few things you'd genuinely enjoy talking about or doing with another dad. Choose {MIN_INTERESTS}–{MAX_INTERESTS}.
+              </p>
+            </div>
+
+            <div className="sticky top-[5.5rem] z-[5] -mx-1 bg-background px-1 py-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={interestQuery}
+                  onChange={(e) => setInterestQuery(e.target.value)}
+                  placeholder="Search interests"
+                  className="rounded-md pl-9"
+                  disabled={loading}
+                />
+              </div>
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{selectedInterestIds.length} selected</span>
+                <span>{MAX_INTERESTS - selectedInterestIds.length} left</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {filteredInterests.map((opt) => {
+                const selected = selectedInterestIds.includes(opt.slug)
+                const atMax = selectedInterestIds.length >= MAX_INTERESTS
+                const display = INTEREST_DISPLAY_MAP[opt.slug]
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    disabled={loading || (!selected && atMax)}
+                    onClick={() =>
+                      setSelectedInterestIds(toggle(selectedInterestIds, opt.slug, MAX_INTERESTS))
+                    }
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border p-3 text-left text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-40',
+                      selected
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-border bg-card hover:border-primary/50',
+                    )}
+                  >
+                    {display && <span className="text-base">{display.emoji}</span>}
+                    <span className="text-foreground">{display?.label ?? opt.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+            {filteredInterests.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Nothing matches "{interestQuery}".
+              </p>
+            )}
+          </>
+        )}
+
+        {/* 7. Icebreakers */}
+        {step === 'icebreakers' && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Your vibe</p>
+              <h2 className="font-heading text-2xl font-semibold text-foreground">
+                Give dads something to start with
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Pick a question and make your profile feel like you. You can add up to {MAX_ICEBREAKERS}.
+              </p>
+            </div>
+
+            {/* Saved icebreakers */}
+            {icebreakers.length > 0 && (
+              <div className="space-y-2">
+                {icebreakers.map((ib, i) => {
+                  const prompt = ICEBREAKER_PROMPTS.find((p) => p.slug === ib.prompt_slug)
+                  return (
+                    <div key={ib.prompt_slug} className="rounded-lg border border-border bg-card p-4 shadow-sm">
+                      <p className="text-xs font-semibold text-muted-foreground">{prompt?.text ?? ib.prompt_slug}</p>
+                      <p className="mt-1 text-sm text-foreground">{ib.answer}</p>
+                      <div className="mt-2 flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-muted-foreground"
+                          onClick={() => editIcebreaker(i)}
+                          disabled={loading}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-destructive"
+                          onClick={() => removeIcebreaker(i)}
+                          disabled={loading}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Prompt picker / answer editor */}
+            {selectedPromptSlug === null && icebreakers.length < MAX_ICEBREAKERS && (
+              <div className="space-y-2">
+                {ICEBREAKER_PROMPTS.filter((p) => !usedPromptSlugs.has(p.slug)).map((p) => (
+                  <button
+                    key={p.slug}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPromptSlug(p.slug)
+                      setIcebreakerAnswer('')
+                      setEditingIcebreakerIndex(null)
+                    }}
+                    disabled={loading}
+                    className="w-full rounded-lg border border-border bg-card px-4 py-3 text-left text-sm text-foreground transition-colors hover:border-primary/50 hover:bg-muted/30"
+                  >
+                    {p.text}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedPromptSlug !== null && (
+              <div className="animate-fade-in space-y-3 rounded-lg border border-primary/30 bg-card p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-heading text-base font-semibold leading-snug text-foreground">
+                    {ICEBREAKER_PROMPTS.find((p) => p.slug === selectedPromptSlug)?.text}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-xs text-muted-foreground"
+                    onClick={cancelIcebreakerEdit}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                <Textarea
+                  autoFocus
+                  value={icebreakerAnswer}
+                  onChange={(e) => {
+                    if (e.target.value.length <= MAX_ICEBREAKER_ANSWER_LENGTH)
+                      setIcebreakerAnswer(e.target.value)
+                  }}
+                  placeholder="Keep it short and real..."
+                  className="min-h-24 rounded-md"
+                  disabled={loading}
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {icebreakerAnswer.length}/{MAX_ICEBREAKER_ANSWER_LENGTH}
+                  </p>
+                  <Button
+                    size="sm"
+                    className="rounded-md"
+                    onClick={saveIcebreaker}
+                    disabled={loading || !icebreakerAnswer.trim()}
+                  >
+                    {editingIcebreakerIndex !== null ? 'Update' : 'Save'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 8. Photo */}
+        {step === 'photo' && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Finishing up</p>
+              <h2 className="font-heading text-2xl font-semibold text-foreground">
+                Put a face to the name
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                A photo helps other dads feel comfortable reaching out. Nothing fancy — a clear shot of you is plenty.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center gap-5 rounded-lg bg-card p-7 shadow-sm">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="group relative h-36 w-36 overflow-hidden rounded-full border-4 border-primary/20 bg-muted/50 transition-all hover:border-primary/40 active:scale-[0.97]"
+                disabled={loading}
+              >
                 {avatarPreview ? (
                   <img
                     src={avatarPreview}
-                    alt="Avatar"
-                    className="w-full h-full object-cover"
+                    alt="Your profile"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-muted-foreground text-sm">
-                    No photo
+                  <span className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-muted-foreground">
+                    <UserRound className="h-9 w-9" />
+                    <span className="text-xs font-medium">Add photo</span>
                   </span>
                 )}
-              </div>
+              </button>
               <input
+                ref={fileRef}
                 type="file"
                 accept=".png,.jpg,.jpeg"
-                id="avatar-upload"
                 className="hidden"
-                onChange={handleAvatarChange}
+                onChange={handlePhoto}
                 disabled={loading}
               />
               <Button
                 variant="outline"
-                className="rounded-md"
-                onClick={() =>
-                  document.getElementById('avatar-upload')?.click()
-                }
+                className="rounded-md border-2 border-primary text-foreground"
+                onClick={() => fileRef.current?.click()}
                 disabled={loading}
               >
-                Upload Photo
+                {avatarPreview ? 'Choose a different photo' : 'Upload a photo'}
               </Button>
               {avatarPreview && (
                 <Button
@@ -544,108 +1157,155 @@ const ProfileSetup = () => {
                   size="sm"
                   className="text-muted-foreground"
                   onClick={() => {
-                    // revoke old preview URL
-                    if (avatarPreview) {
-                      URL.revokeObjectURL(avatarPreview)
-                    }
+                    if (avatarPreview) URL.revokeObjectURL(avatarPreview)
                     setAvatar(null)
                     setAvatarPreview(null)
-                    // reset input so the same file can be selected again
-                    const input = document.getElementById(
-                      'avatar-upload',
-                    ) as HTMLInputElement
-                    if (input) input.value = ''
+                    if (fileRef.current) fileRef.current.value = ''
                   }}
                   disabled={loading}
                 >
                   Remove
                 </Button>
               )}
+              <p className="text-center text-xs text-muted-foreground">
+                Dads with a photo get roughly twice as many first messages.
+              </p>
             </div>
-          </div>
+          </>
         )}
 
-        {step === 5 && (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-heading font-semibold text-foreground">
-                One last step
+        {/* 9. Consent */}
+        {step === 'consent' && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Finishing up</p>
+              <h2 className="font-heading text-2xl font-semibold text-foreground">
+                Last quick thing
               </h2>
-              <p className="text-muted-foreground">
-                Please review and accept the following before creating your profile.
+              <p className="text-sm text-muted-foreground">
+                Keeping Next Level Dads a safe, respectful space for everyone.
               </p>
             </div>
 
-            <div className="space-y-5">
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="terms"
-                  checked={agreedToTerms}
-                  onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
-                  disabled={loading}
-                  className="mt-0.5"
-                />
-                <label htmlFor="terms" className="text-label leading-relaxed cursor-pointer">
-                  I agree to the{' '}
-                  <a
-                    href={`${WEBSITE_BASE_URL}/terms`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-4"
-                  >
-                    Terms and Conditions
-                  </a>{' '}
-                  and{' '}
-                  <a
-                    href={`${WEBSITE_BASE_URL}/privacy`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-4"
-                  >
-                    Privacy Policy
-                  </a>
-                  . <span className="text-destructive">*</span>
-                </label>
+            <div className="space-y-3">
+              <div className="rounded-lg bg-card p-5 shadow-sm">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Required
+                </p>
+                <div className="space-y-4">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <Checkbox
+                      checked={agreedToTerms}
+                      onCheckedChange={(v) => setAgreedToTerms(v === true)}
+                      className="mt-0.5"
+                      disabled={loading}
+                    />
+                    <span className="text-sm leading-relaxed text-foreground">
+                      I agree to the{' '}
+                      <a
+                        href={`${WEBSITE_BASE_URL}/terms`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-primary underline underline-offset-4"
+                      >
+                        Terms &amp; Conditions
+                      </a>{' '}
+                      and{' '}
+                      <a
+                        href={`${WEBSITE_BASE_URL}/privacy`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-primary underline underline-offset-4"
+                      >
+                        Privacy Policy
+                      </a>
+                      .
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <Checkbox
+                      checked={agreedToPrivacy}
+                      onCheckedChange={(v) => setAgreedToPrivacy(v === true)}
+                      className="mt-0.5"
+                      disabled={loading}
+                    />
+                    <span className="text-sm leading-relaxed text-foreground">
+                      I acknowledge the{' '}
+                      <a
+                        href={`${WEBSITE_BASE_URL}/privacy`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-primary underline underline-offset-4"
+                      >
+                        Privacy Policy
+                      </a>
+                      .
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <Checkbox
+                      checked={confirmedAge}
+                      onCheckedChange={(v) => setConfirmedAge(v === true)}
+                      className="mt-0.5"
+                      disabled={loading}
+                    />
+                    <span className="text-sm leading-relaxed text-foreground">
+                      I confirm I'm 18 years or older.
+                    </span>
+                  </label>
+                </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="age"
-                  checked={confirmedAge}
-                  onCheckedChange={(checked) => setConfirmedAge(!!checked)}
-                  disabled={loading}
-                  className="mt-0.5"
-                />
-                <label htmlFor="age" className="text-label leading-relaxed cursor-pointer">
-                  I confirm I am 18 years of age or older.{' '}
-                  <span className="text-destructive">*</span>
-                </label>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="marketing"
-                  checked={marketingOptIn}
-                  onCheckedChange={(checked) => setMarketingOptIn(!!checked)}
-                  disabled={loading}
-                  className="mt-0.5"
-                />
-                <label htmlFor="marketing" className="text-label leading-relaxed cursor-pointer text-muted-foreground">
-                  I'd like to receive occasional emails about new features, events, and updates from Next Level Dads. I can unsubscribe at any time.
+              <div className="rounded-lg bg-card p-5 shadow-sm">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Optional
+                </p>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <Checkbox
+                    checked={marketingOptIn}
+                    onCheckedChange={(v) => setMarketingOptIn(v === true)}
+                    className="mt-0.5"
+                    disabled={loading}
+                  />
+                  <span className="text-sm leading-relaxed text-foreground">
+                    Email me about new events, communities and product updates.
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Unsubscribe any time. Never required.
+                    </span>
+                  </span>
                 </label>
               </div>
             </div>
-          </div>
+          </>
         )}
+      </div>
 
-        <Button
-          size="lg"
-          className="w-full rounded-md bg-gradient-gold font-semibold"
-          onClick={step < totalSteps ? handleNext : handleSubmit}
-          disabled={loading}
-        >
-          {step === totalSteps ? 'Complete Profile' : 'Continue'}
-        </Button>
+      {/* Sticky footer CTA */}
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background px-6 py-4">
+        <div className="mx-auto max-w-md space-y-2">
+          <Button
+            size="lg"
+            disabled={loading || !canContinue()}
+            className="w-full rounded-md bg-gradient-gold text-base font-semibold shadow-md disabled:opacity-40"
+            onClick={step === 'consent' ? handleSubmit : goNext}
+          >
+            {loading
+              ? 'Creating profile...'
+              : step === 'consent'
+                ? 'Join Next Level Dads'
+                : 'Continue'}
+          </Button>
+          {step === 'interests' && selectedInterestIds.length < MIN_INTERESTS && (
+            <p className="text-center text-xs text-muted-foreground">
+              Pick at least {MIN_INTERESTS} so we can find common ground.
+            </p>
+          )}
+          {step === 'basics' && (
+            <p className="text-center text-xs text-muted-foreground">
+              Takes about 2 minutes. You can change anything later.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )

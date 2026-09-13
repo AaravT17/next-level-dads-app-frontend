@@ -16,7 +16,7 @@ import { initials } from '@/utils/format'
 import { chat } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import { toastError } from '@/lib/toast'
-import { TIMEOUT_LENGTH_MS } from '@/config/constants'
+import { TIMEOUT_LENGTH_MS, INTEREST_DISPLAY_MAP, ICEBREAKER_PROMPTS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
 import type { Chat } from '@/types/chats'
 
@@ -429,39 +429,76 @@ const ProfileDetail = () => {
             </p>
           </div>
 
-          <div>
-            <h3 className="font-semibold text-foreground mb-2">
-              Children's Age
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.children.map((child) => (
-                <Badge
-                  key={child}
-                  variant="soft"
-                  className="rounded-md"
-                >
-                  <Calendar className="w-3 h-3 mr-1" />
-                  {getStageDisplayLabel(child)}
-                </Badge>
-              ))}
+          {profile.kid_count != null && profile.kid_count > 0 && (
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Kids</h3>
+              <p className="text-muted-foreground">
+                {profile.kid_count} {profile.kid_count === 1 ? 'kid' : 'kids'}
+              </p>
             </div>
-          </div>
+          )}
 
-          <div>
-            <h3 className="font-semibold text-foreground mb-3">Interests</h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.interests.map((interest) => (
-                <Badge
-                  key={interest}
-                  variant="soft"
-                  className="rounded-md"
-                >
-                  {interest}
-                </Badge>
-              ))}
+          {profile.children_age_ranges.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Children's Age
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.children_age_ranges.map((stage) => (
+                  <Badge
+                    key={stage}
+                    variant="soft"
+                    className="rounded-md"
+                  >
+                    <Calendar className="w-3 h-3 mr-1" />
+                    {getStageDisplayLabel(stage)}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {profile.interests.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-foreground mb-3">Interests</h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.interests.map((interest) => {
+                  const display = INTEREST_DISPLAY_MAP[interest.slug]
+                  return (
+                    <span
+                      key={interest.id}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground"
+                    >
+                      {display && <span className="text-base leading-none">{display.emoji}</span>}
+                      {display?.label ?? interest.slug}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
+
+        {profile.icebreakers && profile.icebreakers.length > 0 && (
+          <div className="space-y-3">
+            {profile.icebreakers.map((ib) => {
+              const prompt = ICEBREAKER_PROMPTS.find((p) => p.slug === ib.prompt_slug)
+              return (
+                <div
+                  key={ib.prompt_slug}
+                  className="rounded-lg border border-border bg-card p-4 shadow-sm"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {prompt?.text ?? ib.prompt_slug}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-foreground">
+                    {ib.answer}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* Action buttons */}
         <div className="px-6">{renderButtons()}</div>

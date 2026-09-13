@@ -62,21 +62,34 @@ function ConnectionBanner() {
   return null
 }
 
-function DobBanner() {
+function IncompleteProfileBanner() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  if (!user || user.date_of_birth !== null) return null
+  if (!user) return null
+
+  const isIncomplete =
+    !user.date_of_birth ||
+    !user.about ||
+    user.kid_count == null ||
+    !user.goals?.length ||
+    !user.primary_goal ||
+    !user.connection_styles?.length ||
+    !user.match_priorities?.length ||
+    (user.interests?.length ?? 0) < 3 ||
+    (user.icebreakers?.length ?? 0) < 3
+
+  if (!isIncomplete) return null
 
   return (
     <div className="shrink-0 bg-primary text-primary-foreground text-label py-2 flex items-center justify-center gap-2 text-center">
-      <span>Please add your date of birth to complete your profile.</span>
+      <span>Your profile is incomplete.</span>
       <button
         type="button"
         onClick={() => navigate(ROUTES.YOU)}
         className="underline font-semibold shrink-0"
       >
-        Update now
+        Complete now
       </button>
     </div>
   )
@@ -86,7 +99,7 @@ export function SystemBanners() {
   return (
     <div role="status" aria-live="polite">
       <ConnectionBanner />
-      <DobBanner />
+      <IncompleteProfileBanner />
     </div>
   )
 }
