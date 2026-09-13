@@ -8,7 +8,7 @@ export interface ChatOtherUser {
 
 export interface ChatLastMessage {
   id: string
-  content: string        // empty string if deleted
+  content: string // empty string if deleted
   sender_id: string
   sender_name: string
   created_at: string
@@ -18,16 +18,16 @@ export interface ChatLastMessage {
 export interface Chat {
   id: string
   type: ChatType
-  name: string | null    // null for DMs, set for groups
+  name: string | null // null for DMs, set for groups
   updated_at: string
   last_read_at: string | null
   last_message: ChatLastMessage | null
-  other_user: ChatOtherUser | null   // only present for DMs
+  other_user: ChatOtherUser | null // only present for DMs
 }
 
 export interface ReplyTo {
   id: string
-  content: string        // empty string if deleted
+  content: string // empty string if deleted
   sender_id: string
   sender_name: string
   is_deleted: boolean
@@ -54,7 +54,7 @@ export interface Message {
   sender_id: string
   sender_name: string
   sender_avatar_url: string | null
-  content: string        // empty string if deleted
+  content: string // empty string if deleted
   edited_at: string | null
   is_deleted: boolean
   created_at: string
@@ -91,6 +91,12 @@ export interface ParticipantsCursor {
   cursor_joined_at: string
 }
 
+export interface ChatMembership {
+  chat_id: string
+  last_read_at: string | null
+  updated_at: string
+}
+
 // ============================================
 // Realtime + context
 // ============================================
@@ -98,6 +104,7 @@ export interface ParticipantsCursor {
 export type MessageHandler = (event: WsEvent) => void
 
 export type WsEvent =
+  | { type: 'ws:ready' }
   | { type: 'messages:new'; payload: Message }
   | {
       type: 'messages:edit'
@@ -126,12 +133,27 @@ export type WsEvent =
         last_read_at: string
       }
     }
+  | {
+      type: 'chats:added'
+      payload: {
+        chat_id: string
+      }
+    }
+  | {
+      type: 'chats:removed'
+      payload: {
+        chat_id: string
+      }
+    }
 
 export interface ChatContextType {
   registerMessageHandler: (chatId: string, handler: MessageHandler) => () => void
   registerReconnectHandler: (handler: () => void) => () => void
   sendWsMessage: (data: object) => void
+  isChatMember: (chatId: string) => boolean
   isReconnecting: boolean
   isFailed: boolean
   reconnect: () => void
+  wsReady: boolean
+  unreadCount: number
 }

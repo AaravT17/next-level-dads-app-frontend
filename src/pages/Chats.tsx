@@ -32,12 +32,14 @@ import { formatListTimestamp } from '@/utils/format'
 import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT, CHATS_PAGE_LIMIT } from '@/config/constants'
 import { Chat, ChatsCursor } from '@/types/chats'
 import { ConnectionResponse, ConnectionsCursor } from '@/types/users'
+import { useChat } from '@/contexts/useChat'
 
 // ============================================
 // Chats
 // ============================================
 
 const Chats = () => {
+  const { wsReady, isChatMember } = useChat()
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [newChatSearch, setNewChatSearch] = useState('')
   const [debouncedNewChatSearch, setDebouncedNewChatSearch] = useState('')
@@ -104,10 +106,11 @@ const Chats = () => {
         params,
         timeout: TIMEOUT_LENGTH_MS,
       })
-      return res.data
+      return res.data.filter((c) => isChatMember(c.id))
     },
     initialPageParam: undefined as ChatsCursor | undefined,
-    staleTime: Infinity,
+    enabled: wsReady,
+    staleTime: 180_000,
     getNextPageParam: (lastPage) => {
       if (lastPage.length < CHATS_PAGE_LIMIT) return undefined
       const last = lastPage[lastPage.length - 1]
@@ -141,7 +144,7 @@ const Chats = () => {
         params,
         timeout: TIMEOUT_LENGTH_MS,
       })
-      return res.data
+      return res.data.filter((c) => isChatMember(c.id))
     },
     initialPageParam: undefined as ChatsCursor | undefined,
     enabled: !!nameParam,
