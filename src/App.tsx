@@ -30,6 +30,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
 const ProfileSetup = lazy(() => import('./pages/ProfileSetup'))
+const OnboardingWelcome = lazy(() => import('./pages/OnboardingWelcome'))
 const Chat = lazy(() => import('./pages/Chat'))
 // Named exports need mapping to a default for React.lazy.
 const ChatsLayout = lazy(() =>
@@ -94,6 +95,7 @@ const AppContent = () => {
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
+            <Route path={ROUTES.ONBOARDING_WELCOME} element={<OnboardingWelcome />} />
             <Route element={<AppLayout />}>
               {/* Home — the cross-community feed, and the resume set on its own page */}
               <Route path={ROUTES.HOME} element={<HomePage />} />

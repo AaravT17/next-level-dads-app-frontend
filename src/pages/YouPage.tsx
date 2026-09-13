@@ -1,8 +1,10 @@
-import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  Calendar,
+  Baby,
   ChevronRight,
+  LogOut,
+  MapPin,
   Pencil,
   Settings,
   Shield,
@@ -12,14 +14,8 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
-import { Badge } from '@/components/ui/badge'
-import { ProfileHero } from '@/features/profile/components/ProfileHero'
-import {
-  ProfileCard,
-  ProfileSection,
-} from '@/features/profile/components/ProfileSection'
-import { ProfileStats } from '@/features/profile/components/ProfileStats'
-import { getStageDisplayLabel } from '@/utils/users'
+import { UserAvatar } from '@/components/media/UserAvatar'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -29,10 +25,7 @@ import type { UserStats } from '@/types/users'
 /**
  * Your hub.
  *
- * Splits what used to be a single 979-line screen holding a profile view, an
- * edit form, connections, requests, preferences, legal links, logout and
- * account deletion. Incoming connection requests — a primary action — had no
- * entry point at all; they are now a badged row here.
+ * Shows your profile info, stats, and account navigation.
  */
 
 type Row = {
@@ -44,7 +37,9 @@ type Row = {
 }
 
 const YouPage = () => {
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { user, setAuth } = useAuth()
 
   const { data: stats } = useQuery({
     queryKey: ['user', 'stats'],
@@ -56,6 +51,18 @@ const YouPage = () => {
     },
     staleTime: 1000 * 60,
   })
+
+  const handleLogout = async () => {
+    try {
+      await axiosPrivate.post('/api/auth/logout', {}, { timeout: TIMEOUT_LENGTH_MS })
+    } catch {
+      // Log out locally even if the server call fails.
+    } finally {
+      queryClient.clear()
+      setAuth({ user: null, accessToken: null })
+      navigate(ROUTES.WELCOME)
+    }
+  }
 
   if (!user) return null
 
@@ -97,11 +104,6 @@ const YouPage = () => {
       : []),
   ]
 
-  const hasDetails =
-    Boolean(user.about) ||
-    user.children_age_ranges.length > 0 ||
-    user.interests.length > 0
-
   const summary = [
     { label: 'Connections', value: stats?.connections ?? 0 },
     { label: 'Communities', value: stats?.communities_joined ?? 0 },
@@ -113,78 +115,40 @@ const YouPage = () => {
       <AppBar title="You" />
 
       <PageContainer className="space-y-6 animate-fade-in">
-        <ProfileHero
-          name={user.name}
-          age={user.age}
-          city={user.city}
-          province={user.province}
-          avatarUrl={user.avatarUrl}
-        />
+        {/* Avatar + name + location + kids */}
+        <section className="flex flex-col items-center text-center gap-3">
+          <UserAvatar name={user.name} src={user.avatarUrl} size="xl" shape="rounded" />
+          <div>
+            <h2 className="font-heading text-heading text-foreground">{user.name}</h2>
+            {(user.city || user.province) && (
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
+                <MapPin className="w-4 h-4" />
+                <span>{[user.city, user.province].filter(Boolean).join(', ')}</span>
+              </div>
+            )}
+            {user.kid_count != null && user.kid_count > 0 && (
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
+                <Baby className="w-4 h-4" />
+                <span>Dad of {user.kid_count}</span>
+              </div>
+            )}
+          </div>
+        </section>
 
-        <ProfileStats stats={summary} />
-
-        <ProfileCard
-          title="Your profile"
-          action={
-            <Link
-              to={ROUTES.YOU_EDIT}
-              className="shrink-0 rounded-md text-label font-medium text-primary transition-colors duration-fast hover:underline"
+        {/* Stats */}
+        <section aria-label="Your activity" className="grid grid-cols-3 rounded-lg bg-card shadow-sm">
+          {summary.map((item, i) => (
+            <div
+              key={item.label}
+              className={`px-2 py-4 text-center ${i > 0 ? 'border-l border-border' : ''}`}
             >
-              Edit
-            </Link>
-          }
-        >
-          {hasDetails ? (
-            <>
-              {user.about && (
-                <ProfileSection title="About me">
-                  <p className="text-body leading-relaxed text-foreground">
-                    {user.about}
-                  </p>
-                </ProfileSection>
-              )}
+              <p className="font-heading text-heading text-foreground">{item.value}</p>
+              <p className="text-caption text-muted-foreground">{item.label}</p>
+            </div>
+          ))}
+        </section>
 
-              {user.children_age_ranges.length > 0 && (
-                <ProfileSection title="Children's age">
-                  <div className="flex flex-wrap gap-2">
-                    {user.children_age_ranges.map((stage) => (
-                      <Badge key={stage} variant="soft" className="rounded-md text-caption">
-                        <Calendar aria-hidden className="w-3 h-3 mr-1" />
-                        {getStageDisplayLabel(stage)}
-                      </Badge>
-                    ))}
-                  </div>
-                </ProfileSection>
-              )}
-
-              {user.interests.length > 0 && (
-                <ProfileSection title="Interests">
-                  <div className="flex flex-wrap gap-2">
-                    {user.interests.map((interest) => (
-                      <Badge key={interest} variant="soft" className="rounded-md text-caption">
-                        {interest}
-                      </Badge>
-                    ))}
-                  </div>
-                </ProfileSection>
-              )}
-            </>
-          ) : (
-            /*
-              Every field here is required at save time, so this is the
-              pre-migration account rather than the normal empty state. Three
-              empty headings would make the page barer than no card at all.
-            */
-            <p className="text-body text-muted-foreground">
-              You have not filled in your bio, interests or children's ages yet.{' '}
-              <Link to={ROUTES.YOU_EDIT} className="font-medium text-primary hover:underline">
-                Add them
-              </Link>{' '}
-              so other dads know who they are connecting with.
-            </p>
-          )}
-        </ProfileCard>
-
+        {/* Navigation */}
         <nav aria-label="Account">
           <ul role="list" className="overflow-hidden rounded-lg bg-card shadow-sm">
             {rows.map((row, i) => {
@@ -217,6 +181,12 @@ const YouPage = () => {
             })}
           </ul>
         </nav>
+
+        {/* Log out */}
+        <Button variant="outline" className="w-full rounded-md" onClick={handleLogout}>
+          <LogOut className="w-4 h-4 mr-2" />
+          Log out
+        </Button>
       </PageContainer>
     </>
   )

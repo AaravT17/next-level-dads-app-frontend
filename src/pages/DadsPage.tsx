@@ -30,6 +30,7 @@ import {
   DISCOVER_DADS_FILTERS_AGE_RANGES,
   STAGE_OPTIONS,
   PROVINCE_OPTIONS,
+  INTEREST_DISPLAY_MAP,
 } from '@/config/constants'
 import { Profile, DiscoverDadsFilters, DiscoverDadsCursor } from '@/types/users'
 
@@ -64,8 +65,14 @@ async function fetchDiscoverProfiles(
   return res.data
 }
 
-async function fetchInterests(): Promise<string[]> {
-  const res = await axiosPrivate.get<string[]>('/api/interests/', {
+interface InterestOption {
+  id: string
+  slug: string
+  name: string
+}
+
+async function fetchInterests(): Promise<InterestOption[]> {
+  const res = await axiosPrivate.get<InterestOption[]>('/api/interests/', {
     timeout: TIMEOUT_LENGTH_MS,
   })
   return res.data
@@ -371,16 +378,20 @@ const DadsPage = () => {
               {/* Selected interests display */}
               {pendingInterests.length > 0 && (
                 <div className="flex gap-2 flex-wrap mb-2">
-                  {pendingInterests.map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant="default"
-                      className="cursor-pointer rounded-md"
-                      onClick={() => togglePendingInterest(interest)}
-                    >
-                      {interest} ✕
-                    </Badge>
-                  ))}
+                  {pendingInterests.map((slug) => {
+                    const display = INTEREST_DISPLAY_MAP[slug]
+                    return (
+                      <Badge
+                        key={slug}
+                        variant="default"
+                        className="cursor-pointer rounded-md"
+                        onClick={() => togglePendingInterest(slug)}
+                      >
+                        {display && <span className="mr-1">{display.emoji}</span>}
+                        {display?.label ?? slug} ✕
+                      </Badge>
+                    )
+                  })}
                 </div>
               )}
 
@@ -402,33 +413,47 @@ const DadsPage = () => {
                 <div className="max-h-40 overflow-y-auto border border-border rounded-md bg-card">
                   {interestOptions
                     .filter(
-                      (interest) =>
-                        interest
+                      (opt) =>
+                        (opt.name
                           .toLowerCase()
                           .includes(
                             interestSearchQuery.toLowerCase(),
-                          ) && !pendingInterests.includes(interest),
+                          ) ||
+                        opt.slug
+                          .toLowerCase()
+                          .includes(
+                            interestSearchQuery.toLowerCase(),
+                          )) && !pendingInterests.includes(opt.slug),
                     )
-                    .map((interest) => (
-                      <button
-                        key={interest}
-                        type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
-                        onClick={() => {
-                          togglePendingInterest(interest)
-                          setInterestSearchQuery('')
-                        }}
-                      >
-                        {interest}
-                      </button>
-                    ))}
+                    .map((opt) => {
+                      const display = INTEREST_DISPLAY_MAP[opt.slug]
+                      return (
+                        <button
+                          key={opt.slug}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          onClick={() => {
+                            togglePendingInterest(opt.slug)
+                            setInterestSearchQuery('')
+                          }}
+                        >
+                          {display && <span className="mr-1.5">{display.emoji}</span>}
+                          {display?.label ?? opt.name}
+                        </button>
+                      )
+                    })}
                   {interestOptions.filter(
-                    (interest) =>
-                      interest
+                    (opt) =>
+                      (opt.name
                         .toLowerCase()
                         .includes(
                           interestSearchQuery.toLowerCase(),
-                        ) && !pendingInterests.includes(interest),
+                        ) ||
+                      opt.slug
+                        .toLowerCase()
+                        .includes(
+                          interestSearchQuery.toLowerCase(),
+                        )) && !pendingInterests.includes(opt.slug),
                   ).length === 0 && (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
                       No matching interests

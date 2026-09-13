@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
+import { ConnectRequestDialog } from '@/features/connections/components/ConnectRequestDialog'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import { AppBar } from '@/components/layout/AppBar'
@@ -8,40 +9,15 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { ErrorState } from '@/components/feedback/ErrorState'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Calendar } from 'lucide-react'
-import { ProfileHero } from '@/features/profile/components/ProfileHero'
-import {
-  ProfileCard,
-  ProfileSection,
-} from '@/features/profile/components/ProfileSection'
+import { Baby, MapPin } from 'lucide-react'
 import { getStageDisplayLabel } from '@/utils/users'
+import { initials } from '@/utils/format'
 import { chat } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import { toastError } from '@/lib/toast'
-import { TIMEOUT_LENGTH_MS } from '@/config/constants'
+import { TIMEOUT_LENGTH_MS, INTEREST_DISPLAY_MAP, ICEBREAKER_PROMPTS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
-import { ConnectRequestDialog } from '@/features/connections/components/ConnectRequestDialog'
 import type { Chat } from '@/types/chats'
-
-/**
- * The small-caps line above the name.
- *
- * Where you stand with someone was previously legible only from the button at
- * the bottom of the page — you had to scroll past the whole profile to find
- * out you had already asked to connect. Stating it up top costs one line and
- * no new data.
- *
- * `null` (no relationship) is the common case and gets no eyebrow; an empty
- * label there would just be noise on every browse result.
- */
-const STATUS_EYEBROW: Record<NonNullable<ConnectionStatus> | 'none', string | undefined> = {
-  connected: 'Connected',
-  pending_outgoing: 'Request sent',
-  pending_incoming: 'Wants to connect',
-  blocked: undefined,
-  none: undefined,
-}
 
 async function fetchProfile(id: string): Promise<Profile> {
   const res = await axiosPrivate.get<Profile>(`/api/users/${id}`, {
@@ -53,16 +29,15 @@ async function fetchProfile(id: string): Promise<Profile> {
 const ProfileDetail = () => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const queryClient = useQueryClient()
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
+  const queryClient = useQueryClient()
 
   // Update profile in all list caches.
   //
   // Memoised so the effect below can depend on it honestly. Both deps are
   // stable for the life of the route — the query client is a singleton and the
   // id comes from the path — so this does not add a render to the effect.
-  const updateProfileInLists = useCallback(
-    (profile: Profile) => {
+  const updateProfileInLists = useCallback((profile: Profile) => {
     const { connection_status } = profile
 
     // Browse list: keep the row, just refresh its status
@@ -112,9 +87,7 @@ const ProfileDetail = () => {
         }
       },
     )
-    },
-    [queryClient, id],
-  )
+  }, [queryClient, id])
 
   const {
     data: profile,
@@ -437,52 +410,113 @@ const ProfileDetail = () => {
       <AppBar title="Profile" leading="back" onBack={handleBack} />
 
       <PageContainer className="space-y-6 animate-fade-in">
-        <ProfileHero
-          name={profile.name}
-          age={profile.age}
-          city={profile.city}
-          province={profile.province}
-          avatarUrl={profile.avatar_url}
-          eyebrow={STATUS_EYEBROW[profile.connection_status ?? 'none']}
-        />
+        <div className="flex flex-col items-center text-center space-y-4">
+          <div className="w-32 h-32 rounded-lg overflow-hidden border-4 border-primary/20">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={profile.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-2xl">
+                {initials(profile?.name)}
+              </div>
+            )}
+          </div>
 
-        <ProfileCard>
-          <ProfileSection title="About me">
-            <p className="text-body leading-relaxed text-foreground">
+          <div>
+            <h2 className="text-2xl font-heading font-semibold text-foreground">
+              {profile.name}, {profile.age ?? '—'}
+            </h2>
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
+              <MapPin className="w-4 h-4" />
+              <span>
+                {profile.city}, {profile.province}
+              </span>
+            </div>
+            {profile.kid_count != null && profile.kid_count > 0 && (
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
+                <Baby className="w-4 h-4" />
+                <span>Dad of {profile.kid_count}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-semibold text-foreground mb-2">About</h3>
+            <p className="text-muted-foreground leading-relaxed">
               {profile.about}
             </p>
-          </ProfileSection>
+          </div>
 
-          {profile.children.length > 0 && (
-            <ProfileSection title="Children's age">
+          {profile.children_age_ranges.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Kids' stages</h3>
               <div className="flex flex-wrap gap-2">
-                {profile.children.map((child) => (
-                  <Badge key={child} variant="soft" className="rounded-md text-caption">
-                    <Calendar aria-hidden className="w-3 h-3 mr-1" />
-                    {getStageDisplayLabel(child)}
-                  </Badge>
+                {profile.children_age_ranges.map((stage) => (
+                  <span
+                    key={stage}
+                    className="rounded-md border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground"
+                  >
+                    {getStageDisplayLabel(stage)}
+                  </span>
                 ))}
               </div>
-            </ProfileSection>
+            </div>
           )}
 
           {profile.interests.length > 0 && (
-            <ProfileSection title="Interests">
-              <div className="flex flex-wrap gap-2">
-                {profile.interests.map((interest) => (
-                  <Badge key={interest} variant="soft" className="rounded-md text-caption">
-                    {interest}
-                  </Badge>
-                ))}
+            <div>
+              <h3 className="font-semibold text-foreground mb-3">Interests</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {profile.interests.map((interest) => {
+                  const display = INTEREST_DISPLAY_MAP[interest.slug]
+                  return (
+                    <div
+                      key={interest.id}
+                      className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-card p-4 text-center"
+                    >
+                      <span className="text-2xl">{display?.emoji ?? '✨'}</span>
+                      <span className="text-sm font-medium text-foreground">{display?.label ?? interest.slug}</span>
+                    </div>
+                  )
+                })}
               </div>
-            </ProfileSection>
+            </div>
           )}
-        </ProfileCard>
+        </div>
 
-        <div>{renderButtons()}</div>
+        {profile.icebreakers && profile.icebreakers.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="font-semibold text-foreground">Get to know me</h3>
+            {profile.icebreakers.map((ib) => {
+              const prompt = ICEBREAKER_PROMPTS.find((p) => p.slug === ib.prompt_slug)
+              return (
+                <div
+                  key={ib.prompt_slug}
+                  className="rounded-xl border-2 border-primary/30 bg-card px-6 py-5 shadow-lg"
+                >
+                  <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                    {prompt?.text ?? ib.prompt_slug}
+                  </p>
+                  <p className="mt-3 text-base leading-relaxed text-foreground whitespace-pre-line">
+                    {ib.answer}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
+        {/* Action buttons */}
+        <div className="px-6">{renderButtons()}</div>
+
+        {/* Report */}
         {profile && id && (
-          <div className="flex justify-center">
+          <div className="px-6 flex justify-center">
             <ReportUserButton userId={id} userName={profile.name} />
           </div>
         )}

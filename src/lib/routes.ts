@@ -39,6 +39,7 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   VERIFY_EMAIL: '/verify-email',
   SETUP: '/setup',
+  ONBOARDING_WELCOME: '/welcome',
 
   // Home — the cross-community feed, first of the primary destinations
   HOME: '/home',

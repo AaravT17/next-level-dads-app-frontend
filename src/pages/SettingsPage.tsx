@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { LogOut, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/button'
@@ -64,18 +64,6 @@ const SettingsPage = () => {
       toastError('Failed to update preferences. Please try again.')
     },
   })
-
-  const handleLogout = async () => {
-    try {
-      await axiosPrivate.post('/api/auth/logout', {}, { timeout: TIMEOUT_LENGTH_MS })
-    } catch {
-      // Log out locally even if the server call fails.
-    } finally {
-      queryClient.clear()
-      setAuth({ user: null, accessToken: null })
-      navigate(ROUTES.WELCOME)
-    }
-  }
 
   const handleDeleteAccount = async () => {
     setIsDeletingAccount(true)
@@ -140,10 +128,6 @@ const SettingsPage = () => {
 
         <section className="space-y-3">
           <h2 className="font-heading text-subhead text-foreground">Account</h2>
-          <Button variant="outline" className="w-full rounded-md" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Log out
-          </Button>
           <Button
             variant="outline"
             className="w-full rounded-md border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
