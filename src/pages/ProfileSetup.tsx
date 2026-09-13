@@ -205,6 +205,16 @@ const ProfileSetup = () => {
         if (!n) return 'Name cannot be empty.'
         if (n.length > MAX_NAME_LENGTH) return `Name must be ${MAX_NAME_LENGTH} characters or less.`
         if (!dob) return 'Date of birth is required.'
+        const dobDate = new Date(dob + 'T00:00:00')
+        const today = new Date()
+        let age = today.getFullYear() - dobDate.getFullYear()
+        if (
+          today.getMonth() < dobDate.getMonth() ||
+          (today.getMonth() === dobDate.getMonth() && today.getDate() < dobDate.getDate())
+        ) {
+          age--
+        }
+        if (age < 18) return 'You must be 18 or older.'
         const c = city.trim()
         if (!c) return 'City cannot be empty.'
         if (c.length > MAX_CITY_LENGTH) return `City must be ${MAX_CITY_LENGTH} characters or less.`
@@ -954,7 +964,7 @@ const ProfileSetup = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {filteredInterests.map((opt) => {
                 const selected = selectedInterestIds.includes(opt.slug)
                 const atMax = selectedInterestIds.length >= MAX_INTERESTS
@@ -968,14 +978,14 @@ const ProfileSetup = () => {
                       setSelectedInterestIds(toggle(selectedInterestIds, opt.slug, MAX_INTERESTS))
                     }
                     className={cn(
-                      'flex items-center gap-2 rounded-lg border p-3 text-left text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-40',
+                      'flex flex-col items-center justify-center gap-1.5 rounded-lg border p-4 text-center transition-all active:scale-[0.97] disabled:opacity-40',
                       selected
                         ? 'border-primary bg-primary/5 shadow-sm'
                         : 'border-border bg-card hover:border-primary/50',
                     )}
                   >
-                    {display && <span className="text-base">{display.emoji}</span>}
-                    <span className="text-foreground">{display?.label ?? opt.name}</span>
+                    <span className="text-2xl">{display?.emoji ?? '✨'}</span>
+                    <span className="text-sm font-medium text-foreground">{display?.label ?? opt.name}</span>
                   </button>
                 )
               })}

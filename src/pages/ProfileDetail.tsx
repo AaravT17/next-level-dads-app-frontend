@@ -461,17 +461,17 @@ const ProfileDetail = () => {
           {profile.interests.length > 0 && (
             <div>
               <h3 className="font-semibold text-foreground mb-3">Interests</h3>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {profile.interests.map((interest) => {
                   const display = INTEREST_DISPLAY_MAP[interest.slug]
                   return (
-                    <span
+                    <div
                       key={interest.id}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground"
+                      className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-background p-4 text-center"
                     >
-                      {display && <span className="text-base leading-none">{display.emoji}</span>}
-                      {display?.label ?? interest.slug}
-                    </span>
+                      <span className="text-2xl">{display?.emoji ?? '✨'}</span>
+                      <span className="text-sm font-medium text-foreground">{display?.label ?? interest.slug}</span>
+                    </div>
                   )
                 })}
               </div>

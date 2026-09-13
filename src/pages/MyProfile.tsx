@@ -44,6 +44,7 @@ import {
   MAX_ICEBREAKER_ANSWER_LENGTH,
   MIN_INTERESTS,
   MAX_INTERESTS,
+  MIN_ICEBREAKERS,
   MAX_ICEBREAKERS,
   STAGE_OPTIONS,
   PROVINCE_OPTIONS,
@@ -223,9 +224,11 @@ const MyProfile = () => {
       'kid_count',
       'primary_goal',
     ]
+    const trimmedFields = new Set(['name', 'city', 'about'])
     for (const key of simpleFields) {
       if (!valuesEqual(form[key], original[key])) {
-        patch[key] = form[key]
+        const val = form[key]
+        patch[key] = trimmedFields.has(key) && typeof val === 'string' ? val.trim() : val
       }
     }
 
@@ -374,6 +377,18 @@ const MyProfile = () => {
     }
 
     // Validate only fields that are being sent
+    if ('date_of_birth' in patch) {
+      const dobDate = new Date((patch.date_of_birth as string) + 'T00:00:00')
+      const today = new Date()
+      let age = today.getFullYear() - dobDate.getFullYear()
+      if (
+        today.getMonth() < dobDate.getMonth() ||
+        (today.getMonth() === dobDate.getMonth() && today.getDate() < dobDate.getDate())
+      ) {
+        age--
+      }
+      if (age < 18) return toastError('You must be 18 or older.')
+    }
     if ('name' in patch) {
       const v = (patch.name as string).trim()
       if (!v) return toastError('Name cannot be empty.')
@@ -417,6 +432,8 @@ const MyProfile = () => {
     }
     if ('icebreakers' in patch) {
       const v = patch.icebreakers as IcebreakerEntry[]
+      if (v.length < MIN_ICEBREAKERS)
+        return toastError(`Please provide at least ${MIN_ICEBREAKERS} icebreaker.`)
       if (v.length > MAX_ICEBREAKERS)
         return toastError(`You can have at most ${MAX_ICEBREAKERS} icebreakers.`)
       for (const ib of v) {
@@ -883,7 +900,7 @@ const MyProfile = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {filteredInterests.map((opt) => {
               const selected = form.interest_slugs.includes(opt.slug)
               const atMax = form.interest_slugs.length >= MAX_INTERESTS
@@ -899,14 +916,14 @@ const MyProfile = () => {
                     })
                   }
                   className={cn(
-                    'flex items-center gap-2 rounded-md border p-2.5 text-left text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-40',
+                    'flex flex-col items-center justify-center gap-1.5 rounded-lg border p-4 text-center transition-all active:scale-[0.97] disabled:opacity-40',
                     selected
                       ? 'border-primary bg-primary/5'
                       : 'border-border bg-background hover:border-primary/50',
                   )}
                 >
-                  {display && <span className="text-base">{display.emoji}</span>}
-                  <span className="text-foreground">{display?.label ?? opt.name}</span>
+                  <span className="text-2xl">{display?.emoji ?? '✨'}</span>
+                  <span className="text-sm font-medium text-foreground">{display?.label ?? opt.name}</span>
                 </button>
               )
             })}

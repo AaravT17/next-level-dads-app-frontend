@@ -33,7 +33,7 @@ export const INTEREST_DISPLAY_MAP: Record<string, { label: string; emoji: string
   'podcasts': { label: 'Podcasts', emoji: '🎙️' },
   'art': { label: 'Art', emoji: '🎨' },
   'fashion': { label: 'Fashion', emoji: '👟' },
-  'collectibles': { label: 'Collectibles', emoji: '🎴' },
+  'collectibles': { label: 'Collectibles', emoji: '🃏' },
   'history': { label: 'History', emoji: '🏛️' },
   'diy': { label: 'DIY & Home Projects', emoji: '🔨' },
   'board-games': { label: 'Board Games', emoji: '🎲' },
