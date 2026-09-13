@@ -461,7 +461,7 @@ const ProfileDetail = () => {
           {profile.interests.length > 0 && (
             <div>
               <h3 className="font-semibold text-foreground mb-3">Interests</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {profile.interests.map((interest) => {
                   const display = INTEREST_DISPLAY_MAP[interest.slug]
                   return (
@@ -486,12 +486,12 @@ const ProfileDetail = () => {
               return (
                 <div
                   key={ib.prompt_slug}
-                  className="rounded-lg border border-border bg-card p-4 shadow-sm"
+                  className="rounded-xl border-2 border-primary/30 bg-card px-6 py-5 shadow-lg"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-primary">
                     {prompt?.text ?? ib.prompt_slug}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-foreground">
+                  <p className="mt-3 text-base leading-relaxed text-foreground whitespace-pre-line">
                     {ib.answer}
                   </p>
                 </div>

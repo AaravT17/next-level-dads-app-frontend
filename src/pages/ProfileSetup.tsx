@@ -1013,7 +1013,7 @@ const ProfileSetup = () => {
                             if (e.target.value.length <= MAX_ICEBREAKER_ANSWER_LENGTH)
                               setIcebreakerAnswer(e.target.value)
                           }}
-                          placeholder="Keep it short and real..."
+                          placeholder="Your answer..."
                           className="mt-3 min-h-24 rounded-md border-border shadow-sm"
                           disabled={loading}
                         />
@@ -1143,7 +1143,7 @@ const ProfileSetup = () => {
                     if (e.target.value.length <= MAX_ICEBREAKER_ANSWER_LENGTH)
                       setIcebreakerAnswer(e.target.value)
                   }}
-                  placeholder="Keep it short and real..."
+                  placeholder="Your answer..."
                   className="mt-3 min-h-24 rounded-md border-border shadow-sm"
                   disabled={loading}
                 />

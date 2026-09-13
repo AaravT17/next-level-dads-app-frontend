@@ -159,6 +159,7 @@ const MyProfile = () => {
   const [editingIcebreakerIndex, setEditingIcebreakerIndex] = useState<number | null>(null)
   const [selectedPromptSlug, setSelectedPromptSlug] = useState<string | null>(null)
   const [icebreakerAnswer, setIcebreakerAnswer] = useState('')
+  const [showPromptPicker, setShowPromptPicker] = useState(false)
 
   // Original state (snapshot at load time, used for diffing)
   const [original, setOriginal] = useState<FormState | null>(null)
@@ -485,6 +486,7 @@ const MyProfile = () => {
     setSelectedPromptSlug(null)
     setIcebreakerAnswer('')
     setEditingIcebreakerIndex(null)
+    setShowPromptPicker(false)
   }
 
   const removeIcebreaker = (index: number) => {
@@ -576,9 +578,10 @@ const MyProfile = () => {
           </h3>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Your name</Label>
               <Input
                 id="name"
+                placeholder="Full name"
                 value={form.name}
                 maxLength={MAX_NAME_LENGTH}
                 onChange={(e) => set({ name: e.target.value })}
@@ -588,7 +591,7 @@ const MyProfile = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Date of Birth</Label>
+              <Label>Date of birth</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -600,7 +603,7 @@ const MyProfile = () => {
                     {form.date_of_birth ? (
                       format(parseISO(form.date_of_birth), 'MMMM d, yyyy')
                     ) : (
-                      <span className="text-muted-foreground">Pick a date</span>
+                      <span className="text-muted-foreground">Select your date of birth</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -628,6 +631,7 @@ const MyProfile = () => {
                 <Label htmlFor="city">City</Label>
                 <Input
                   id="city"
+                  placeholder="e.g. Toronto"
                   value={form.city}
                   maxLength={MAX_CITY_LENGTH}
                   onChange={(e) => set({ city: e.target.value })}
@@ -643,7 +647,7 @@ const MyProfile = () => {
                   disabled={isLoading}
                 >
                   <SelectTrigger id="province" className="rounded-md">
-                    <SelectValue placeholder="Select" />
+                    <SelectValue placeholder="—" />
                   </SelectTrigger>
                   <SelectContent>
                     {PROVINCE_OPTIONS.map((p) => (
@@ -657,9 +661,10 @@ const MyProfile = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="about">About</Label>
+              <Label htmlFor="about">About you</Label>
               <Textarea
                 id="about"
+                placeholder="Tell us a bit about yourself."
                 value={form.about}
                 onChange={(e) => {
                   if (e.target.value.length <= MAX_BIO_LENGTH) set({ about: e.target.value })
@@ -681,7 +686,7 @@ const MyProfile = () => {
           </h3>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Kid count</Label>
+              <Label>How many kids do you have?</Label>
               <Input
                 type="number"
                 min={0}
@@ -698,8 +703,8 @@ const MyProfile = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Children's ages</Label>
-              <p className="text-xs text-muted-foreground">Select all that apply</p>
+              <Label>What stage are your kids at?</Label>
+              <p className="text-xs text-muted-foreground">Select all that apply.</p>
               <div className="flex flex-wrap gap-2">
                 {STAGE_OPTIONS.map((s) => {
                   const selected = form.children_age_ranges.includes(s.value)
@@ -735,8 +740,8 @@ const MyProfile = () => {
           <div className="space-y-5">
             {/* Goals */}
             <div className="space-y-2">
-              <Label>Goals</Label>
-              <div className="space-y-2">
+              <Label>What are you hoping to find here?</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {GOAL_OPTIONS.map((g) => {
                   const selected = form.goals.includes(g.value)
                   return (
@@ -771,8 +776,8 @@ const MyProfile = () => {
                         {selected && <Check className="h-2.5 w-2.5" />}
                       </div>
                       <div>
-                        <span className="text-sm font-medium text-foreground">{g.label}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">{g.hint}</span>
+                        <p className="text-sm font-semibold text-foreground">{g.label}</p>
+                        <p className="text-xs text-muted-foreground">{g.hint}</p>
                       </div>
                     </button>
                   )
@@ -783,7 +788,7 @@ const MyProfile = () => {
             {/* Primary goal */}
             {form.goals.length > 1 && (
               <div className="space-y-2">
-                <Label>Primary goal</Label>
+                <Label>What matters most right now?</Label>
                 <div className="flex flex-wrap gap-2">
                   {form.goals.map((g) => {
                     const opt = GOAL_OPTIONS.find((o) => o.value === g)
@@ -810,8 +815,8 @@ const MyProfile = () => {
 
             {/* Connection styles */}
             <div className="space-y-2">
-              <Label>Connection styles</Label>
-              <div className="space-y-2">
+              <Label>What kind of connections are you after?</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {CONNECTION_STYLE_OPTIONS.map((c) => {
                   const selected = form.connection_styles.includes(c.value)
                   return (
@@ -840,8 +845,8 @@ const MyProfile = () => {
                         {selected && <Check className="h-2.5 w-2.5" />}
                       </div>
                       <div>
-                        <span className="text-sm font-medium text-foreground">{c.label}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">{c.hint}</span>
+                        <p className="text-sm font-semibold text-foreground">{c.label}</p>
+                        <p className="text-xs text-muted-foreground">{c.hint}</p>
                       </div>
                     </button>
                   )
@@ -851,7 +856,7 @@ const MyProfile = () => {
 
             {/* Match priorities */}
             <div className="space-y-2">
-              <Label>Match priorities</Label>
+              <Label>What matters most when meeting another dad?</Label>
               <div className="flex flex-wrap gap-2">
                 {MATCH_PRIORITY_OPTIONS.map((p) => {
                   const selected = form.match_priorities.includes(p.value)
@@ -885,8 +890,7 @@ const MyProfile = () => {
             Interests
           </h3>
           <p className="mb-3 text-xs text-muted-foreground">
-            {MIN_INTERESTS}–{MAX_INTERESTS} interests.{' '}
-            {form.interest_slugs.length} selected.
+            Choose {MIN_INTERESTS}-{MAX_INTERESTS}.
           </p>
 
           <div className="relative mb-3">
@@ -900,7 +904,7 @@ const MyProfile = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {filteredInterests.map((opt) => {
               const selected = form.interest_slugs.includes(opt.slug)
               const atMax = form.interest_slugs.length >= MAX_INTERESTS
@@ -936,7 +940,7 @@ const MyProfile = () => {
             Icebreakers
           </h3>
           <p className="mb-3 text-xs text-muted-foreground">
-            Up to {MAX_ICEBREAKERS}. {form.icebreakers.length} added.
+            Add up to {MAX_ICEBREAKERS}.
           </p>
 
           {/* Saved icebreakers */}
@@ -944,34 +948,71 @@ const MyProfile = () => {
             <div className="mb-3 space-y-2">
               {form.icebreakers.map((ib, i) => {
                 const prompt = ICEBREAKER_PROMPTS.find((p) => p.slug === ib.prompt_slug)
+
+                if (editingIcebreakerIndex === i) {
+                  return (
+                    <div
+                      key={ib.prompt_slug}
+                      className="animate-fade-in rounded-xl border-2 border-primary/30 bg-card p-5 shadow-md"
+                    >
+                      <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                        {prompt?.text ?? ib.prompt_slug}
+                      </p>
+                      <Textarea
+                        autoFocus
+                        value={icebreakerAnswer}
+                        onChange={(e) => {
+                          if (e.target.value.length <= MAX_ICEBREAKER_ANSWER_LENGTH)
+                            setIcebreakerAnswer(e.target.value)
+                        }}
+                        placeholder="Your answer..."
+                        className="mt-3 min-h-20 rounded-md border-border shadow-sm"
+                        disabled={isLoading}
+                      />
+                      <div className="mt-3 flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          {icebreakerAnswer.length}/{MAX_ICEBREAKER_ANSWER_LENGTH}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-md text-xs text-muted-foreground"
+                            onClick={cancelIcebreakerEdit}
+                            disabled={isLoading}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="rounded-md"
+                            onClick={saveIcebreaker}
+                            disabled={isLoading || !icebreakerAnswer.trim()}
+                          >
+                            Update
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
                 return (
                   <div
                     key={ib.prompt_slug}
-                    className="rounded-md border border-border bg-background p-3"
+                    className="relative rounded-xl border-2 border-primary/30 bg-card px-6 py-5 shadow-lg"
                   >
-                    <p className="text-xs font-semibold text-muted-foreground">
+                    <p className="text-sm font-semibold uppercase tracking-wider text-primary pr-16">
                       {prompt?.text ?? ib.prompt_slug}
                     </p>
-                    <p className="mt-1 text-sm text-foreground">{ib.answer}</p>
-                    <div className="mt-2 flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-muted-foreground"
-                        onClick={() => editIcebreaker(i)}
-                        disabled={isLoading}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-destructive"
-                        onClick={() => removeIcebreaker(i)}
-                        disabled={isLoading}
-                      >
-                        Remove
-                      </Button>
+                    <p className="mt-3 text-base leading-relaxed text-foreground whitespace-pre-line">{ib.answer}</p>
+                    <div className="absolute top-4 right-4 flex gap-1.5">
+                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted" onClick={() => editIcebreaker(i)} disabled={isLoading}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10" onClick={() => removeIcebreaker(i)} disabled={isLoading}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                 )
@@ -980,43 +1021,45 @@ const MyProfile = () => {
           )}
 
           {/* Prompt picker */}
-          {selectedPromptSlug === null && form.icebreakers.length < MAX_ICEBREAKERS && (
-            <div className="space-y-1">
-              {ICEBREAKER_PROMPTS.filter((p) => !usedPromptSlugs.has(p.slug)).map((p) => (
-                <button
-                  key={p.slug}
-                  type="button"
-                  onClick={() => {
-                    setSelectedPromptSlug(p.slug)
-                    setIcebreakerAnswer('')
-                    setEditingIcebreakerIndex(null)
-                  }}
-                  disabled={isLoading}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:border-primary/50 hover:bg-muted/30"
+          {selectedPromptSlug === null && editingIcebreakerIndex === null && form.icebreakers.length < MAX_ICEBREAKERS && (
+            <>
+              {form.icebreakers.length > 0 && !showPromptPicker && (
+                <Button
+                  variant="outline"
+                  className="w-full rounded-lg border-2 border-dashed border-primary/40 py-6 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5"
+                  onClick={() => setShowPromptPicker(true)}
                 >
-                  {p.text}
-                </button>
-              ))}
-            </div>
+                  + Add another icebreaker
+                </Button>
+              )}
+              {(showPromptPicker || form.icebreakers.length === 0) && (
+                <div className="space-y-1">
+                  {ICEBREAKER_PROMPTS.filter((p) => !usedPromptSlugs.has(p.slug)).map((p) => (
+                    <button
+                      key={p.slug}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPromptSlug(p.slug)
+                        setIcebreakerAnswer('')
+                        setEditingIcebreakerIndex(null)
+                      }}
+                      disabled={isLoading}
+                      className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:border-primary/50 hover:bg-muted/30"
+                    >
+                      {p.text}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
-          {/* Answer editor */}
-          {selectedPromptSlug !== null && (
-            <div className="animate-fade-in space-y-3 rounded-md border border-primary/30 bg-background p-4">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold text-foreground">
-                  {ICEBREAKER_PROMPTS.find((p) => p.slug === selectedPromptSlug)?.text}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 text-xs text-muted-foreground"
-                  onClick={cancelIcebreakerEdit}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-              </div>
+          {/* Answer editor (new prompts only — editing existing ones renders inline above) */}
+          {selectedPromptSlug !== null && editingIcebreakerIndex === null && (
+            <div className="animate-fade-in rounded-xl border-2 border-primary/30 bg-card p-5 shadow-md">
+              <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                {ICEBREAKER_PROMPTS.find((p) => p.slug === selectedPromptSlug)?.text}
+              </p>
               <Textarea
                 autoFocus
                 value={icebreakerAnswer}
@@ -1024,22 +1067,33 @@ const MyProfile = () => {
                   if (e.target.value.length <= MAX_ICEBREAKER_ANSWER_LENGTH)
                     setIcebreakerAnswer(e.target.value)
                 }}
-                placeholder="Keep it short and real..."
-                className="min-h-20 rounded-md"
+                placeholder="Your answer..."
+                className="mt-3 min-h-20 rounded-md border-border shadow-sm"
                 disabled={isLoading}
               />
-              <div className="flex items-center justify-between">
+              <div className="mt-3 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
                   {icebreakerAnswer.length}/{MAX_ICEBREAKER_ANSWER_LENGTH}
                 </p>
-                <Button
-                  size="sm"
-                  className="rounded-md"
-                  onClick={saveIcebreaker}
-                  disabled={isLoading || !icebreakerAnswer.trim()}
-                >
-                  {editingIcebreakerIndex !== null ? 'Update' : 'Save'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-md text-xs text-muted-foreground"
+                    onClick={cancelIcebreakerEdit}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="rounded-md"
+                    onClick={saveIcebreaker}
+                    disabled={isLoading || !icebreakerAnswer.trim()}
+                  >
+                    Save
+                  </Button>
+                </div>
               </div>
             </div>
           )}
