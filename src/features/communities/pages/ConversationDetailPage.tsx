@@ -11,6 +11,7 @@ import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { conversationPromptTypeLabel } from '@/config/constants'
 import { useConversation } from '../hooks/useConversation'
 import { useConversationMessages } from '../hooks/useConversationMessages'
 import { useConversationParticipants } from '../hooks/useConversationParticipants'
@@ -184,7 +185,7 @@ const ConversationDetailBody = ({ communityId, conversationId }: BodyProps) => {
               </Link>
               {conversation.prompt_type && (
                 <span className="ml-auto text-caption text-muted-foreground bg-muted px-2.5 py-1 rounded-md">
-                  {conversation.prompt_type}
+                  {conversationPromptTypeLabel(conversation.prompt_type)}
                 </span>
               )}
             </div>

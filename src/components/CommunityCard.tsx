@@ -22,7 +22,7 @@ const CommunityCard = ({ id, name, description, image_url, member_count, role }:
       onClick={() => navigate(communityDetail(id))}
     >
       <CardContent className="p-4 flex gap-4">
-        <CommunityImage src={image_url} size={80} />
+        <CommunityImage src={image_url} name={name} size={80} />
 
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-start justify-between gap-2">

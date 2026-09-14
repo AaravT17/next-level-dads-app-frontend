@@ -134,6 +134,7 @@ const CommunityDetailBody = ({ communityId }: { communityId: string | undefined 
             <CommunityPhotoEditor
               communityId={communityId!}
               imageUrl={community.image_url}
+              communityName={community.name}
               canEdit={community.role === 'admin'}
             />
             <div className="min-w-0 flex-1 space-y-2">

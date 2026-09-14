@@ -84,12 +84,11 @@ const GroupsPage = () => {
     /**
      * Create, then attach the photo.
      *
-     * `photo` is always null while COMMUNITY_PHOTO_EDITING_ENABLED is off,
-     * since the picker that sets it is the only way in -- the upload branch is
-     * kept so re-enabling the flag needs no change here.
-     *
      * The upload is keyed by community id, so it cannot happen until the row
-     * exists. A failed upload is deliberately not a failed creation: the
+     * exists -- and the creator is made an admin in the same transaction that
+     * writes it, which is what lets an admin-only endpoint be called this
+     * soon. `photo` is null whenever the picker was left alone, or whenever
+     * COMMUNITY_PHOTO_EDITING_ENABLED hides it. A failed upload is deliberately not a failed creation: the
      * community is real and its admin can add the photo from its own page, so
      * the error is surfaced and the navigation still happens.
      */
@@ -139,6 +138,7 @@ const GroupsPage = () => {
             <div className="flex items-center gap-3">
               <CommunityImage
                 src={photoPreview}
+                name={newName}
                 size={64}
                 iconClassName="w-6 h-6"
               />
@@ -162,16 +162,16 @@ const GroupsPage = () => {
                     <X aria-hidden className="w-3 h-3" />
                     Remove
                   </button>
-              )}
+                )}
+              </div>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept={ACCEPTED_PHOTO_TYPES.join(',')}
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
             </div>
-            <input
-              ref={photoInputRef}
-              type="file"
-              accept={ACCEPTED_PHOTO_TYPES.join(',')}
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
-          </div>
           )}
           <div>
             <label htmlFor="community-name" className="text-label text-foreground">

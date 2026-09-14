@@ -24,6 +24,7 @@ export function SharedCommunityCard({ community }: SharedCommunityCardProps) {
       <div className="flex items-start gap-2.5">
         <CommunityImage
           src={community.image_url}
+          name={community.name}
           size={44}
           iconClassName="w-4 h-4"
         />

@@ -21,11 +21,14 @@ const MAX_BYTES = 5 * 1024 * 1024
 export interface CommunityPhotoEditorProps {
   communityId: string
   imageUrl: string | null
+  /** Builds the fallback tile when the community has no photo. */
+  communityName: string
   /**
-   * Whether this viewer would be allowed to edit -- admins only.
+   * Whether this viewer is allowed to edit -- admins only.
    *
-   * Necessary but not sufficient: COMMUNITY_PHOTO_EDITING_ENABLED gates it as
-   * well, and is currently off for everyone.
+   * Necessary but not sufficient: COMMUNITY_PHOTO_EDITING_ENABLED gates the
+   * control as well. Neither is the actual guard; the endpoints re-check
+   * membership role on every call.
    */
   canEdit: boolean
 }
@@ -33,19 +36,16 @@ export interface CommunityPhotoEditorProps {
 /**
  * The community's photo on its own page.
  *
- * Editing is switched off for every user right now, so this usually renders as
- * a plain photo. The edit path is kept whole rather than deleted: the caller
- * still passes real admin permission, and flipping
- * COMMUNITY_PHOTO_EDITING_ENABLED restores the control with no other change.
- *
- * When editing is on, the picked file is shown immediately from a local object
- * URL so the change reads as instant, then replaced by the stored URL once the
- * upload lands. The preview is dropped on failure, which puts the previous
- * photo straight back.
+ * Renders as a plain photo for members and a photo with an edit control for
+ * admins. The picked file is shown immediately from a local object URL so the
+ * change reads as instant, then replaced by the stored URL once the upload
+ * lands. The preview is dropped on failure, which puts the previous photo
+ * straight back.
  */
 export function CommunityPhotoEditor({
   communityId,
   imageUrl,
+  communityName,
   canEdit,
 }: CommunityPhotoEditorProps) {
   const showEditControl = COMMUNITY_PHOTO_EDITING_ENABLED && canEdit
@@ -94,6 +94,7 @@ export function CommunityPhotoEditor({
     <div className="relative w-fit">
       <CommunityImage
         src={preview ?? imageUrl}
+        name={communityName}
         size={96}
         className="rounded-xl border border-border"
         iconClassName="w-9 h-9"
