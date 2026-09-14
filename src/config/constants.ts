@@ -224,6 +224,32 @@ export const FEED_SUGGESTION_INTERVAL = 4
 /** How many of each suggestion kind to hold, so the feed can scroll a while. */
 export const FEED_SUGGESTION_POOL_SIZE = 6
 
+/**
+ * Dads per suggestion rail.
+ *
+ * A dad suggestion is a shelf, not a card: one profile dropped between posts
+ * asked the reader to judge a stranger on the spot, and at full feed width it
+ * was also the largest thing on the page. Four gives the rail something to
+ * scroll without turning the feed into a directory, and each slot takes its
+ * four from the pool, so the rails deal it out rather than repeat it. The last
+ * one wraps to the front to fill itself; see interleaveFeed.
+ */
+export const FEED_SUGGESTED_DADS_PER_RAIL = 4
+
+/**
+ * How many dads to hold for the rails to deal from.
+ *
+ * Four rails' worth. A page of posts carries two dad slots, so this covers a
+ * couple of pages of scrolling before the pool runs dry and the slots start
+ * being skipped.
+ *
+ * Sent as `limit`, which /api/users/ does not currently read — it answers with
+ * its own page of PROFILES_PAGE_LIMIT either way, which is more than this asks
+ * for. Asking for the right amount anyway means the rails keep their shape if
+ * the endpoint ever starts honouring it.
+ */
+export const FEED_SUGGESTED_DADS_POOL_SIZE = FEED_SUGGESTED_DADS_PER_RAIL * 4
+
 // --- Discover Filters ---
 export const DISCOVER_DADS_FILTERS_AGE_RANGES = [
   'Under 25',
