@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
 
 type VerificationState = 'loading' | 'success' | 'error'
@@ -80,11 +80,7 @@ const VerifyEmail = () => {
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="app-logo w-48 h-auto"
-          />
+          <AppLogo className="w-48 h-auto" />
         </div>
 
         <Card className="shadow-md">

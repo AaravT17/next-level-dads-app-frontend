@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { AppLogo } from './AppLogo'
 import { cn } from '@/lib/utils'
 import { CONTENT_WIDTH, type ContentWidth } from './contentWidth'
 import { AccountButton } from './AccountButton'
@@ -70,7 +70,7 @@ export function AppBar({
           <div className="flex justify-start">
             {back ??
               (leading === 'logo' ? (
-                <img src={logo} alt="" aria-hidden className="app-logo h-9 w-auto" />
+                <AppLogo decorative className="h-9 w-auto" />
               ) : null)}
           </div>
           <div className="min-w-0 text-center">
@@ -87,7 +87,7 @@ export function AppBar({
         <div className="hidden lg:flex items-center gap-3 py-4">
           {back ??
             (leading === 'logo' ? (
-              <img src={logo} alt="" aria-hidden className="app-logo h-9 w-auto shrink-0" />
+              <AppLogo decorative className="h-9 w-auto shrink-0" />
             ) : null)}
           <div className="min-w-0 flex-1">
             <h1 className="font-heading text-title text-foreground truncate">{title}</h1>

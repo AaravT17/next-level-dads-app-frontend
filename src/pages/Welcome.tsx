@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
 import { Mail } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
 import { supabaseAuth } from '@/lib/supabase'
 import { toastError } from '@/lib/toast'
@@ -138,11 +138,7 @@ const Welcome = () => {
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in text-center px-6">
         <div className="flex justify-center mt-12 mb-8">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="app-logo w-[95%] h-auto"
-          />
+          <AppLogo className="w-[95%] h-auto" />
         </div>
 
         <div className="space-y-3">

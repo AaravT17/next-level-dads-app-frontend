@@ -85,10 +85,17 @@ export function ConnectionRequestsPanel() {
         <Link
           to={ROUTES.REQUESTS}
           state={{ from: `${pathname}${search}` }}
-          className="flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-label font-medium text-primary transition-colors duration-fast hover:bg-primary/10"
+          className="flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-label font-medium text-foreground transition-colors duration-fast hover:bg-primary/10"
         >
+          {/*
+            Body text, not gold. Gold is the brand accent and reads as decoration
+            against this panel's own gold-tinted fill, which left the label the
+            faintest thing in a section that is asking to be acted on. The arrow
+            keeps the accent — it is the part that says "this goes somewhere",
+            and one gold glyph carries that without costing the words contrast.
+          */}
           See all requests
-          <ArrowRight aria-hidden className="h-4 w-4" />
+          <ArrowRight aria-hidden className="h-4 w-4 text-primary" />
         </Link>
       )}
     </section>
