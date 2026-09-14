@@ -11,10 +11,15 @@ import { EmptyState } from '@/components/feedback/EmptyState'
 import { DadListSkeleton } from '@/components/feedback/skeletons/CardSkeletons'
 import DadCard from '@/components/DadCard'
 import { ConnectionRequestsPanel } from '@/features/connections/components/ConnectionRequestsPanel'
+import { SentRequestsPanel } from '@/features/connections/components/SentRequestsPanel'
+import { useOutgoingRequests } from '@/features/connections/hooks/useOutgoingRequests'
+import { NO_REQUEST_FILTERS } from '@/features/connections/hooks/useIncomingRequests'
+import { useUserStats } from '@/hooks/useNavBadges'
+import { ROUTES } from '@/lib/routes'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { RefreshCw, Search, X, SlidersHorizontal } from 'lucide-react'
+import { RefreshCw, Search, X, SlidersHorizontal, SearchX, UserRoundCheck, Users } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -163,6 +168,27 @@ const DadsPage = () => {
 
   const profiles = useMemo(() => dadsData?.pages.flat() ?? [], [dadsData])
 
+  /**
+   * Everyone you have already acted on.
+   *
+   * Browse returns only dads with no connection to you in either direction, so
+   * an empty grid has three unrelated causes and one of them is good news.
+   * Both counts come from queries this screen already mounts — the stats
+   * document behind the AppBar badge, and the list the sent panel renders —
+   * so neither adds a request.
+   *
+   * The pending flag is not decoration. Either query still in flight reads as
+   * zero, which is indistinguishable from a genuinely new account, and the
+   * grid can resolve empty before they land — so the empty state would
+   * announce the wrong one and then correct itself a moment later.
+   */
+  const { data: stats, isPending: isStatsPending } = useUserStats()
+  const { data: sentData, isPending: isSentPending } = useOutgoingRequests(NO_REQUEST_FILTERS)
+  const connectionCount = stats?.connections ?? 0
+  const sentCount = sentData?.pages.flat().length ?? 0
+  const isHistoryPending = isStatsPending || isSentPending
+  const hasReachedEveryone = connectionCount > 0 || sentCount > 0
+
   const hasActiveFilters =
     urlInterests.length > 0 ||
     urlChildrenAges.length > 0 ||
@@ -248,6 +274,45 @@ const DadsPage = () => {
     })
   }
 
+  /**
+   * What an empty grid means.
+   *
+   * Three causes, and telling them apart is the difference between a dead end
+   * and a finished job. Filters are the reader's own doing and come first —
+   * the grid may be full without them, and the answer needs nothing loaded.
+   * Past that, having connected with or written to anybody is what separates
+   * "you have reached everyone here" from a platform that has nobody else on
+   * it yet, and only the first of those deserves a way onward. Until those
+   * counts arrive the skeleton stays up rather than pick one and be wrong.
+   */
+  const emptyState = hasActiveFilters ? (
+    <EmptyState
+      icon={SearchX}
+      title="No dads match your filters"
+      description="Try widening your search."
+      action={{ label: 'Clear filters', onClick: clearDadsFilters }}
+    />
+  ) : isHistoryPending ? (
+    <DadListSkeleton />
+  ) : hasReachedEveryone ? (
+    <EmptyState
+      icon={UserRoundCheck}
+      title="You're all caught up"
+      description="You have connected with or sent a request to every dad here. New ones will show up as they join."
+      action={
+        connectionCount > 0
+          ? { label: 'See your connections', to: ROUTES.CONNECTIONS }
+          : undefined
+      }
+    />
+  ) : (
+    <EmptyState
+      icon={Users}
+      title="No dads yet"
+      description="Check back soon as more dads join."
+    />
+  )
+
   const clearDadSearch = () => {
     setDadSearchQuery('')
     setSearchParams((prev) => {
@@ -272,8 +337,9 @@ const DadsPage = () => {
   const handleRefreshDads = () => {
     queryClient.removeQueries({ queryKey: ['dads'] })
     queryClient.removeQueries({ queryKey: ['profile'] })
-    // The requests panel sits on this page too, so Refresh has to mean it.
+    // Both request panels sit on this page too, so Refresh has to mean them.
     queryClient.removeQueries({ queryKey: ['connections', 'requests'] })
+    queryClient.removeQueries({ queryKey: ['connections', 'sent'] })
   }
 
   return (
@@ -287,6 +353,13 @@ const DadsPage = () => {
       when nothing is waiting. The panel removes itself when the list is empty.
     */}
     <ConnectionRequestsPanel />
+
+    {/*
+      Then what you are waiting on. Collapsed by default and quieter than the
+      panel above: browse no longer carries already-requested dads, so this is
+      where a sent request lives and where it can be taken back.
+    */}
+    <SentRequestsPanel />
 
     <div className="mb-4 flex items-center gap-3">
     <form
@@ -551,19 +624,7 @@ const DadsPage = () => {
         // A 429 already surfaces as a toast; keep the list on screen rather
         // than replacing it with an error panel.
         ignoreError={(e) => axios.isAxiosError(e) && e.response?.status === 429}
-        empty={
-          <EmptyState
-            title={hasActiveFilters ? 'No dads match your filters' : 'No dads yet'}
-            description={
-              hasActiveFilters
-                ? 'Try widening your search.'
-                : 'Check back soon as more dads join.'
-            }
-            action={
-              hasActiveFilters ? { label: 'Clear filters', onClick: clearDadsFilters } : undefined
-            }
-          />
-        }
+        empty={emptyState}
       >
         {(items) => (
           <ul role="list" className="grid gap-4 sm:grid-cols-2">

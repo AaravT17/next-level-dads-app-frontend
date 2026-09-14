@@ -16,9 +16,16 @@ export function useUnreadChatCount(): number {
   return unreadCount
 }
 
-/** Incoming connection requests. Previously had no entry point at all. */
-export function usePendingRequestCount(): number {
-  const { data } = useQuery({
+/**
+ * The stats document behind every counter in the shell.
+ *
+ * One query key, so every caller shares a single request. The AppBar mounts it
+ * on every screen, which is why a page can read a count without issuing one of
+ * its own — though it must still respect `isPending`, since "not loaded yet"
+ * and "zero" mean different things to anything that branches on the answer.
+ */
+export function useUserStats() {
+  return useQuery({
     queryKey: ['user', 'stats'],
     queryFn: async () => {
       const res = await axiosPrivate.get<UserStats>('/api/users/me/stats', {
@@ -29,5 +36,9 @@ export function usePendingRequestCount(): number {
     staleTime: 1000 * 60,
     refetchOnWindowFocus: true,
   })
-  return data?.requests ?? 0
+}
+
+/** Incoming connection requests. Previously had no entry point at all. */
+export function usePendingRequestCount(): number {
+  return useUserStats().data?.requests ?? 0
 }

@@ -41,6 +41,21 @@ describe('interleaveFeed', () => {
     expect(suggestionKinds(rows)).toEqual(['dad', 'dad'])
   })
 
+  it('places no dad row at all when there are no dads left to meet', () => {
+    // Browse returns only dads you have no connection to, so this pool empties
+    // for real once you have reached everyone. The slot has to disappear with
+    // it — a "Suggested dad" heading over nothing is worse than no heading.
+    const rows = interleaveFeed(posts(20), events(6), [])
+    expect(suggestionKinds(rows)).toEqual(['event', 'event'])
+    expect(rows.some((r) => r.kind === 'dad')).toBe(false)
+  })
+
+  it('renders a plain feed when neither pool has anything to suggest', () => {
+    const rows = interleaveFeed(posts(20), [], [])
+    expect(suggestionKinds(rows)).toEqual([])
+    expect(rows).toHaveLength(20)
+  })
+
   it('stops suggesting once both pools are spent', () => {
     const rows = interleaveFeed(posts(60), events(1), dads(1))
     expect(suggestionKinds(rows)).toEqual(['event', 'dad'])

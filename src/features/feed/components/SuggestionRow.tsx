@@ -49,7 +49,14 @@ export function EventSuggestion({ event }: { event: Event }) {
 export function DadSuggestion({ dad }: { dad: Profile }) {
   return (
     <SuggestionFrame icon={UserPlus} label="Suggested dad">
-      <DadCard {...dad} />
+      {/*
+        listContext is passed explicitly: DadCard otherwise reads the pathname,
+        and /home is not one it knows, so it would fall through to the browse
+        grid's rules — which now remove a card once you connect. A row vanishing
+        out of the middle of a feed you are reading is the one thing a
+        suggestion must never do.
+      */}
+      <DadCard {...dad} listContext="suggestion" />
     </SuggestionFrame>
   )
 }
