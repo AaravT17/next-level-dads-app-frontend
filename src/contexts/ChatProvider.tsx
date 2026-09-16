@@ -173,6 +173,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     for (const event of buffer) {
       if (event.type === 'chats:added') {
         processChatsAdded(event.payload.chat_id)
+        notificationHandlerRef.current?.(event)
       } else if (event.type === 'chats:removed') {
         processChatsRemoved(event.payload.chat_id)
       }
@@ -298,6 +299,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         // Drop events for chats not in hashmap (except chats:added which adds to hashmap)
         if (parsed.type === 'chats:added') {
           processChatsAdded(parsed.payload.chat_id)
+          notificationHandlerRef.current?.(parsed)
           return
         }
 
@@ -407,6 +409,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         chatMembershipRef.current.clear()
         eventBufferRef.current = []
         setUnreadCount(0)
+        queryClient.removeQueries({ queryKey: ['notifications'] })
 
         if (!shouldReconnectRef.current) return
 

@@ -11,10 +11,10 @@ import type { Notification } from '@/types/notifications'
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
-  const { updateNotificationState } = useAuth()
-  const { registerNotificationHandler, sendWsMessage } = useChat()
+  const { user, updateNotificationState } = useAuth()
+  const { registerNotificationHandler, sendWsMessage, wsReady } = useChat()
 
-  const { data: countData } = useUnreadNotificationCount()
+  const { data: countData } = useUnreadNotificationCount(wsReady)
   const [unreadCount, setUnreadCount] = useState(0)
 
   // Sync initial count from server
@@ -55,6 +55,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ['connections'] })
         queryClient.invalidateQueries({ queryKey: ['user', 'stats'] })
         queryClient.invalidateQueries({ queryKey: ['dads'] })
+      } else if (event.type === 'chats:added') {
+        const { added_by, chat_type, notification_id, notification_created_at, ...rest } = event.payload
+        // DMs are handled entirely by ChatProvider (hashmap + preview)
+        if (chat_type === 'dm') return
+        // Own action — no notification centre entry or banner
+        if (added_by === user?.id) return
+        // Insert into notification centre only if notification was persisted
+        if (notification_id && notification_created_at) {
+          const notif: Notification = {
+            id: notification_id,
+            type: 'chat_added',
+            payload: { ...rest, added_by, chat_type },
+            created_at: notification_created_at,
+          }
+          insertNotification(queryClient, notif)
+          setUnreadCount((c) => c + 1)
+        }
       } else if (event.type === 'notifications:read') {
         updateNotificationState({ lastReadAt: event.payload.last_read_at })
         queryClient.invalidateQueries({ queryKey: notificationKeys.count() })
@@ -69,7 +86,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setUnreadCount(0)
       }
     },
-    [queryClient, updateNotificationState],
+    [queryClient, updateNotificationState, user?.id],
   )
 
   useEffect(() => {

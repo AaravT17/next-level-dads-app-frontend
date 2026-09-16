@@ -137,6 +137,13 @@ export type WsEvent =
       type: 'chats:added'
       payload: {
         chat_id: string
+        chat_name: string | null
+        chat_type: ChatType
+        chat_avatar_url: string | null
+        added_by: string
+        added_by_name: string
+        notification_id?: string
+        notification_created_at?: string
       }
     }
   | {

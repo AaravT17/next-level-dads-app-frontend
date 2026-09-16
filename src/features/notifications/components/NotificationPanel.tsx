@@ -1,14 +1,16 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/contexts/useAuth'
+import { useChat } from '@/contexts/useChat'
 import { useNotification } from '@/contexts/useNotification'
 import { useNotifications } from '../hooks/useNotifications'
 import { NotificationItem } from './NotificationItem'
 
 export function NotificationPanel({ onClose }: { onClose: () => void }) {
   const { user } = useAuth()
+  const { wsReady } = useChat()
   const { markRead, clearAll } = useNotification()
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useNotifications()
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useNotifications(wsReady)
 
   // Snapshot the last_read_at at mount time so we can show an unread divider
   // even after markRead() optimistically clears the badge.
