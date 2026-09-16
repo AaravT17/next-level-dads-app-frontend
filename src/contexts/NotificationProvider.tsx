@@ -11,15 +11,31 @@ import { showBanner } from '@/utils/banners'
 import type { WsEvent } from '@/types/chats'
 import type { Notification } from '@/types/notifications'
 
-// Step 10 will wire this to localStorage + a settings toggle.
-// For now, banners are enabled by default.
-const bannersEnabled = true
+const BANNERS_STORAGE_KEY = 'nld:banners-enabled'
+
+function readBannerPref(): boolean {
+  try {
+    const v = localStorage.getItem(BANNERS_STORAGE_KEY)
+    return v === null ? true : v === 'true'
+  } catch {
+    return true
+  }
+}
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { user, updateNotificationState } = useAuth()
   const { registerNotificationHandler, sendWsMessage, wsReady } = useChat()
+
+  const [bannersEnabled, setBannersEnabledState] = useState(readBannerPref)
+
+  const setBannersEnabled = useCallback((enabled: boolean) => {
+    setBannersEnabledState(enabled)
+    try {
+      localStorage.setItem(BANNERS_STORAGE_KEY, String(enabled))
+    } catch { /* quota exceeded — state still updated in memory */ }
+  }, [])
 
   const { data: countData } = useUnreadNotificationCount(wsReady)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -100,7 +116,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         showBanner(event, user?.id, navigate)
       }
     },
-    [queryClient, updateNotificationState, user?.id, navigate],
+    [queryClient, updateNotificationState, user?.id, navigate, bannersEnabled],
   )
 
   useEffect(() => {
@@ -119,7 +135,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [sendWsMessage, queryClient])
 
   return (
-    <NotificationContext.Provider value={{ unreadCount, markRead, clearAll }}>
+    <NotificationContext.Provider value={{ unreadCount, markRead, clearAll, bannersEnabled, setBannersEnabled }}>
       {children}
     </NotificationContext.Provider>
   )
