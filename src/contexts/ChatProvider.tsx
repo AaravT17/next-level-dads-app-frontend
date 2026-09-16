@@ -349,10 +349,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           // Update messages cache
           updateMessagesCache(queryClient, message.chat_id, message)
 
-          // Notify active chat handler
+          // Notify active chat handler or forward to notification handler for banners
           if (messageHandlerRef.current?.chatId === message.chat_id) {
             messageHandlerRef.current.handler(parsed)
             sendWsMessage({ type: 'chats:read', chat_id: message.chat_id })
+          } else {
+            notificationHandlerRef.current?.(parsed)
           }
         } else if (parsed.type === 'messages:edit') {
           const payload = parsed.payload

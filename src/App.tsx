@@ -66,10 +66,11 @@ const AdminDashboardPage = lazy(() =>
 const AppContent = () => {
   return (
     <TooltipProvider>
-      <Toaster />
+      <Toaster visibleToasts={3} />
       <ModerationNotifier />
       <LegalAcceptancesModal />
       <BrowserRouter>
+        <NotificationProvider>
         {/*
           Covers the routes rendered outside AppLayout (auth, setup, 404).
           Routes inside it have their own boundary, so the shell survives a
@@ -165,6 +166,7 @@ const AppContent = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
+        </NotificationProvider>
       </BrowserRouter>
     </TooltipProvider>
   )
@@ -188,9 +190,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ChatProvider>
-          <NotificationProvider>
-            <AppContent />
-          </NotificationProvider>
+          <AppContent />
         </ChatProvider>
       </AuthProvider>
     </QueryClientProvider>

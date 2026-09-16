@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useState, ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { NotificationContext } from '@/contexts/NotificationContext'
 import { useAuth } from '@/contexts/useAuth'
@@ -6,11 +7,17 @@ import { useChat } from '@/contexts/useChat'
 import { useUnreadNotificationCount } from '@/features/notifications/hooks/useUnreadNotificationCount'
 import { notificationKeys } from '@/features/notifications/hooks/notificationKeys'
 import { insertNotification, clearNotificationsCache } from '@/utils/notifications'
+import { showBanner } from '@/utils/banners'
 import type { WsEvent } from '@/types/chats'
 import type { Notification } from '@/types/notifications'
 
+// Step 10 will wire this to localStorage + a settings toggle.
+// For now, banners are enabled by default.
+const bannersEnabled = true
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { user, updateNotificationState } = useAuth()
   const { registerNotificationHandler, sendWsMessage, wsReady } = useChat()
 
@@ -76,6 +83,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         updateNotificationState({ lastReadAt: event.payload.last_read_at })
         queryClient.invalidateQueries({ queryKey: notificationKeys.count() })
         setUnreadCount(0)
+        return // no banner
       } else if (event.type === 'notifications:cleared') {
         updateNotificationState({
           lastReadAt: event.payload.last_read_at,
@@ -84,9 +92,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         clearNotificationsCache(queryClient)
         queryClient.invalidateQueries({ queryKey: notificationKeys.count() })
         setUnreadCount(0)
+        return // no banner
+      }
+
+      // Show banner for actionable events (messages:new, connections, chats:added)
+      if (bannersEnabled) {
+        showBanner(event, user?.id, navigate)
       }
     },
-    [queryClient, updateNotificationState, user?.id],
+    [queryClient, updateNotificationState, user?.id, navigate],
   )
 
   useEffect(() => {

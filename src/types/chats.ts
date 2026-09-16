@@ -105,7 +105,14 @@ export type MessageHandler = (event: WsEvent) => void
 
 export type WsEvent =
   | { type: 'ws:ready' }
-  | { type: 'messages:new'; payload: Message }
+  | {
+      type: 'messages:new'
+      payload: Message & {
+        chat_name: string | null
+        chat_type: ChatType
+        chat_avatar_url: string | null
+      }
+    }
   | {
       type: 'messages:edit'
       payload: {

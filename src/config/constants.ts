@@ -156,6 +156,9 @@ export const MESSAGES_PAGE_LIMIT = 50
 export const PARTICIPANTS_PAGE_LIMIT = 20
 export const NOTIFICATIONS_PAGE_LIMIT = 20
 
+// --- Banner notifications ---
+export const BANNER_DISMISS_MS = 3000
+
 /** How many "get back into it" cards the Home rail asks for. */
 export const RESUME_PAGE_LIMIT = 10
 
