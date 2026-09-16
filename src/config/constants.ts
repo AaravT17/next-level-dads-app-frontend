@@ -155,8 +155,18 @@ export const CHATS_PAGE_LIMIT = 20
 export const MESSAGES_PAGE_LIMIT = 50
 export const PARTICIPANTS_PAGE_LIMIT = 20
 
-/** How many "get back into it" cards the Home rail asks for. */
+/** How many "get back into it" cards the Home surfaces ask for. */
 export const RESUME_PAGE_LIMIT = 10
+
+/**
+ * How many of those the Home rail actually shows.
+ *
+ * Fewer than are fetched, on purpose. Past about seven the rail stops being a
+ * shelf you can reach the end of and starts being a second feed laid on its
+ * side, above the feed you came for. The rest are not thrown away — /home/resume
+ * renders the same query in full, which is what the rail's arrow points at.
+ */
+export const RESUME_RAIL_VISIBLE_LIMIT = 7
 
 /**
  * What a post is for. Optional, and shown as a chip on the card.
