@@ -86,4 +86,6 @@ export interface UserStats {
   requests: number
   communities_joined: number
   events_registered_for: number
+  /** Communities that moved since you last opened them — the Groups nav badge. */
+  communities_with_new_activity: number
 }

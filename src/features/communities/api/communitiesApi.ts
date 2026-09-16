@@ -58,6 +58,15 @@ export const communitiesApi = {
   leaveCommunity: (communityId: string) =>
     axiosPrivate.delete(`/api/communities/${communityId}/members`, t),
 
+  /**
+   * Stamp a visit, clearing this community's new-activity badge.
+   *
+   * Idempotent and a no-op for non-members, so a replay costs nothing and a
+   * failure needs no recovery — the next visit stamps it again.
+   */
+  markVisited: (communityId: string) =>
+    axiosPrivate.post(`/api/communities/${communityId}/visit`, {}, t),
+
   updateCommunityImage: (communityId: string, file: File) => {
     const formData = new FormData()
     formData.append('image', file)

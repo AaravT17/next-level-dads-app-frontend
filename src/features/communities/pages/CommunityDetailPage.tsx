@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { useCommunity } from '../hooks/useCommunity'
 import { useCommunityConversations } from '../hooks/useCommunityConversations'
 import { useJoinCommunity, useLeaveCommunity } from '../hooks/useCommunityMembership'
+import { useMarkCommunityVisited } from '../hooks/useMarkCommunityVisited'
 import { ConversationCard } from '../components/ConversationCard'
 import { ConversationComposer } from '../components/ConversationComposer'
 import { InviteFriendsDialog } from '../components/InviteFriendsDialog'
@@ -41,6 +42,10 @@ const CommunityDetailBody = ({ communityId }: { communityId: string | undefined 
   const [inviteOpen, setInviteOpen] = useState(false)
   const [activeFilter, setActiveFilter] = useState<ConversationSort>('recent')
   const [timeWindow, setTimeWindow] = useState<ConversationTimeWindow>('all')
+
+  // Opening the community is what clears its "new since you last visited" badge.
+  // Fires on mount, throttled per community, and never blocks what renders below.
+  useMarkCommunityVisited(communityId)
 
   const {
     data: community,
