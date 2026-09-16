@@ -5,6 +5,7 @@ import logo from '@/assets/logo.png'
 import { cn } from '@/lib/utils'
 import { CONTENT_WIDTH, type ContentWidth } from './contentWidth'
 import { AccountButton } from './AccountButton'
+import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 
 export type AppBarProps = {
   title: string
@@ -100,6 +101,7 @@ export function AppBar({
 
       <div className="absolute inset-y-0 right-3 sm:right-6 flex items-center gap-2">
         {actions}
+        {showAccount ? <NotificationBell /> : null}
         {showAccount ? <AccountButton /> : null}
       </div>
     </header>

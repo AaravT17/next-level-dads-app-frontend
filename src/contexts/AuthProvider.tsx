@@ -50,6 +50,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
+  const updateNotificationState = useCallback(
+    (update: Partial<User['notificationState']>) => {
+      setState((prev) => {
+        if (!prev.user) return prev
+        const current = prev.user.notificationState
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            notificationState: {
+              lastReadAt:
+                update.lastReadAt !== undefined
+                  ? (current.lastReadAt && update.lastReadAt
+                      ? current.lastReadAt > update.lastReadAt ? current.lastReadAt : update.lastReadAt
+                      : update.lastReadAt ?? current.lastReadAt)
+                  : current.lastReadAt,
+              lastClearedAt:
+                update.lastClearedAt !== undefined
+                  ? (current.lastClearedAt && update.lastClearedAt
+                      ? current.lastClearedAt > update.lastClearedAt ? current.lastClearedAt : update.lastClearedAt
+                      : update.lastClearedAt ?? current.lastClearedAt)
+                  : current.lastClearedAt,
+            },
+          },
+        }
+      })
+    },
+    [],
+  )
+
   useEffect(() => {
     registerAuthCallbacks({
       onTokenRefresh: (token) => {
@@ -94,6 +124,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               terms: res.data.legal_acceptances?.terms ?? false,
               privacy_policy: res.data.legal_acceptances?.privacy_policy ?? false,
             },
+            notificationState: {
+              lastReadAt: res.data.notification_state?.last_read_at ?? null,
+              lastClearedAt: res.data.notification_state?.last_cleared_at ?? null,
+            },
           },
         }))
       } catch (err) {
@@ -119,8 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [setLoading])
 
   const value = useMemo(
-    () => ({ ...state, setAuth, setLoading }),
-    [state, setAuth, setLoading],
+    () => ({ ...state, setAuth, setLoading, updateNotificationState }),
+    [state, setAuth, setLoading, updateNotificationState],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

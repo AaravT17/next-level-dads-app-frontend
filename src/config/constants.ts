@@ -154,6 +154,7 @@ export const EVENTS_PAGE_LIMIT = 20
 export const CHATS_PAGE_LIMIT = 20
 export const MESSAGES_PAGE_LIMIT = 50
 export const PARTICIPANTS_PAGE_LIMIT = 20
+export const NOTIFICATIONS_PAGE_LIMIT = 20
 
 /** How many "get back into it" cards the Home rail asks for. */
 export const RESUME_PAGE_LIMIT = 10

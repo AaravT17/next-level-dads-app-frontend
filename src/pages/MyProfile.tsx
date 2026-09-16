@@ -290,6 +290,7 @@ const MyProfile = () => {
           isAdmin: user?.isAdmin ?? false,
           preferences: user?.preferences ?? { marketing_emails_opt_in: false },
           legal_acceptances: user?.legal_acceptances ?? { terms: false, privacy_policy: false },
+          notificationState: user?.notificationState ?? { lastReadAt: null, lastClearedAt: null },
         },
         accessToken,
       })

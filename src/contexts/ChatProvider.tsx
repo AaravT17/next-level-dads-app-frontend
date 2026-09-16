@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, ReactNode } from 'react'
 import { useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { ChatContext } from '@/contexts/ChatContext'
 import { useAuth } from '@/contexts/useAuth'
-import type { Chat, ChatMembership, MessageHandler, WsEvent } from '@/types/chats'
+import type { Chat, ChatMembership, MessageHandler, NotificationEventHandler, WsEvent } from '@/types/chats'
 import axiosPrivate, {
   getAccessToken,
   setAccessToken,
@@ -41,6 +41,25 @@ function computeUnreadCount(map: MembershipMap): number {
 // Provider
 // ============================================
 
+// TODO: Extract WebSocket transport into a dedicated WsProvider.
+//
+// Currently ChatProvider owns the socket and all domain providers (notifications,
+// and eventually others) register handlers here to receive events. The end-state
+// architecture should be:
+//
+//   WsProvider          — owns the socket, exposes event registration
+//   ├─ ChatProvider     — subscribes to chat events (messages:*, chats:*)
+//   ├─ NotificationProvider — subscribes to notification events (connections:*, notifications:*)
+//   └─ (future providers)
+//
+// Each individual chat page would register with ChatProvider, and ChatProvider
+// would call those handlers for chat-specific events — same pattern at every level.
+// Events flow down: socket → domain provider → individual component.
+//
+// For now this is too large a refactor to take on alongside the notification
+// feature, so ChatProvider keeps the socket and NotificationProvider hooks into
+// it via registerNotificationHandler.
+
 const MAX_RECONNECT_ATTEMPTS = 5
 const MAX_MEMBERSHIP_FETCH_ATTEMPTS = 3
 
@@ -62,6 +81,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const messageHandlerRef = useRef<{ chatId: string; handler: MessageHandler } | null>(null)
   const reconnectHandlerRef = useRef<(() => void) | null>(null)
+  const notificationHandlerRef = useRef<NotificationEventHandler | null>(null)
   const currentChatIdRef = useRef<string | null>(null)
   const shouldReconnectRef = useRef<boolean>(false)
   // Mirrors isFailed for synchronous reads inside the visibilitychange listener
@@ -86,6 +106,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     reconnectHandlerRef.current = handler
     return () => {
       reconnectHandlerRef.current = null
+    }
+  }, [])
+
+  const registerNotificationHandler = useCallback((handler: NotificationEventHandler) => {
+    notificationHandlerRef.current = handler
+    return () => {
+      notificationHandlerRef.current = null
     }
   }, [])
 
@@ -276,6 +303,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         if (parsed.type === 'chats:removed') {
           processChatsRemoved(parsed.payload.chat_id)
+          return
+        }
+
+        // Forward notification-domain events to the notification handler
+        if (
+          parsed.type === 'connections:request' ||
+          parsed.type === 'connections:accepted' ||
+          parsed.type === 'notifications:read' ||
+          parsed.type === 'notifications:cleared'
+        ) {
+          notificationHandlerRef.current?.(parsed)
           return
         }
 
@@ -492,6 +530,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       value={{
         registerMessageHandler,
         registerReconnectHandler,
+        registerNotificationHandler,
         sendWsMessage,
         isChatMember,
         isReconnecting,

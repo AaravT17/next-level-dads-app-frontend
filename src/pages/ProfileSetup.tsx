@@ -398,6 +398,10 @@ const ProfileSetup = () => {
               res.data.preferences?.marketing_emails_opt_in ?? marketingOptIn,
           },
           legal_acceptances: { terms: true, privacy_policy: true },
+          notificationState: {
+            lastReadAt: null,
+            lastClearedAt: null,
+          },
         },
         accessToken,
       })

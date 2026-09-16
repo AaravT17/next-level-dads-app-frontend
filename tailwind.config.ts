@@ -70,6 +70,10 @@ export default {
           DEFAULT: "hsl(var(--soft))",
           foreground: "hsl(var(--soft-foreground))",
         },
+        badge: {
+          DEFAULT: "hsl(var(--badge))",
+          foreground: "hsl(var(--badge-foreground))",
+        },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",

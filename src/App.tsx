@@ -16,6 +16,7 @@ import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 import { LegalAcceptancesModal } from '@/components/LegalAcceptancesModal'
 import { ChatProvider } from '@/contexts/ChatProvider'
+import { NotificationProvider } from '@/contexts/NotificationProvider'
 
 // Welcome and NotFound stay eager: Welcome is what a logged-out visitor lands
 // on, so putting it behind a chunk boundary would trade a smaller bundle for a
@@ -187,7 +188,9 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ChatProvider>
-          <AppContent />
+          <NotificationProvider>
+            <AppContent />
+          </NotificationProvider>
         </ChatProvider>
       </AuthProvider>
     </QueryClientProvider>

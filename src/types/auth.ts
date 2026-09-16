@@ -25,6 +25,10 @@ export interface User {
     terms: boolean
     privacy_policy: boolean
   }
+  notificationState: {
+    lastReadAt: string | null
+    lastClearedAt: string | null
+  }
 }
 
 export interface AuthState {
@@ -36,6 +40,7 @@ export interface AuthState {
 export interface AuthContextType extends AuthState {
   setAuth: (auth: { user: User | null; accessToken: string | null }) => void
   setLoading: (loading: boolean) => void
+  updateNotificationState: (update: Partial<User['notificationState']>) => void
 }
 
 export interface AuthCallbacks {
