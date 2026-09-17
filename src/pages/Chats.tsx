@@ -294,8 +294,6 @@ const Chats = () => {
 
   return (
     <>
-      <AppBar title="Chats" showAccount={!isDesktop} leading={isDesktop ? 'none' : 'logo'} />
-
       <PageContainer className="animate-fade-in">
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1">

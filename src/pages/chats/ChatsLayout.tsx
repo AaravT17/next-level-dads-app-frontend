@@ -1,6 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { MessageCircle } from 'lucide-react'
-import { AccountButton } from '@/components/layout/AccountButton'
+import { AppBar } from '@/components/layout/AppBar'
 import { useIsDesktop } from '@/hooks/useIsDesktop'
 import { ROUTES } from '@/lib/routes'
 import Chats from '../Chats'
@@ -22,18 +22,22 @@ export function ChatsLayout() {
   const { pathname } = useLocation()
   const isThreadOpen = pathname !== ROUTES.CHATS
 
-  if (!isDesktop) {
-    return isThreadOpen ? <Outlet /> : <Chats />
-  }
-
   return (
-    <div className="flex min-h-0 flex-1">
-      <div className="flex w-80 xl:w-96 shrink-0 flex-col border-r border-border">
-        <Chats />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Outlet />
-      </div>
+    <div className="flex flex-col min-h-0 flex-1">
+      <AppBar title="Chats" width="full" />
+
+      {isDesktop ? (
+        <div className="flex min-h-0 flex-1">
+          <div className="flex w-80 xl:w-96 shrink-0 flex-col border-r border-border">
+            <Chats />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Outlet />
+          </div>
+        </div>
+      ) : (
+        isThreadOpen ? <Outlet /> : <Chats />
+      )}
     </div>
   )
 }
@@ -42,13 +46,6 @@ export function ChatsLayout() {
 export function ChatsEmptyPane() {
   return (
     <>
-      {/* Keeps the header band — and the account corner — continuous. */}
-      <div className="shrink-0 bg-card border-b border-border">
-        <div className="flex items-center justify-end px-6 h-[4.5rem]">
-          <AccountButton />
-        </div>
-      </div>
-
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
         <MessageCircle
           aria-hidden
