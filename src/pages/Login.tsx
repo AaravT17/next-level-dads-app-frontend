@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Eye, EyeOff } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
 import axiosPublic from '@/api/axiosPublic'
 import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
@@ -107,11 +107,7 @@ const Login = () => {
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="app-logo w-48 h-auto"
-          />
+          <AppLogo className="w-48 h-auto" />
         </div>
 
         <Card className="shadow-md">

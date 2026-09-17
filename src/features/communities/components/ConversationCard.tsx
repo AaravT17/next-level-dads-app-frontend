@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { MessageCircle, Heart, Users, Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { communityDetail, conversationDetail } from '@/lib/routes'
+import { conversationPromptTypeLabel } from '@/config/constants'
 import type { Conversation } from '@/types/communities'
 import { PendingReportGate } from './PendingReportGate'
 
@@ -75,7 +76,7 @@ export function ConversationCard({ conversation, communityName }: ConversationCa
           )}
           {!conversation.is_deleted && conversation.prompt_type && (
             <span className="text-caption text-muted-foreground/70 bg-muted px-2.5 py-1 rounded-md ml-auto">
-              {conversation.prompt_type}
+              {conversationPromptTypeLabel(conversation.prompt_type)}
             </span>
           )}
         </div>

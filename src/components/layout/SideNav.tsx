@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
-import logo from '@/assets/logo.png'
+import { AppLogo } from './AppLogo'
 import { useNavItems } from './useNavItems'
 import { NavBadge } from './NavBadge'
 
@@ -24,7 +24,7 @@ export function SideNav() {
       className="hidden lg:flex w-60 xl:w-64 shrink-0 flex-col gap-1 border-r border-border bg-card px-3 py-4"
     >
       <Link to={ROUTES.DADS} className="mb-4 flex items-center gap-2 px-2 py-1">
-        <img src={logo} alt="Next Level Dads" className="app-logo h-9 w-auto" />
+        <AppLogo className="h-9 w-auto" />
       </Link>
 
       <ul role="list" className="flex flex-col gap-1">

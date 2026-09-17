@@ -2,7 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { House, UserSearch, Users, CalendarDays, MessageCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { ROUTES } from '@/lib/routes'
-import { useUnreadChatCount } from '@/hooks/useNavBadges'
+import { useUnreadChatCount, useUserStats } from '@/hooks/useNavBadges'
 
 /**
  * The primary destinations, defined once.
@@ -28,6 +28,8 @@ export type NavItem = {
 export function useNavItems(): NavItem[] {
   const { pathname } = useLocation()
   const unread = useUnreadChatCount()
+  // Rides the stats document the shell already loads — no request of its own.
+  const { data: stats } = useUserStats()
 
   return [
     {
@@ -52,7 +54,8 @@ export function useNavItems(): NavItem[] {
       to: ROUTES.GROUPS,
       active: pathname.startsWith('/groups') || pathname.startsWith('/communities'),
       icon: Users,
-      badge: 0,
+      badge: stats?.communities_with_new_activity ?? 0,
+      badgeLabel: 'communities with new activity',
     },
     {
       key: 'events',

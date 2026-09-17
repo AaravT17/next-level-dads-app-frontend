@@ -35,6 +35,12 @@ export function CommunityCardSkeleton() {
           <Skeleton className="h-4 w-2/5" />
           <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-3/4" />
+          {/*
+            The card's metadata row. No placeholder for the new-activity pill
+            above it: most communities have none, so reserving space for one
+            would shift every quiet card as it loads.
+          */}
+          <Skeleton className="h-3 w-24" />
         </div>
       </CardContent>
     </Card>

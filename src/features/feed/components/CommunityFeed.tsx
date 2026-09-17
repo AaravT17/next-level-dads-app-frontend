@@ -139,7 +139,7 @@ export function CommunityFeed() {
                 ) : row.kind === 'event' ? (
                   <EventSuggestion event={row.event} />
                 ) : (
-                  <DadSuggestion dad={row.dad} />
+                  <DadSuggestion dads={row.dads} />
                 )}
               </li>
             ))}

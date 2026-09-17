@@ -3,6 +3,7 @@ import { ArrowRight, MessageCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ROUTES, conversationDetail } from '@/lib/routes'
+import { RESUME_PAGE_LIMIT, RESUME_RAIL_VISIBLE_LIMIT } from '@/config/constants'
 import { useResume } from '../hooks/useResume'
 import type { ResumeConversation, ResumeReason } from '../api/resumeApi'
 
@@ -13,8 +14,9 @@ import type { ResumeConversation, ResumeReason } from '../api/resumeApi'
  * still opens above the fold on a phone. Sideways motion also distinguishes it
  * from the feed: this is a short, finite set to resume, not something to browse.
  *
- * The arrow beside the heading opens the same set as a full page, for when the
- * shelf is not enough.
+ * The shelf is capped at RESUME_RAIL_VISIBLE_LIMIT. The arrow beside the
+ * heading opens the whole set as a full page, for when the shelf is not enough
+ * -- and past the cap, there is genuinely more behind it.
  *
  * The section removes itself entirely when there is nothing to resume — on
  * error, and when the list is empty. A new user has nothing to get back into,
@@ -67,6 +69,58 @@ function ResumeCard({ item }: { item: ResumeConversation }) {
   )
 }
 
+/**
+ * The card that ends a capped rail.
+ *
+ * Sits where the eighth thread would have been, so reaching the end of the
+ * scroll lands on the way to the rest rather than on a hard stop. Only drawn
+ * when something was actually cut — with seven or fewer the rail is the whole
+ * set, and a "see all" promising more would be a door onto the same room.
+ *
+ * Narrower than a thread card, and a gold surface rather than a white one: it
+ * is the one thing in the rail that is an action instead of a thread, and the
+ * accent is what says so before the words do. Deliberately not the dashed
+ * outline that usually ends a row of cards — dashes read as an empty slot
+ * waiting to be filled, and this is a destination, not a gap.
+ *
+ * The count leads at display size because it is the actual information; "see
+ * all" is a label anyone could have guessed. The arrow nudges on hover, the
+ * same gesture the conversation breadcrumb uses.
+ */
+function ResumeMoreCard({ remaining, isCapped }: { remaining: number; isCapped: boolean }) {
+  return (
+    <Link
+      to={ROUTES.HOME_RESUME}
+      className="group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      <Card className="h-full border-primary/25 bg-primary/5 shadow-none transition-colors duration-fast group-hover:border-primary/50 group-hover:bg-primary/10">
+        <CardContent className="flex h-full flex-col justify-between gap-3 p-4">
+          {/*
+            The server caps the query at RESUME_PAGE_LIMIT, so a full response
+            means "this many at least". The plus keeps the card from reporting
+            a ceiling as though it were a total.
+          */}
+          <p className="font-heading text-3xl font-semibold leading-none text-primary">
+            {remaining}
+            {isCapped ? '+' : ''}
+          </p>
+
+          <div className="space-y-1">
+            <p className="font-semibold leading-snug text-foreground">more waiting</p>
+            <p className="flex items-center gap-1 text-caption text-primary">
+              See all
+              <ArrowRight
+                aria-hidden
+                className="h-3.5 w-3.5 transition-transform duration-fast group-hover:translate-x-0.5"
+              />
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
 function ResumeCardSkeleton() {
   return (
     <Card className="h-full">
@@ -86,6 +140,12 @@ export function ResumeRail() {
   // Nothing to resume, or no way to know yet: the section does not exist.
   if (isError) return null
   if (!isPending && !data?.length) return null
+
+  // The query is shared with /home/resume, which shows all of it. Capping here
+  // rather than in the request is what leaves that page something more to show,
+  // and the links out of this one somewhere to go.
+  const visible = data?.slice(0, RESUME_RAIL_VISIBLE_LIMIT) ?? []
+  const remaining = (data?.length ?? 0) - visible.length
 
   return (
     <section aria-labelledby="resume-heading" className="space-y-3">
@@ -128,11 +188,20 @@ export function ResumeRail() {
                 <ResumeCardSkeleton />
               </li>
             ))
-          : data?.map((item) => (
+          : visible.map((item) => (
               <li key={item.id} className="w-56 shrink-0 snap-start sm:w-64">
                 <ResumeCard item={item} />
               </li>
             ))}
+
+        {remaining > 0 && (
+          <li className="w-44 shrink-0 snap-start sm:w-48">
+            <ResumeMoreCard
+              remaining={remaining}
+              isCapped={data?.length === RESUME_PAGE_LIMIT}
+            />
+          </li>
+        )}
       </ul>
     </section>
   )

@@ -159,21 +159,72 @@ export const NOTIFICATIONS_PAGE_LIMIT = 20
 // --- Banner notifications ---
 export const BANNER_DISMISS_MS = 5000
 
-/** How many "get back into it" cards the Home rail asks for. */
+/** How many "get back into it" cards the Home surfaces ask for. */
 export const RESUME_PAGE_LIMIT = 10
+
+/**
+ * How many of those the Home rail actually shows.
+ *
+ * Fewer than are fetched, on purpose. Past about seven the rail stops being a
+ * shelf you can reach the end of and starts being a second feed laid on its
+ * side, above the feed you came for. The rest are not thrown away — /home/resume
+ * renders the same query in full, which is what the rail's arrow points at.
+ */
+export const RESUME_RAIL_VISIBLE_LIMIT = 7
+
+/**
+ * What a post is for. Optional, and shown as a chip on the card.
+ *
+ * Was a free-text box reading "e.g. question, story, tip...", which is a chip
+ * that only helps if everyone happens to pick the same word for the same
+ * thing. Closed to five, because the label earns its place by being
+ * comparable across posts — a reader scanning a community can trust that
+ * every "Question" means a question.
+ *
+ * `value` is what is stored and what the API validates against; `label` is
+ * display only. Keep this in step with CONVERSATION_PROMPT_TYPES in the API's
+ * constants.py — that set is the one that can refuse a post, and changing the
+ * options is a matter of editing both lists.
+ */
+export const CONVERSATION_PROMPT_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'question', label: 'Question' },
+  { value: 'advice', label: 'Advice' },
+  { value: 'story', label: 'Story' },
+  { value: 'win', label: 'Win' },
+  { value: 'vent', label: 'Vent' },
+]
+
+const CONVERSATION_PROMPT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  CONVERSATION_PROMPT_TYPE_OPTIONS.map(({ value, label }) => [value, label]),
+)
+
+/**
+ * The chip text for a stored type.
+ *
+ * Falls back to the raw value rather than hiding it: posts written while the
+ * field was free text hold arbitrary words, and they are still real posts.
+ * Their chips keep reading as they always did.
+ */
+export function conversationPromptTypeLabel(value: string): string {
+  return CONVERSATION_PROMPT_TYPE_LABELS[value] ?? value
+}
 
 /**
  * Whether anyone can set or change a community's photo from the UI.
  *
- * Off: no user, admins included, is offered the control. Photos still render
- * wherever a community has one, and the whole upload path -- the API client,
- * the mutation hooks, the editor component and the backend endpoints -- is left
- * in place and working, so turning this back on is the only change needed.
+ * On. It gates two controls: the edit button on a community's own page, which
+ * additionally requires the viewer to be an admin, and the picker in the create
+ * dialog, which needs no such check because whoever creates a community is made
+ * its admin in the same transaction.
  *
- * Typed as `boolean` rather than inferred as `false` so the gated branches stay
- * type-checked instead of being narrowed away as dead code.
+ * Permission is the server's call either way -- PUT and DELETE
+ * /api/communities/{id}/image both run the admin assertion -- so this decides
+ * whether the control is offered, never who is allowed to use it.
+ *
+ * Typed as `boolean` rather than inferred so the gated branches stay
+ * type-checked from either setting.
  */
-export const COMMUNITY_PHOTO_EDITING_ENABLED: boolean = false
+export const COMMUNITY_PHOTO_EDITING_ENABLED: boolean = true
 
 /**
  * Feed suggestion cadence: one suggestion card after every Nth post.
@@ -186,6 +237,32 @@ export const FEED_SUGGESTION_INTERVAL = 4
 
 /** How many of each suggestion kind to hold, so the feed can scroll a while. */
 export const FEED_SUGGESTION_POOL_SIZE = 6
+
+/**
+ * Dads per suggestion rail.
+ *
+ * A dad suggestion is a shelf, not a card: one profile dropped between posts
+ * asked the reader to judge a stranger on the spot, and at full feed width it
+ * was also the largest thing on the page. Four gives the rail something to
+ * scroll without turning the feed into a directory, and each slot takes its
+ * four from the pool, so the rails deal it out rather than repeat it. The last
+ * one wraps to the front to fill itself; see interleaveFeed.
+ */
+export const FEED_SUGGESTED_DADS_PER_RAIL = 4
+
+/**
+ * How many dads to hold for the rails to deal from.
+ *
+ * Four rails' worth. A page of posts carries two dad slots, so this covers a
+ * couple of pages of scrolling before the pool runs dry and the slots start
+ * being skipped.
+ *
+ * Sent as `limit`, which /api/users/ does not currently read — it answers with
+ * its own page of PROFILES_PAGE_LIMIT either way, which is more than this asks
+ * for. Asking for the right amount anyway means the rails keep their shape if
+ * the endpoint ever starts honouring it.
+ */
+export const FEED_SUGGESTED_DADS_POOL_SIZE = FEED_SUGGESTED_DADS_PER_RAIL * 4
 
 // --- Discover Filters ---
 export const DISCOVER_DADS_FILTERS_AGE_RANGES = [

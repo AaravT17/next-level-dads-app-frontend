@@ -207,12 +207,21 @@ All colors MUST be HSL.
   }
 
   /*
-    The wordmark is gold and near-black on transparent, so it disappears on a
-    dark surface. Flattening it to white keeps it legible; a proper dark-theme
-    asset would keep the gold.
+    The wordmark ships as two files — see AppLogo. Both are always in the
+    markup and this picks one, so the right mark is painted on the first frame:
+    next-themes sets the class before paint, where anything reading the theme
+    in React would not know it until after hydration.
   */
-  .dark .app-logo {
-    filter: brightness(0) invert(1);
+  .app-logo-dark {
+    display: none;
+  }
+
+  .dark .app-logo-light {
+    display: none;
+  }
+
+  .dark .app-logo-dark {
+    display: block;
   }
 }
 

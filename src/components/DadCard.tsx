@@ -14,15 +14,18 @@ import { cn } from '@/lib/utils'
 import { Card, CardContent } from './ui/card'
 import { ConnectionNote } from '@/features/connections/components/ConnectionNote'
 import { ConnectRequestDialog } from '@/features/connections/components/ConnectRequestDialog'
+import { feedKeys } from '@/features/feed/hooks/feedKeys'
+import {
+  staysInList,
+  type ListContext,
+} from '@/features/connections/lib/listMembership'
 import { initials } from '@/utils/format'
 import { profileDetail, chat } from '@/lib/routes'
-import { toastError } from '@/lib/toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
 import type { Chat } from '@/types/chats'
-
-type ListContext = 'dads' | 'connections' | 'requests'
 
 interface DadCardProps extends Profile {
   connection_id?: string
@@ -83,7 +86,11 @@ const DadCard = ({
   // Update connection status in current list's cache only (from card)
   const updateStatusInCache = (newStatus: ConnectionStatus) => {
     if (listContext === 'dads') {
-      // Keep the card in the browse list; only its button changes.
+      // The grid holds dads you have not acted on yet, and the server now
+      // agrees: a sent request drops out of /api/users/ entirely. So acting on
+      // a card removes it, rather than leaving behind a waiting card the next
+      // refetch would delete anyway. The request is not lost with it — it
+      // lands in the sent-requests panel at the top of this same screen.
       queryClient.setQueriesData<InfiniteData<Profile[]>>(
         { queryKey: ['dads'] },
         (oldData) => {
@@ -91,7 +98,7 @@ const DadCard = ({
           return {
             ...oldData,
             pages: oldData.pages.map((page) =>
-              newStatus === null || newStatus === 'pending_outgoing'
+              staysInList('dads', newStatus)
                 ? page.map((profile) =>
                     profile.id === id
                       ? { ...profile, connection_status: newStatus }
@@ -102,6 +109,22 @@ const DadCard = ({
           }
         },
       )
+    } else if (listContext === 'suggestion') {
+      // A dad suggested between feed posts stays exactly where he is, whatever
+      // you do to him. The grid can afford to close a gap because the reader is
+      // scanning it; the feed cannot, because the reader is reading it, and
+      // pulling a row out from under them shifts every post below mid-sentence.
+      // Only the button changes — Connect becomes Cancel request.
+      //
+      // This is also the cache the Home screen actually reads. Before the feed
+      // had a context of its own these cards fell through to the 'dads' branch
+      // above, which writes to a query Home never mounts, so connecting from a
+      // suggestion left the button saying Connect until the pool went stale.
+      queryClient.setQueryData<Profile[]>(feedKeys.suggestedDads, (oldData) =>
+        oldData?.map((profile) =>
+          profile.id === id ? { ...profile, connection_status: newStatus } : profile,
+        ),
+      )
     } else if (listContext === 'connections') {
       // Update in connections list - remove if not connected
       queryClient.setQueriesData<InfiniteData<Profile[]>>(
@@ -111,7 +134,29 @@ const DadCard = ({
           return {
             ...oldData,
             pages: oldData.pages.map((page) =>
-              newStatus === 'connected'
+              staysInList('connections', newStatus)
+                ? page.map((profile) =>
+                    profile.id === id
+                      ? { ...profile, connection_status: newStatus }
+                      : profile,
+                  )
+                : page.filter((profile) => profile.id !== id),
+            ),
+          }
+        },
+      )
+    } else if (listContext === 'sent') {
+      // Sent requests: keep only while still unanswered. Cancelling drops the
+      // status to null and the row leaves; an accept turns it into a
+      // connection, which does not belong in a list of open requests either.
+      queryClient.setQueriesData<InfiniteData<Profile[]>>(
+        { queryKey: ['connections', 'sent'] },
+        (oldData) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) =>
+              staysInList('sent', newStatus)
                 ? page.map((profile) =>
                     profile.id === id
                       ? { ...profile, connection_status: newStatus }
@@ -131,7 +176,7 @@ const DadCard = ({
           return {
             ...oldData,
             pages: oldData.pages.map((page) =>
-              newStatus === 'pending_incoming'
+              staysInList('requests', newStatus)
                 ? page.map((profile) =>
                     profile.id === id
                       ? { ...profile, connection_status: newStatus }
@@ -146,6 +191,14 @@ const DadCard = ({
 
     // Remove detail page cache so it fetches fresh on navigation
     queryClient.removeQueries({ queryKey: ['profile', id] })
+
+    // The sent-requests panel shares the Dads screen with the browse grid, so
+    // connecting from one has to be visible in the other. Invalidated rather
+    // than patched: the panel's rows are keyed on the connection row, and the
+    // POST only returns a status — there is no connection id to insert.
+    if (listContext !== 'sent') {
+      queryClient.invalidateQueries({ queryKey: ['connections', 'sent'] })
+    }
 
     // The pending-requests badge in the nav reads this.
     queryClient.invalidateQueries({ queryKey: ['user', 'stats'] })
@@ -162,6 +215,12 @@ const DadCard = ({
     onSuccess: (res) => {
       setIsNoteDialogOpen(false)
       updateStatusInCache(res.data.connection_status)
+      if (listContext === 'dads') {
+        // On the grid the card leaves on success, so this is the only thing
+        // that says the request went. Everywhere else the button turning into
+        // "Cancel request" says it in place, and a toast would just repeat it.
+        toastSuccess(`Request sent to ${name}.`)
+      }
     },
     onError: (err: AxiosError<{ connection_status: ConnectionStatus; detail?: string }>) => {
       if (

@@ -98,6 +98,14 @@ export interface Community {
   created_at: string
   is_member: boolean
   role: CommunityRole
+  /**
+   * Conversations with activity since you last opened this community.
+   *
+   * Only populated for communities you belong to; discover and the community
+   * detail page return 0. Saturates server-side, so a large number means "at
+   * least this many" — the badge renders 99+ past the cap.
+   */
+  new_activity_count: number
 }
 
 export interface CommunityInviteRequest {

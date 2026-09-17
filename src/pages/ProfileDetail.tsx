@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
 import { ConnectRequestDialog } from '@/features/connections/components/ConnectRequestDialog'
+import { feedKeys } from '@/features/feed/hooks/feedKeys'
+import { staysInList } from '@/features/connections/lib/listMembership'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import { AppBar } from '@/components/layout/AppBar'
@@ -40,7 +42,8 @@ const ProfileDetail = () => {
   const updateProfileInLists = useCallback((profile: Profile) => {
     const { connection_status } = profile
 
-    // Browse list: keep the row, just refresh its status
+    // Browse list: any connection state at all takes the row out, since the
+    // grid is only dads you have not acted on.
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
       { queryKey: ['dads'] },
       (oldData) => {
@@ -48,12 +51,17 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            connection_status === null || connection_status === 'pending_outgoing'
+            staysInList('dads', connection_status)
               ? page.map((p) => (p.id === id ? { ...p, ...profile } : p))
               : page.filter((p) => p.id !== id),
           ),
         }
       },
+    )
+
+    // Feed suggestions keep every row and refresh it in place.
+    queryClient.setQueryData<Profile[]>(feedKeys.suggestedDads, (oldData) =>
+      oldData?.map((p) => (p.id === id ? { ...p, ...profile } : p)),
     )
 
     // Update in connections list - keep only if connected
@@ -64,7 +72,7 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            connection_status === 'connected'
+            staysInList('connections', connection_status)
               ? page.map((p) => (p.id === id ? { ...p, ...profile } : p))
               : page.filter((p) => p.id !== id),
           ),
@@ -80,7 +88,7 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            connection_status === 'pending_incoming'
+            staysInList('requests', connection_status)
               ? page.map((p) => (p.id === id ? { ...p, ...profile } : p))
               : page.filter((p) => p.id !== id),
           ),
@@ -119,7 +127,9 @@ const ProfileDetail = () => {
       return { ...oldData, connection_status: newStatus }
     })
 
-    // Browse list: keep the row, just refresh its status
+    // Browse list: the grid only holds dads you have not acted on, so any
+    // status at all takes the row out. Matches DadCard's 'dads' context —
+    // going back to /dads after connecting here must not show him again.
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
       { queryKey: ['dads'] },
       (oldData) => {
@@ -127,7 +137,7 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            newStatus === null || newStatus === 'pending_outgoing'
+            staysInList('dads', newStatus)
               ? page.map((profile) =>
                   profile.id === id
                     ? { ...profile, connection_status: newStatus }
@@ -139,6 +149,15 @@ const ProfileDetail = () => {
       },
     )
 
+    // Feed suggestions: never removed, only restyled. Reaching this screen
+    // from a suggestion and connecting has to leave the feed row intact, with
+    // its button caught up — the same rule DadCard's 'suggestion' context uses.
+    queryClient.setQueryData<Profile[]>(feedKeys.suggestedDads, (oldData) =>
+      oldData?.map((profile) =>
+        profile.id === id ? { ...profile, connection_status: newStatus } : profile,
+      ),
+    )
+
     // Update in connections list - update status, remove if not connected
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
       { queryKey: ['connections', 'connected'] },
@@ -147,7 +166,7 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            newStatus === 'connected'
+            staysInList('connections', newStatus)
               ? page.map((profile) =>
                   profile.id === id
                     ? { ...profile, connection_status: newStatus }
@@ -167,7 +186,7 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            newStatus === 'pending_incoming'
+            staysInList('requests', newStatus)
               ? page.map((profile) =>
                   profile.id === id
                     ? { ...profile, connection_status: newStatus }
