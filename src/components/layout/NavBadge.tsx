@@ -16,8 +16,8 @@ export function NavBadge({
       <span
         aria-hidden
         className={cn(
-          'min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-badge text-badge-foreground',
-          'text-[0.625rem] font-semibold leading-[1.125rem] text-center',
+          'min-w-[1.375rem] h-[1.375rem] px-1 rounded-full bg-badge text-badge-foreground',
+          'text-[0.6875rem] font-semibold leading-[1.375rem] text-center',
           className,
         )}
       >

@@ -78,13 +78,13 @@ export function NotificationItem({
       type="button"
       onClick={handleClick}
       className={cn(
-        'flex items-start gap-3 w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors',
-        highlight && 'bg-muted/30',
+        'flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors',
+        highlight && 'shadow-[inset_4px_0_0_hsl(var(--primary))]',
       )}
     >
-      <UserAvatar name={name} src={avatarUrl} size="xs" showInitials={!isGroup} className="mt-0.5" />
+      <UserAvatar name={name} src={avatarUrl} size="xs" showInitials={!isGroup} />
       <p className="flex-1 min-w-0 text-caption text-foreground leading-snug">{text}</p>
-      <span className="shrink-0 text-[0.6875rem] text-muted-foreground mt-0.5">
+      <span className="shrink-0 text-[0.6875rem] text-muted-foreground">
         {formatRelative(notification.created_at)}
       </span>
     </button>
