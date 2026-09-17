@@ -79,7 +79,7 @@ export function NotificationItem({
       onClick={handleClick}
       className={cn(
         'flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors',
-        highlight && 'bg-muted/30',
+        highlight && 'shadow-[inset_4px_0_0_hsl(var(--primary))]',
       )}
     >
       <UserAvatar name={name} src={avatarUrl} size="xs" showInitials={!isGroup} />

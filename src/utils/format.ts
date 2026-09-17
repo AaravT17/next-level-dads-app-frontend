@@ -52,7 +52,7 @@ export function formatRelative(iso: string): string {
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h ago`
   const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d ago`
+  if (days < 30) return `${days}d ago`
   return date.toLocaleDateString()
 }
 
