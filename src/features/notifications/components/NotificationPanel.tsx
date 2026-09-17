@@ -55,13 +55,13 @@ export function NotificationPanel({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex flex-col max-h-[min(28rem,70vh)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+      <div className="relative flex items-center justify-center px-4 py-3 border-b border-border">
         <h2 className="font-heading text-subhead text-foreground">Notifications</h2>
         {allNotifications.length > 0 && (
           <button
             type="button"
             onClick={clearAll}
-            className="text-caption text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-4 text-caption text-muted-foreground hover:text-foreground transition-colors"
           >
             Clear all
           </button>
