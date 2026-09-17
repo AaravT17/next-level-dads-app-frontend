@@ -43,7 +43,7 @@ export function AccountButton({ className }: { className?: string }) {
       <NavBadge
         count={pending}
         label="pending connection requests"
-        className="absolute -top-1 -right-1"
+        className="absolute -top-2 -right-2"
       />
     </Link>
   )

@@ -120,6 +120,7 @@ const DadsPage = () => {
   const [pendingDadAges, setPendingDadAges] = useState<string[]>(urlAgeRanges)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [interestSearchQuery, setInterestSearchQuery] = useState('')
+  const [interestSearchFocused, setInterestSearchFocused] = useState(false)
 
   // Reset pending filters to URL state when the sheet closes without applying
   const handleFiltersOpenChange = (open: boolean) => {
@@ -404,6 +405,7 @@ const DadsPage = () => {
         <SheetContent
           side="right"
           className="w-full sm:max-w-md overflow-y-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <SheetHeader>
             <SheetTitle>Filter Dads</SheetTitle>
@@ -474,37 +476,33 @@ const DadsPage = () => {
                 <Input
                   placeholder="Search interests..."
                   value={interestSearchQuery}
-                  onChange={(e) =>
-                    setInterestSearchQuery(e.target.value)
-                  }
+                  onChange={(e) => setInterestSearchQuery(e.target.value)}
+                  onFocus={() => setInterestSearchFocused(true)}
+                  onBlur={() => setInterestSearchFocused(false)}
                   className="pl-9"
                 />
               </div>
 
-              {/* Filtered interest suggestions */}
-              {interestSearchQuery && (
-                <div className="max-h-40 overflow-y-auto border border-border rounded-md bg-card">
-                  {interestOptions
-                    .filter(
-                      (opt) =>
-                        (opt.name
-                          .toLowerCase()
-                          .includes(
-                            interestSearchQuery.toLowerCase(),
-                          ) ||
-                        opt.slug
-                          .toLowerCase()
-                          .includes(
-                            interestSearchQuery.toLowerCase(),
-                          )) && !pendingInterests.includes(opt.slug),
-                    )
-                    .map((opt) => {
+              {/* Interest suggestions — visible while input is focused */}
+              {interestSearchFocused && (() => {
+                const filtered = interestOptions.filter((opt) => {
+                  if (pendingInterests.includes(opt.slug)) return false
+                  if (!interestSearchQuery) return true
+                  return (
+                    opt.name.toLowerCase().includes(interestSearchQuery.toLowerCase()) ||
+                    opt.slug.toLowerCase().includes(interestSearchQuery.toLowerCase())
+                  )
+                })
+                return (
+                  <div className="max-h-40 overflow-y-auto border border-border rounded-md bg-card">
+                    {filtered.length > 0 ? filtered.map((opt) => {
                       const display = INTEREST_DISPLAY_MAP[opt.slug]
                       return (
                         <button
                           key={opt.slug}
                           type="button"
                           className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => {
                             togglePendingInterest(opt.slug)
                             setInterestSearchQuery('')
@@ -514,26 +512,14 @@ const DadsPage = () => {
                           {display?.label ?? opt.name}
                         </button>
                       )
-                    })}
-                  {interestOptions.filter(
-                    (opt) =>
-                      (opt.name
-                        .toLowerCase()
-                        .includes(
-                          interestSearchQuery.toLowerCase(),
-                        ) ||
-                      opt.slug
-                        .toLowerCase()
-                        .includes(
-                          interestSearchQuery.toLowerCase(),
-                        )) && !pendingInterests.includes(opt.slug),
-                  ).length === 0 && (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                      No matching interests
-                    </div>
-                  )}
-                </div>
-              )}
+                    }) : (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        {interestSearchQuery ? 'No matching interests' : 'All interests selected'}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
 
             <div className="space-y-3">

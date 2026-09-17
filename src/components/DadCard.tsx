@@ -462,7 +462,7 @@ const DadCard = ({
   return (
     <>
     <Card
-      className="overflow-hidden shadow-md cursor-pointer"
+      className={cn('overflow-hidden shadow-md cursor-pointer', listContext === 'dads' && 'h-[174px]')}
       onClick={handleCardClick}
     >
       <CardContent className="p-4 space-y-3">

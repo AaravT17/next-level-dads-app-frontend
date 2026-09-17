@@ -21,9 +21,8 @@ import {
   Reply,
   X,
 } from 'lucide-react'
-import { chatManage } from '@/lib/routes'
+import { chatManage, ROUTES } from '@/lib/routes'
 import { UserAvatar } from '@/components/media/UserAvatar'
-import { AccountButton } from '@/components/layout/AccountButton'
 import { SharedCommunityCard } from '@/features/communities/components/SharedCommunityCard'
 import { formatClock } from '@/utils/format'
 import {
@@ -96,7 +95,7 @@ const Chat = () => {
   // Chat metadata query
   // ============================================
 
-  const { data: chatData } = useQuery({
+  const { data: chatData, error: chatError } = useQuery({
     queryKey: ['chats', chatId],
     queryFn: async () => {
       const res = await axiosPrivate.get<Chat>(`/api/chats/${chatId}`, {
@@ -112,6 +111,15 @@ const Chat = () => {
     enabled: !!chatId,
     staleTime: Infinity,
   })
+
+  // Redirect to chat list on 403/404 (removed from chat or chat deleted)
+  useEffect(() => {
+    if (!chatError) return
+    if (axios.isAxiosError(chatError) && (chatError.response?.status === 403 || chatError.response?.status === 404 || chatError.response?.status === 422)) {
+      toast.error('This chat is no longer available.')
+      navigate(ROUTES.CHATS, { replace: true })
+    }
+  }, [chatError, navigate])
 
   const chatType: ChatType = chatData?.type ?? 'dm'
   const isGroupChat = chatType === 'group'
@@ -201,7 +209,15 @@ const Chat = () => {
     return items
   }, [messages])
 
-  // Scroll to bottom after initial load, reconnect, or sending a message
+  // The route component is retained while its :id parameter changes, so each
+  // chat needs its own initial-scroll intent rather than relying on mount.
+  // A layout effect makes this available before the messages effect, including
+  // when the next chat's messages are already in the query cache.
+  useLayoutEffect(() => {
+    scrollBehaviorRef.current = 'instant'
+  }, [chatId])
+
+  // Scroll to bottom after initial load, reconnect, or sending a message.
   useEffect(() => {
     if (scrollBehaviorRef.current && messages.length > 0) {
       const behavior = scrollBehaviorRef.current
@@ -445,48 +461,38 @@ const Chat = () => {
     // `relative` so the scroll-to-latest button anchors to this pane rather
     // than to the shell, whose bottom edge sits below the primary nav.
     <div className="relative flex-1 min-h-0 bg-background flex flex-col">
-      {/* Header */}
-      <div className="bg-card border-b border-border shrink-0">
-        <div className="px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleBack}
-              aria-label="Back to conversations"
-              className="text-muted-foreground lg:hidden"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
+      {/* Thread header — secondary bar below the unified AppBar */}
+      <div className="bg-card border-b border-border shrink-0 px-4 py-4 flex items-center gap-4">
+        <button
+          onClick={handleBack}
+          aria-label="Back to conversations"
+          className="text-muted-foreground lg:hidden shrink-0"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
 
-            {isGroupChat ? (
-              <button
-                onClick={() => navigate(chatManage(chatId))}
-                className="flex items-center gap-4 flex-1 text-left"
-              >
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                  <Users className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <div className="flex-1">
-                  <h1 className="text-subhead font-heading font-semibold text-foreground">
-                    {displayName}
-                  </h1>
-                  <p className="text-caption text-muted-foreground">Group</p>
-                </div>
-              </button>
-            ) : (
-              <>
-                <UserAvatar name={displayName} src={avatarUrl} size="sm" />
-                <div className="flex-1">
-                  <h1 className="text-subhead font-heading font-semibold text-foreground">
-                    {displayName}
-                  </h1>
-                </div>
-              </>
-            )}
-
-            {/* On desktop this header is the window's top-right. */}
-            <AccountButton className="hidden lg:block ml-auto" />
+        {isGroupChat ? (
+          <button
+            onClick={() => navigate(chatManage(chatId))}
+            className="flex items-center gap-4 flex-1 text-left min-w-0"
+          >
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-heading font-heading font-semibold text-foreground truncate">
+                {displayName}
+              </h2>
+            </div>
+          </button>
+        ) : (
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <UserAvatar name={displayName} src={avatarUrl} size="sm" />
+            <h2 className="text-heading font-heading font-semibold text-foreground truncate">
+              {displayName}
+            </h2>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Messages */}

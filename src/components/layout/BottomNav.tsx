@@ -31,19 +31,21 @@ export function BottomNav() {
                   item.active ? 'text-primary' : 'text-muted-foreground',
                 )}
               >
-                <Icon
-                  aria-hidden
-                  className={cn(
-                    'w-5 h-5 transition-transform duration-fast',
-                    item.active && 'scale-110',
-                  )}
-                  strokeWidth={item.active ? 2.25 : 2}
-                />
-                <NavBadge
-                  count={item.badge}
-                  label={item.badgeLabel}
-                  className="absolute -top-0.5 right-1/2 translate-x-4"
-                />
+                <span className="relative">
+                  <Icon
+                    aria-hidden
+                    className={cn(
+                      'w-5 h-5 transition-transform duration-fast',
+                      item.active && 'scale-110',
+                    )}
+                    strokeWidth={item.active ? 2.25 : 2}
+                  />
+                  <NavBadge
+                    count={item.badge}
+                    label={item.badgeLabel}
+                    className="absolute -top-3 -right-3"
+                  />
+                </span>
                 <span className="text-overline">{item.label}</span>
               </Link>
             </li>

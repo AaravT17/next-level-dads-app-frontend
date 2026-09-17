@@ -1,3 +1,4 @@
+import { Users } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { initials } from '@/utils/format'
 import { cn } from '@/lib/utils'
@@ -19,6 +20,8 @@ export type UserAvatarProps = {
   size?: UserAvatarSize
   /** 'rounded' is the card and profile-hero treatment. */
   shape?: 'circle' | 'rounded'
+  /** When false, renders a generic group icon instead of initials. Use for group chats. */
+  showInitials?: boolean
   className?: string
 }
 
@@ -35,6 +38,7 @@ export function UserAvatar({
   src,
   size = 'sm',
   shape = 'circle',
+  showInitials = true,
   className,
 }: UserAvatarProps) {
   const radius = shape === 'circle' ? 'rounded-full' : 'rounded-lg'
@@ -42,9 +46,14 @@ export function UserAvatar({
     <Avatar className={cn(SIZE[size], radius, 'shrink-0', className)}>
       <AvatarImage src={src ?? undefined} alt={name ?? ''} className={radius} />
       <AvatarFallback
-        className={cn(radius, 'bg-primary text-primary-foreground font-heading font-semibold')}
+        className={cn(
+          radius,
+          showInitials
+            ? 'bg-primary text-primary-foreground font-heading font-semibold'
+            : 'bg-muted text-muted-foreground',
+        )}
       >
-        {initials(name)}
+        {showInitials ? initials(name) : <Users className="w-1/2 h-1/2" />}
       </AvatarFallback>
     </Avatar>
   )

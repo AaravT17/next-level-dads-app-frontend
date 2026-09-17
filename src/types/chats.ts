@@ -105,7 +105,14 @@ export type MessageHandler = (event: WsEvent) => void
 
 export type WsEvent =
   | { type: 'ws:ready' }
-  | { type: 'messages:new'; payload: Message }
+  | {
+      type: 'messages:new'
+      payload: Message & {
+        chat_name: string | null
+        chat_type: ChatType
+        chat_avatar_url: string | null
+      }
+    }
   | {
       type: 'messages:edit'
       payload: {
@@ -137,6 +144,13 @@ export type WsEvent =
       type: 'chats:added'
       payload: {
         chat_id: string
+        chat_name: string | null
+        chat_type: ChatType
+        chat_avatar_url: string | null
+        added_by: string
+        added_by_name: string
+        notification_id?: string
+        notification_created_at?: string
       }
     }
   | {
@@ -145,10 +159,46 @@ export type WsEvent =
         chat_id: string
       }
     }
+  | {
+      type: 'connections:request'
+      payload: {
+        from_id: string
+        from_name: string
+        from_avatar_url: string | null
+        notification_id?: string
+        notification_created_at?: string
+      }
+    }
+  | {
+      type: 'connections:accepted'
+      payload: {
+        by_id: string
+        by_name: string
+        by_avatar_url: string | null
+        notification_id?: string
+        notification_created_at?: string
+      }
+    }
+  | {
+      type: 'notifications:read'
+      payload: {
+        last_read_at: string
+      }
+    }
+  | {
+      type: 'notifications:cleared'
+      payload: {
+        last_read_at: string
+        last_cleared_at: string
+      }
+    }
+
+export type NotificationEventHandler = (event: WsEvent) => void
 
 export interface ChatContextType {
   registerMessageHandler: (chatId: string, handler: MessageHandler) => () => void
   registerReconnectHandler: (handler: () => void) => () => void
+  registerNotificationHandler: (handler: NotificationEventHandler) => () => void
   sendWsMessage: (data: object) => void
   isChatMember: (chatId: string) => boolean
   isReconnecting: boolean

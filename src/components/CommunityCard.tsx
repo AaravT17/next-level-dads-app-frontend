@@ -82,7 +82,7 @@ const CommunityCard = ({
 
   return (
     <Card
-      className="overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+      className="overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer h-[142px]"
       onClick={() => navigate(communityDetail(id))}
     >
       <CardContent className="p-4 flex gap-4">

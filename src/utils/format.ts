@@ -43,13 +43,16 @@ export function formatListTimestamp(iso: string): string {
     : date.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
-/** Elapsed time: "5m ago" | "2h ago", falling back to a locale date past a day. */
+/** Elapsed time: "5m ago" | "2h ago" | "3d ago", falling back to a locale date past a week. */
 export function formatRelative(iso: string): string {
   const date = new Date(iso)
   const mins = Math.floor((Date.now() - date.getTime()) / 60000)
+  if (mins < 1) return 'Just now'
   if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days < 30) return `${days}d ago`
   return date.toLocaleDateString()
 }
 

@@ -16,6 +16,7 @@ import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
 import { LegalAcceptancesModal } from '@/components/LegalAcceptancesModal'
 import { ChatProvider } from '@/contexts/ChatProvider'
+import { NotificationProvider } from '@/contexts/NotificationProvider'
 
 // Welcome and NotFound stay eager: Welcome is what a logged-out visitor lands
 // on, so putting it behind a chunk boundary would trade a smaller bundle for a
@@ -65,10 +66,11 @@ const AdminDashboardPage = lazy(() =>
 const AppContent = () => {
   return (
     <TooltipProvider>
-      <Toaster />
+      <Toaster visibleToasts={3} />
       <ModerationNotifier />
       <LegalAcceptancesModal />
       <BrowserRouter>
+        <NotificationProvider>
         {/*
           Covers the routes rendered outside AppLayout (auth, setup, 404).
           Routes inside it have their own boundary, so the shell survives a
@@ -164,6 +166,7 @@ const AppContent = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
+        </NotificationProvider>
       </BrowserRouter>
     </TooltipProvider>
   )

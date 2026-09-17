@@ -75,6 +75,10 @@ All colors MUST be HSL.
     --soft: 35 50% 92%;
     --soft-foreground: 30 30% 25%;
 
+    /* Badge — the red count pill on nav icons and the bell. */
+    --badge: 0 65% 55%;
+    --badge-foreground: 0 0% 100%;
+
     /* Status - warm-tuned so banners sit in the palette, not on top of it */
     --success: 145 40% 38%;
     --success-foreground: 0 0% 100%;
@@ -129,6 +133,9 @@ All colors MUST be HSL.
     --soft: 40 40% 94%;
     --soft-foreground: 35 35% 26%;
 
+    --badge: 0 70% 45%;
+    --badge-foreground: 0 0% 100%;
+
     --success: 145 45% 32%;
     --success-foreground: 0 0% 100%;
     --warning: 38 70% 40%;
@@ -179,6 +186,9 @@ All colors MUST be HSL.
 
     --soft: 40 24% 22%;
     --soft-foreground: 40 40% 84%;
+
+    --badge: 0 62% 54%;
+    --badge-foreground: 0 0% 100%;
 
     --success: 145 42% 50%;
     --success-foreground: 225 20% 10%;
@@ -235,6 +245,21 @@ All colors MUST be HSL.
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+  }
+}
+
+/* Banner toast card sizing.
+   Mobile (≤600px): Sonner makes the ol full-width with offsets, and each li
+   gets left:0/right:0 — so width:100% naturally fills the available space.
+   Desktop (>600px): the ol is 356px (22.25rem) centered at 50vw, so we must
+   widen the card to the desired banner width and shift it left to re-centre. */
+.banner-card {
+  width: 100%;
+}
+@media (min-width: 601px) {
+  .banner-card {
+    width: min(calc(100vw - 1.5rem), 68rem);
+    margin-left: calc((min(calc(100vw - 1.5rem), 68rem) - 22.25rem) / -2);
   }
 }
 

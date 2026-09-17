@@ -4,7 +4,6 @@ import {
   useInfiniteQuery,
   useMutation,
 } from '@tanstack/react-query'
-import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { QueryState } from '@/components/feedback/QueryState'
 import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
@@ -294,8 +293,6 @@ const Chats = () => {
 
   return (
     <>
-      <AppBar title="Chats" showAccount={!isDesktop} />
-
       <PageContainer className="animate-fade-in">
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1">
@@ -461,9 +458,11 @@ const Chats = () => {
                       to={chat(c.id)}
                       aria-current={selectedChatId === c.id ? 'true' : undefined}
                       className={cn(
-                        'flex items-center gap-4 px-2 py-4 transition-colors duration-fast active:scale-[0.995]',
+                        'flex items-center gap-4 pl-4 pr-2 py-4 transition-colors duration-fast active:scale-[0.995]',
                         selectedChatId === c.id
                           ? 'bg-primary/10'
+                          : hasUnread
+                          ? 'shadow-[inset_4px_0_0_hsl(var(--primary))] hover:bg-muted/50'
                           : 'hover:bg-muted/50',
                       )}
                     >
@@ -476,13 +475,7 @@ const Chats = () => {
                           </div>
                         )}
                         {hasUnread && (
-                          <>
-                            <span
-                              aria-hidden
-                              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary border-2 border-background"
-                            />
-                            <span className="sr-only">Unread messages.</span>
-                          </>
+                          <span className="sr-only">Unread messages.</span>
                         )}
                       </div>
 

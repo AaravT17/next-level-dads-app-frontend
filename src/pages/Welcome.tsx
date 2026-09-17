@@ -90,6 +90,10 @@ const Welcome = () => {
               terms: userRes.data.legal_acceptances?.terms ?? false,
               privacy_policy: userRes.data.legal_acceptances?.privacy_policy ?? false,
             },
+            notificationState: {
+              lastReadAt: userRes.data.notification_state?.last_read_at ?? null,
+              lastClearedAt: userRes.data.notification_state?.last_cleared_at ?? null,
+            },
           },
           accessToken,
         })
