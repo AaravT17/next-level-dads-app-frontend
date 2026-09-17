@@ -90,7 +90,7 @@ export function AppBar({
         </div>
 
         {/* Desktop: logo or back · centred title · actions */}
-        <div className="relative hidden lg:flex items-center py-4">
+        <div className="relative hidden lg:flex items-center px-0 h-[4.5rem]">
           <div className="flex justify-start shrink-0">
             {back ??
               (leading === 'logo' ? (

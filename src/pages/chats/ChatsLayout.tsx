@@ -44,7 +44,7 @@ export function ChatsEmptyPane() {
     <>
       {/* Keeps the header band — and the account corner — continuous. */}
       <div className="shrink-0 bg-card border-b border-border">
-        <div className="flex items-center justify-end px-6 py-4">
+        <div className="flex items-center justify-end px-6 h-[4.5rem]">
           <AccountButton />
         </div>
       </div>

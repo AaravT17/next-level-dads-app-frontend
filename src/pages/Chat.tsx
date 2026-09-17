@@ -456,8 +456,8 @@ const Chat = () => {
     <div className="relative flex-1 min-h-0 bg-background flex flex-col">
       {/* Header */}
       <div className="bg-card border-b border-border shrink-0">
-        <div className="px-6 py-4">
-          <div className="flex items-center gap-4">
+        <div className="px-6 h-[4.5rem] flex items-center">
+          <div className="flex items-center gap-4 w-full">
             <button
               onClick={handleBack}
               aria-label="Back to conversations"
