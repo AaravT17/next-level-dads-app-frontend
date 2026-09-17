@@ -4,7 +4,6 @@ import {
   useInfiniteQuery,
   useMutation,
 } from '@tanstack/react-query'
-import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { QueryState } from '@/components/feedback/QueryState'
 import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'

@@ -239,6 +239,21 @@ All colors MUST be HSL.
   }
 }
 
+/* Banner toast card sizing.
+   Mobile (≤600px): Sonner makes the ol full-width with offsets, and each li
+   gets left:0/right:0 — so width:100% naturally fills the available space.
+   Desktop (>600px): the ol is 356px (22.25rem) centered at 50vw, so we must
+   widen the card to the desired banner width and shift it left to re-centre. */
+.banner-card {
+  width: 100%;
+}
+@media (min-width: 601px) {
+  .banner-card {
+    width: min(calc(100vw - 1.5rem), 68rem);
+    margin-left: calc((min(calc(100vw - 1.5rem), 68rem) - 22.25rem) / -2);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* Spinners are exempt: a frozen spinner reads as a hung UI, so they are
      slowed rather than stopped. See components/feedback/Spinner.tsx. */

@@ -24,7 +24,7 @@ export function BannerCard({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-3 w-[calc(100vw-1.5rem)] max-w-[68rem] h-20 px-4 bg-background border border-border rounded-lg shadow-lg text-left"
+      className="banner-card flex items-center gap-3 h-20 px-4 bg-background border border-border rounded-lg shadow-lg text-left"
     >
       <UserAvatar name={data.avatarName} src={data.avatarUrl} size="sm" showInitials={!data.isGroup} />
       <div className="flex-1 min-w-0">

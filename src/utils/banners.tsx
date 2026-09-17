@@ -83,9 +83,9 @@ export function showBanner(
   const data = extractBannerData(event, userId)
   if (!data) return
 
-  const chatKey = data.toastId // stable key, e.g. "chat:123"
+  const chatKey = data.toastId
 
-  // For non-chat events there's no chatKey — use a simple unique id.
+  // Non-chat events (connections etc.) — simple unique banner
   if (!chatKey) {
     const id = `banner:${Date.now()}`
     toast.custom(
@@ -108,18 +108,13 @@ export function showBanner(
     data.boldPrefix = undefined
   }
 
-  // New unique id each burst — avoids the same-id dismiss+recreate conflict in sonner.
-  // The old toast is dismissed by its previous id (different id = no conflict).
   const newToastId = `${chatKey}:${count}`
   const oldToastId = chatCurrentToastId.get(chatKey)
 
-  // Update the current id BEFORE dismissing so the old toast's onDismiss
-  // sees a stale id and skips the count reset.
   chatCurrentToastId.set(chatKey, newToastId)
   if (oldToastId) toast.dismiss(oldToastId)
 
   const resetCount = () => {
-    // Only reset if this toast is still the active one for this chat.
     if (chatCurrentToastId.get(chatKey) === newToastId) {
       chatMessageCounts.delete(chatKey)
       chatCurrentToastId.delete(chatKey)
@@ -140,9 +135,9 @@ export function showBanner(
     ),
     {
       id: newToastId,
-      position: 'top-center',
       duration: BANNER_DISMISS_MS,
       unstyled: true,
+      position: 'top-center',
       onDismiss: resetCount,
       onAutoClose: resetCount,
     },

@@ -115,7 +115,7 @@ const Chat = () => {
   // Redirect to chat list on 403/404 (removed from chat or chat deleted)
   useEffect(() => {
     if (!chatError) return
-    if (axios.isAxiosError(chatError) && (chatError.response?.status === 403 || chatError.response?.status === 404)) {
+    if (axios.isAxiosError(chatError) && (chatError.response?.status === 403 || chatError.response?.status === 404 || chatError.response?.status === 422)) {
       toast.error('This chat is no longer available.')
       navigate(ROUTES.CHATS, { replace: true })
     }
@@ -209,12 +209,21 @@ const Chat = () => {
     return items
   }, [messages])
 
-  // Scroll to bottom after initial load, reconnect, or sending a message
+  // Scroll to bottom after initial load, reconnect, or sending a message.
+  // Uses scrollTop = scrollHeight for 'instant' (more reliable in flex layouts
+  // where scrollIntoView can fire before the container height is resolved),
+  // and scrollIntoView for 'smooth' (animated, so the container is stable by then).
   useEffect(() => {
     if (scrollBehaviorRef.current && messages.length > 0) {
       const behavior = scrollBehaviorRef.current
       scrollBehaviorRef.current = null
-      messagesEndRef.current?.scrollIntoView({ behavior })
+      const container = scrollContainerRef.current
+      if (!container) return
+      if (behavior === 'instant') {
+        container.scrollTop = container.scrollHeight
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior })
+      }
     }
   }, [messages])
 

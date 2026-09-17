@@ -66,7 +66,7 @@ const AdminDashboardPage = lazy(() =>
 const AppContent = () => {
   return (
     <TooltipProvider>
-      <Toaster visibleToasts={3} style={{ '--width': 'min(calc(100vw - 1.5rem), 68rem)' } as React.CSSProperties} />
+      <Toaster visibleToasts={3} />
       <ModerationNotifier />
       <LegalAcceptancesModal />
       <BrowserRouter>
