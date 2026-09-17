@@ -399,8 +399,8 @@ const ProfileSetup = () => {
           },
           legal_acceptances: { terms: true, privacy_policy: true },
           notificationState: {
-            lastReadAt: null,
-            lastClearedAt: null,
+            lastReadAt: res.data.notification_state?.last_read_at ?? null,
+            lastClearedAt: res.data.notification_state?.last_cleared_at ?? null,
           },
         },
         accessToken,
