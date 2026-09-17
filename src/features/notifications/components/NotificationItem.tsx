@@ -8,6 +8,7 @@ import type { Notification } from '@/types/notifications'
 function getDisplay(notif: Notification): {
   name: string
   avatarUrl: string | null
+  isGroup?: boolean
   text: React.ReactNode
   href: string
 } {
@@ -37,8 +38,9 @@ function getDisplay(notif: Notification): {
       }
     case 'chat_added':
       return {
-        name: p.added_by_name as string,
-        avatarUrl: null,
+        name: p.chat_name as string,
+        avatarUrl: (p.chat_avatar_url as string) ?? null,
+        isGroup: true,
         text: (
           <>
             <strong>{p.added_by_name as string}</strong> added you to{' '}
@@ -64,7 +66,7 @@ export function NotificationItem({
   highlight?: boolean
 }) {
   const navigate = useNavigate()
-  const { name, avatarUrl, text, href } = getDisplay(notification)
+  const { name, avatarUrl, isGroup, text, href } = getDisplay(notification)
 
   const handleClick = () => {
     onNavigate()
@@ -80,7 +82,7 @@ export function NotificationItem({
         highlight && 'bg-muted/30',
       )}
     >
-      <UserAvatar name={name} src={avatarUrl} size="xs" className="mt-0.5" />
+      <UserAvatar name={name} src={avatarUrl} size="xs" showInitials={!isGroup} className="mt-0.5" />
       <p className="flex-1 min-w-0 text-caption text-foreground leading-snug">{text}</p>
       <span className="shrink-0 text-[0.6875rem] text-muted-foreground mt-0.5">
         {formatRelative(notification.created_at)}

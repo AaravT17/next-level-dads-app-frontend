@@ -5,6 +5,12 @@ import { BannerCard } from '@/features/notifications/components/BannerToast'
 import type { BannerData } from '@/features/notifications/components/BannerToast'
 import type { WsEvent } from '@/types/chats'
 
+// Keyed by stable chat key (e.g. "chat:123").
+const chatMessageCounts = new Map<string, number>()
+// Tracks the currently visible toast id per chat — used to dismiss the old one
+// and to guard against stale onDismiss callbacks resetting the count.
+const chatCurrentToastId = new Map<string, string>()
+
 function extractBannerData(event: WsEvent, userId: string | undefined): BannerData | null {
   if (event.type === 'messages:new') {
     const p = event.payload
@@ -13,13 +19,15 @@ function extractBannerData(event: WsEvent, userId: string | undefined): BannerDa
 
     const isDm = p.chat_type === 'dm'
     const title = isDm ? p.sender_name : (p.chat_name ?? p.sender_name)
-    const body = isDm ? p.content : `${p.sender_name.split(' ')[0]}: ${p.content}`
+    const senderFirst = p.sender_name.split(' ')[0]
 
     return {
       title,
-      body,
+      body: p.content,
+      boldPrefix: isDm ? undefined : `${senderFirst}:`,
       avatarName: isDm ? p.sender_name : (p.chat_name ?? 'Group'),
       avatarUrl: isDm ? p.sender_avatar_url : p.chat_avatar_url,
+      isGroup: !isDm,
       href: chatRoute(p.chat_id),
       toastId: `chat:${p.chat_id}`,
     }
@@ -29,7 +37,8 @@ function extractBannerData(event: WsEvent, userId: string | undefined): BannerDa
     const p = event.payload
     return {
       title: 'Connection Request',
-      body: `${p.from_name} sent you a connection request`,
+      boldPrefix: p.from_name,
+      body: 'sent you a connection request',
       avatarName: p.from_name,
       avatarUrl: p.from_avatar_url,
       href: dadDetail(p.from_id),
@@ -40,7 +49,8 @@ function extractBannerData(event: WsEvent, userId: string | undefined): BannerDa
     const p = event.payload
     return {
       title: 'New Connection',
-      body: `${p.by_name} accepted your connection request`,
+      boldPrefix: p.by_name,
+      body: 'accepted your connection request',
       avatarName: p.by_name,
       avatarUrl: p.by_avatar_url,
       href: dadDetail(p.by_id),
@@ -53,9 +63,11 @@ function extractBannerData(event: WsEvent, userId: string | undefined): BannerDa
     if (p.added_by === userId) return null
     return {
       title: p.chat_name ?? 'Group Chat',
-      body: `${p.added_by_name} added you`,
+      body: 'added you',
+      boldPrefix: p.added_by_name,
       avatarName: p.chat_name ?? 'Group',
       avatarUrl: p.chat_avatar_url,
+      isGroup: true,
       href: chatRoute(p.chat_id),
     }
   }
@@ -71,23 +83,68 @@ export function showBanner(
   const data = extractBannerData(event, userId)
   if (!data) return
 
-  const id = data.toastId
+  const chatKey = data.toastId // stable key, e.g. "chat:123"
 
-  // For message bursts: dismiss the old toast first so the recreated one
-  // appears at the front of the stack.
-  if (id) toast.dismiss(id)
+  // For non-chat events there's no chatKey — use a simple unique id.
+  if (!chatKey) {
+    const id = `banner:${Date.now()}`
+    toast.custom(
+      (t) => (
+        <BannerCard
+          data={data}
+          onDismiss={() => toast.dismiss(t)}
+          onClick={() => { toast.dismiss(t); navigate(data.href) }}
+        />
+      ),
+      { id, position: 'top-center', duration: BANNER_DISMISS_MS, unstyled: true },
+    )
+    return
+  }
+
+  const count = (chatMessageCounts.get(chatKey) ?? 0) + 1
+  chatMessageCounts.set(chatKey, count)
+  if (count > 1) {
+    data.body = `${count} new messages`
+    data.boldPrefix = undefined
+  }
+
+  // New unique id each burst — avoids the same-id dismiss+recreate conflict in sonner.
+  // The old toast is dismissed by its previous id (different id = no conflict).
+  const newToastId = `${chatKey}:${count}`
+  const oldToastId = chatCurrentToastId.get(chatKey)
+
+  // Update the current id BEFORE dismissing so the old toast's onDismiss
+  // sees a stale id and skips the count reset.
+  chatCurrentToastId.set(chatKey, newToastId)
+  if (oldToastId) toast.dismiss(oldToastId)
+
+  const resetCount = () => {
+    // Only reset if this toast is still the active one for this chat.
+    if (chatCurrentToastId.get(chatKey) === newToastId) {
+      chatMessageCounts.delete(chatKey)
+      chatCurrentToastId.delete(chatKey)
+    }
+  }
 
   toast.custom(
     (t) => (
       <BannerCard
         data={data}
-        onDismiss={() => toast.dismiss(t)}
+        onDismiss={() => { resetCount(); toast.dismiss(t) }}
         onClick={() => {
+          resetCount()
           toast.dismiss(t)
           navigate(data.href)
         }}
       />
     ),
-    { id, position: 'top-center', duration: BANNER_DISMISS_MS, unstyled: true },
+    {
+      id: newToastId,
+      position: 'top-center',
+      duration: BANNER_DISMISS_MS,
+      unstyled: true,
+      onDismiss: resetCount,
+      onAutoClose: resetCount,
+    },
   )
 }

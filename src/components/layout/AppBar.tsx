@@ -64,10 +64,10 @@ export function AppBar({
     ) : null
 
   return (
-    <header className="relative shrink-0 bg-card border-b border-border">
+    <header className="shrink-0 bg-card border-b border-border">
       <div className={cn(CONTENT_WIDTH[width], 'px-3 sm:px-6')}>
         {/* Mobile: logo · centred title · actions */}
-        <div className="grid grid-cols-[3rem_1fr_3rem] items-center gap-2 py-3 lg:hidden">
+        <div className="grid grid-cols-[3rem_1fr_auto] items-center gap-2 py-3 lg:hidden">
           <div className="flex justify-start">
             {back ??
               (leading === 'logo' ? (
@@ -80,8 +80,11 @@ export function AppBar({
               <p className="text-caption text-muted-foreground truncate">{subtitle}</p>
             ) : null}
           </div>
-          {/* Spacer: keeps the centred title clear of the pinned cluster. */}
-          <div aria-hidden />
+          <div className="flex items-center gap-6">
+            {actions}
+            {showAccount ? <NotificationBell /> : null}
+            {showAccount ? <AccountButton /> : null}
+          </div>
         </div>
 
         {/* Desktop: logo or back · left-aligned title · actions */}
@@ -96,13 +99,10 @@ export function AppBar({
               <p className="text-caption text-muted-foreground truncate">{subtitle}</p>
             ) : null}
           </div>
+          {actions}
+          {showAccount ? <NotificationBell /> : null}
+          {showAccount ? <AccountButton /> : null}
         </div>
-      </div>
-
-      <div className="absolute inset-y-0 right-3 sm:right-6 flex items-center gap-2">
-        {actions}
-        {showAccount ? <NotificationBell /> : null}
-        {showAccount ? <AccountButton /> : null}
       </div>
     </header>
   )
