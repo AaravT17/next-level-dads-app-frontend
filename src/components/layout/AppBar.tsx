@@ -105,7 +105,7 @@ export function AppBar({
               ) : null}
             </div>
           </div>
-          <div className="ml-auto flex items-center gap-3 shrink-0">
+          <div className="ml-auto flex items-center gap-6 shrink-0">
             {actions}
             {showAccount ? <NotificationBell /> : null}
             {showAccount ? <AccountButton /> : null}
