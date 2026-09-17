@@ -87,7 +87,7 @@ export const ROUTES = {
    * which would have kept type-checking but silently misbehaved the moment
    * that route was renamed.
    */
-  HOME_AFTER_AUTH: '/dads',
+  HOME_AFTER_AUTH: '/home',
 } as const
 
 // ============================================

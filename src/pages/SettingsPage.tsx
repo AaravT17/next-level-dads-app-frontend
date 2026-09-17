@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useAuth } from '@/contexts/useAuth'
+import { useNotification } from '@/contexts/useNotification'
 import { ThemePicker } from '@/components/settings/ThemePicker'
 import { toastError } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
@@ -42,6 +43,7 @@ const SettingsPage = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user, accessToken, setAuth } = useAuth()
+  const { bannersEnabled, setBannersEnabled } = useNotification()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
 
@@ -90,6 +92,20 @@ const SettingsPage = () => {
         <section className="space-y-3">
           <h2 className="font-heading text-subhead text-foreground">Appearance</h2>
           <ThemePicker />
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-heading text-subhead text-foreground">Notifications</h2>
+          <div className="flex items-center justify-between gap-4 rounded-lg bg-card p-4 shadow-sm">
+            <label htmlFor="banners-toggle" className="flex-1 text-body text-muted-foreground">
+              Show banner notifications for new messages, connection requests, and group invites.
+            </label>
+            <Switch
+              id="banners-toggle"
+              checked={bannersEnabled}
+              onCheckedChange={setBannersEnabled}
+            />
+          </div>
         </section>
 
         <section className="space-y-3">

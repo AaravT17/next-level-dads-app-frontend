@@ -21,7 +21,7 @@ import {
   Reply,
   X,
 } from 'lucide-react'
-import { chatManage } from '@/lib/routes'
+import { chatManage, ROUTES } from '@/lib/routes'
 import { UserAvatar } from '@/components/media/UserAvatar'
 import { AccountButton } from '@/components/layout/AccountButton'
 import { SharedCommunityCard } from '@/features/communities/components/SharedCommunityCard'
@@ -96,7 +96,7 @@ const Chat = () => {
   // Chat metadata query
   // ============================================
 
-  const { data: chatData } = useQuery({
+  const { data: chatData, error: chatError } = useQuery({
     queryKey: ['chats', chatId],
     queryFn: async () => {
       const res = await axiosPrivate.get<Chat>(`/api/chats/${chatId}`, {
@@ -112,6 +112,15 @@ const Chat = () => {
     enabled: !!chatId,
     staleTime: Infinity,
   })
+
+  // Redirect to chat list on 403/404 (removed from chat or chat deleted)
+  useEffect(() => {
+    if (!chatError) return
+    if (axios.isAxiosError(chatError) && (chatError.response?.status === 403 || chatError.response?.status === 404)) {
+      toast.error('This chat is no longer available.')
+      navigate(ROUTES.CHATS, { replace: true })
+    }
+  }, [chatError, navigate])
 
   const chatType: ChatType = chatData?.type ?? 'dm'
   const isGroupChat = chatType === 'group'
