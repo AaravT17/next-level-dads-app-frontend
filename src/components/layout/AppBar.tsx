@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { AppLogo } from './AppLogo'
 import { cn } from '@/lib/utils'
+import { ROUTES } from '@/lib/routes'
 import { CONTENT_WIDTH, type ContentWidth } from './contentWidth'
 import { AccountButton } from './AccountButton'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
@@ -71,7 +72,9 @@ export function AppBar({
           <div className="flex justify-start shrink-0">
             {back ??
               (leading === 'logo' ? (
-                <AppLogo decorative className="h-9 w-auto" />
+                <Link to={ROUTES.HOME} aria-label="Home" className="rounded-md">
+                  <AppLogo decorative className="h-9 w-auto" />
+                </Link>
               ) : null)}
           </div>
           <div className="absolute inset-x-0 flex justify-center pointer-events-none">
@@ -94,7 +97,9 @@ export function AppBar({
           <div className="flex justify-start shrink-0">
             {back ??
               (leading === 'logo' ? (
-                <AppLogo decorative className="h-9 w-auto" />
+                <Link to={ROUTES.HOME} aria-label="Home" className="rounded-md">
+                  <AppLogo decorative className="h-9 w-auto" />
+                </Link>
               ) : null)}
           </div>
           <div className="absolute inset-x-0 flex justify-center pointer-events-none">

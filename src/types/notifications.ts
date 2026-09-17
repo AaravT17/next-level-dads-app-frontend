@@ -2,6 +2,7 @@ export type NotificationType =
   | 'connection_request'
   | 'connection_accepted'
   | 'chat_added'
+  | 'community_activity'
 
 export interface Notification {
   id: string

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/media/UserAvatar'
 import { formatRelative } from '@/utils/format'
-import { dadDetail, chat } from '@/lib/routes'
+import { dadDetail, chat, communityDetail } from '@/lib/routes'
 import type { Notification } from '@/types/notifications'
 
 function getDisplay(notif: Notification): {
@@ -49,6 +49,23 @@ function getDisplay(notif: Notification): {
         ),
         href: chat(p.chat_id as string),
       }
+    case 'community_activity': {
+      // The count is the whole point of a digest -- it is one row that has been
+      // updated in place since the last visit, not one row per post.
+      const count = (p.count as number) ?? 1
+      return {
+        name: p.community_name as string,
+        avatarUrl: (p.community_image_url as string) ?? null,
+        isGroup: true,
+        text: (
+          <>
+            {count} new {count === 1 ? 'conversation' : 'conversations'} in{' '}
+            <strong>{p.community_name as string}</strong>
+          </>
+        ),
+        href: communityDetail(p.community_id as string),
+      }
+    }
     default: {
       const _exhaustive: never = notif.type
       throw new Error(`Unknown notification type: ${_exhaustive}`)

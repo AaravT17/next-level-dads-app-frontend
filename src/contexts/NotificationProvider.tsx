@@ -95,6 +95,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           insertNotification(queryClient, notif)
           setUnreadCount((c) => c + 1)
         }
+      } else if (event.type === 'notifications:community_activity') {
+        // A digest is one row updated in place, so there is nothing to splice
+        // into the cache -- the server may have opened a row or bumped one that
+        // is already there, and only it knows which. Refetch instead.
+        //
+        // This fires only when a digest is *opened*, not on every post into the
+        // community: the backend withholds the event while a member's count is
+        // merely climbing. So this is one small refetch per community per visit
+        // cycle, not one per post.
+        queryClient.invalidateQueries({ queryKey: notificationKeys.list() })
+        queryClient.invalidateQueries({ queryKey: notificationKeys.count() })
+        // The community cards and nav badge read the same activity watermark.
+        queryClient.invalidateQueries({ queryKey: ['user', 'stats'] })
+        return // no banner: a digest is something to find later, not to interrupt for
       } else if (event.type === 'notifications:read') {
         updateNotificationState({ lastReadAt: event.payload.last_read_at })
         queryClient.invalidateQueries({ queryKey: notificationKeys.count() })

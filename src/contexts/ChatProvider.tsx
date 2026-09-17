@@ -313,7 +313,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           parsed.type === 'connections:request' ||
           parsed.type === 'connections:accepted' ||
           parsed.type === 'notifications:read' ||
-          parsed.type === 'notifications:cleared'
+          parsed.type === 'notifications:cleared' ||
+          parsed.type === 'notifications:community_activity'
         ) {
           notificationHandlerRef.current?.(parsed)
           return
