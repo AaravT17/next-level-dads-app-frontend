@@ -209,21 +209,20 @@ const Chat = () => {
     return items
   }, [messages])
 
+  // The route component is retained while its :id parameter changes, so each
+  // chat needs its own initial-scroll intent rather than relying on mount.
+  // A layout effect makes this available before the messages effect, including
+  // when the next chat's messages are already in the query cache.
+  useLayoutEffect(() => {
+    scrollBehaviorRef.current = 'instant'
+  }, [chatId])
+
   // Scroll to bottom after initial load, reconnect, or sending a message.
-  // Uses scrollTop = scrollHeight for 'instant' (more reliable in flex layouts
-  // where scrollIntoView can fire before the container height is resolved),
-  // and scrollIntoView for 'smooth' (animated, so the container is stable by then).
   useEffect(() => {
     if (scrollBehaviorRef.current && messages.length > 0) {
       const behavior = scrollBehaviorRef.current
       scrollBehaviorRef.current = null
-      const container = scrollContainerRef.current
-      if (!container) return
-      if (behavior === 'instant') {
-        container.scrollTop = container.scrollHeight
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior })
-      }
+      messagesEndRef.current?.scrollIntoView({ behavior })
     }
   }, [messages])
 
