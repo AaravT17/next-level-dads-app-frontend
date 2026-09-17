@@ -1079,7 +1079,7 @@ const ProfileSetup = () => {
               editingIcebreakerIndex === null && (
                 <Button
                   variant="outline"
-                  className="w-full rounded-lg border-2 border-dashed border-primary/40 py-6 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5"
+                  className="w-full rounded-lg border-2 border-dashed py-6 text-sm font-semibold border-foreground text-foreground hover:border-primary hover:text-primary hover:bg-transparent dark:border-primary dark:text-primary dark:hover:border-foreground dark:hover:text-foreground dark:hover:bg-transparent"
                   onClick={() => setShowPromptPicker(true)}
                   disabled={loading}
                 >

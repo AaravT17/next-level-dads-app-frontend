@@ -21,7 +21,7 @@ export function NotificationBell() {
           <NavBadge
             count={unreadCount}
             label="unread notifications"
-            className="absolute -top-0.5 -right-0.5"
+            className="absolute -top-1 -right-1"
           />
         </button>
       </PopoverTrigger>
