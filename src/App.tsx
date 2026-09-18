@@ -1,4 +1,4 @@
-import { lazy } from 'react'
+import { Suspense, lazy } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
@@ -10,6 +10,7 @@ import { THEMES, DEFAULT_THEME, THEME_STORAGE_KEY } from '@/lib/theme'
 import { AuthProvider } from '@/contexts/AuthProvider'
 import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { LegacyRedirect } from '@/components/routing/LegacyRedirect'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
@@ -70,6 +71,7 @@ const AppContent = () => {
       <LegalAcceptancesModal />
       <BrowserRouter>
         <NotificationProvider>
+        <Suspense fallback={<CenteredSpinner />}>
         <Routes>
           {/* Public - redirect to the app if already authenticated */}
           <Route element={<PublicRoute />}>
@@ -158,6 +160,7 @@ const AppContent = () => {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
         </NotificationProvider>
       </BrowserRouter>
     </TooltipProvider>
