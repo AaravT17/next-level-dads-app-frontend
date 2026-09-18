@@ -22,9 +22,9 @@ function BanRow({ ban }: { ban: AdminBan }) {
   return (
     <div className="border border-border rounded-lg p-4 flex items-start justify-between gap-4">
       <div className="space-y-1 min-w-0">
-        <p className="text-sm font-medium">{ban.user_name ?? ban.user_id}</p>
-        <p className="text-sm text-muted-foreground">{ban.reason}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-body font-medium">{ban.user_name ?? ban.user_id}</p>
+        <p className="text-body text-muted-foreground">{ban.reason}</p>
+        <p className="text-caption text-muted-foreground">
           Expires {expiresAt.toLocaleString()} ({hoursLeft}h remaining)
         </p>
       </div>
@@ -107,7 +107,7 @@ export function BansTab() {
 
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium mb-1 block">User ID</label>
+              <label className="text-label font-medium mb-1 block">User ID</label>
               <Input
                 placeholder="UUID of the user to ban"
                 value={userId}
@@ -115,7 +115,7 @@ export function BansTab() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Reason</label>
+              <label className="text-label font-medium mb-1 block">Reason</label>
               <Textarea
                 placeholder="Reason visible to admin logs"
                 rows={3}
@@ -124,7 +124,7 @@ export function BansTab() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Duration (hours)</label>
+              <label className="text-label font-medium mb-1 block">Duration (hours)</label>
               <Input
                 type="number"
                 min={1}

@@ -1,26 +1,37 @@
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
 import { Mail } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
-import { supabase } from '@/lib/supabase'
-import { useToast } from '@/components/ui/use-toast'
+import { supabaseAuth } from '@/lib/supabase'
+import { toastError } from '@/lib/toast'
 import { useEffect, useState } from 'react'
 import axiosPublic from '@/api/axiosPublic'
 import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
-import { useAuth } from '../contexts/AuthContext'
+import { isHttpStatus } from '@/utils/errors'
+import { useAuth } from '../contexts/useAuth'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 
 const Welcome = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const { setAuth } = useAuth()
 
+  // Runs once, against the OAuth fragment the provider redirected back with.
+  //
+  // The old `if (isLoading) return` guard was dead here: isLoading starts false
+  // and the effect only runs at mount.
+  //
+  // What keeps it single-run is that this screen lives at exactly one path.
+  // setAuth is memoised in AuthProvider, but navigate is *not* stable — under
+  // <BrowserRouter> useNavigate carries locationPathname in its own dependency
+  // array, so its identity changes whenever the path does. That never happens
+  // while Welcome is mounted, and the replaceState below clears the fragment
+  // without telling the router. Do not lift this effect onto a screen whose
+  // path can change underneath it: a re-run would POST the same tokens to
+  // /api/auth/oauth/session a second time.
   useEffect(() => {
     const handleOAuthCallback = async () => {
-      if (isLoading) return
-
       const hash = window.location.hash
       if (!hash.includes('access_token')) return
 
@@ -30,11 +41,7 @@ const Welcome = () => {
       const refresh_token = params.get('refresh_token')
 
       if (!access_token || !refresh_token) {
-        toast({
-          title: 'Sign in failed',
-          description: 'Invalid OAuth response.',
-          variant: 'destructive',
-        })
+        toastError('Sign in failed', 'Invalid OAuth response.')
         return
       }
 
@@ -67,8 +74,14 @@ const Welcome = () => {
             province: userRes.data.province,
             about: userRes.data.about,
             avatarUrl: userRes.data.avatar_url,
-            interests: userRes.data.interests,
-            children_age_ranges: userRes.data.children,
+            interests: userRes.data.interests ?? [],
+            children_age_ranges: userRes.data.children_age_ranges ?? [],
+            kid_count: userRes.data.kid_count ?? null,
+            goals: userRes.data.goals ?? null,
+            primary_goal: userRes.data.primary_goal ?? null,
+            connection_styles: userRes.data.connection_styles ?? null,
+            match_priorities: userRes.data.match_priorities ?? null,
+            icebreakers: userRes.data.icebreakers ?? null,
             isAdmin: userRes.data.is_admin ?? false,
             preferences: {
               marketing_emails_opt_in: userRes.data.preferences?.marketing_emails_opt_in ?? false,
@@ -77,37 +90,37 @@ const Welcome = () => {
               terms: userRes.data.legal_acceptances?.terms ?? false,
               privacy_policy: userRes.data.legal_acceptances?.privacy_policy ?? false,
             },
+            notificationState: {
+              lastReadAt: userRes.data.notification_state?.last_read_at ?? null,
+              lastClearedAt: userRes.data.notification_state?.last_cleared_at ?? null,
+            },
           },
           accessToken,
         })
-        navigate(ROUTES.DISCOVER)
-      } catch (err: any) {
-        if (err.response?.status === 404) {
+        navigate(ROUTES.HOME_AFTER_AUTH)
+      } catch (err) {
+        if (isHttpStatus(err, 404)) {
           // no profile yet — commit token so SetupRoute allows access
           setAuth({ user: null, accessToken })
           navigate(ROUTES.SETUP)
           return
         }
         setAccessToken(null)
-        toast({
-          title: 'Sign in failed',
-          description: 'An error occurred during Google sign in.',
-          variant: 'destructive',
-        })
+        toastError('Sign in failed', 'An error occurred during Google sign in.')
       } finally {
         setIsLoading(false)
       }
     }
 
     handleOAuthCallback()
-  }, [])
+  }, [navigate, setAuth])
 
   const handleGoogleOAuth = async () => {
     if (isLoading) return
 
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabaseAuth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${import.meta.env.VITE_FRONTEND_BASE_URL}`,
@@ -116,12 +129,8 @@ const Welcome = () => {
       if (error) {
         throw error
       }
-    } catch (err) {
-      toast({
-        title: 'Sign in failed',
-        description: 'An error occurred while signing in with Google.',
-        variant: 'destructive',
-      })
+    } catch {
+      toastError('Sign in failed', 'An error occurred while signing in with Google.')
     } finally {
       setIsLoading(false)
     }
@@ -130,21 +139,15 @@ const Welcome = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in text-center px-6">
         <div className="flex justify-center mt-12 mb-8">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="w-[95%] h-auto"
-          />
+          <AppLogo className="w-[95%] h-auto" />
         </div>
 
         <div className="space-y-3">
           <p
-            className="text-2xl font-semibold"
-            style={{ color: '#000000' }}
+            className="text-2xl font-semibold text-foreground"
           >
             Empowering Fathers.
             <br />
@@ -155,7 +158,7 @@ const Welcome = () => {
         <div className="pt-6 space-y-3">
           <Button
             size="lg"
-            className="w-full rounded-full font-semibold text-base bg-accent text-white hover:shadow-lg transition-shadow"
+            className="w-full rounded-md font-semibold text-base bg-accent text-white hover:shadow-lg transition-shadow"
             onClick={() => navigate(ROUTES.LOGIN)}
             disabled={isLoading}
           >
@@ -165,7 +168,7 @@ const Welcome = () => {
 
           <Button
             size="lg"
-            className="w-full rounded-full font-semibold text-base bg-white hover:bg-white text-black border border-gray-300 hover:shadow-lg transition-shadow"
+            className="w-full rounded-md font-semibold text-base bg-white hover:bg-white text-black border border-gray-300 hover:shadow-lg transition-shadow"
             onClick={handleGoogleOAuth}
             disabled={isLoading}
           >

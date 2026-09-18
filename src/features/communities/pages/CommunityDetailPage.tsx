@@ -1,20 +1,24 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArrowLeft, Users, Loader2, Plus } from 'lucide-react'
+import { Users, Loader2, Plus, UserPlus } from 'lucide-react'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { ErrorState } from '@/components/feedback/ErrorState'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
+import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import BottomNav from '@/components/BottomNav'
-import logo from '@/assets/logo.png'
-import axiosPrivate from '@/api/axiosPrivate'
-import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useCommunity } from '../hooks/useCommunity'
 import { useCommunityConversations } from '../hooks/useCommunityConversations'
-import { communityKeys } from '../hooks/communityKeys'
+import { useJoinCommunity, useLeaveCommunity } from '../hooks/useCommunityMembership'
+import { useMarkCommunityVisited } from '../hooks/useMarkCommunityVisited'
 import { ConversationCard } from '../components/ConversationCard'
 import { ConversationComposer } from '../components/ConversationComposer'
-import { EmptyState } from '../components/EmptyState'
+import { InviteFriendsDialog } from '../components/InviteFriendsDialog'
+import { CommunityPhotoEditor } from '../components/CommunityPhotoEditor'
+import { JoinNudgeProvider } from '../components/JoinNudgeProvider'
+import { EmptyState } from '@/components/feedback/EmptyState'
 import { conversationDetail } from '@/lib/routes'
 import type { ConversationSort, ConversationTimeWindow } from '@/types/communities'
 
@@ -32,13 +36,16 @@ const TIME_WINDOWS: { value: ConversationTimeWindow; label: string }[] = [
   { value: 'all', label: 'All Time' },
 ]
 
-const CommunityDetailPage = () => {
+const CommunityDetailBody = ({ communityId }: { communityId: string | undefined }) => {
   const navigate = useNavigate()
-  const { communityId } = useParams<{ communityId: string }>()
-  const queryClient = useQueryClient()
   const [composerOpen, setComposerOpen] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [activeFilter, setActiveFilter] = useState<ConversationSort>('recent')
   const [timeWindow, setTimeWindow] = useState<ConversationTimeWindow>('all')
+
+  // Opening the community is what clears its "new since you last visited" badge.
+  // Fires on mount, throttled per community, and never blocks what renders below.
+  useMarkCommunityVisited(communityId)
 
   const {
     data: community,
@@ -60,54 +67,14 @@ const CommunityDetailPage = () => {
     [conversationsData],
   )
 
-  const conversationsSentinelRef = useRef<HTMLDivElement>(null)
-
   const handleFetchNextConversations = useCallback(() => {
     fetchNextConversations({ throwOnError: true }).catch(() => {
       toast.error("Couldn't load more conversations")
     })
   }, [fetchNextConversations])
 
-  useEffect(() => {
-    const sentinel = conversationsSentinelRef.current
-    if (!sentinel) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextConversations && !isFetchingNextConversations) {
-          handleFetchNextConversations()
-        }
-      },
-      { threshold: 0.1 },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextConversations, isFetchingNextConversations, handleFetchNextConversations])
-
-  const joinMutation = useMutation({
-    mutationFn: () =>
-      axiosPrivate.post(`/api/communities/${communityId}/members`, {}, {
-        timeout: TIMEOUT_LENGTH_MS,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
-      queryClient.removeQueries({ queryKey: ['discover', 'communities'] })
-      queryClient.removeQueries({ queryKey: ['groups', 'communities'] })
-    },
-    onError: () => toast.error("Couldn't join community"),
-  })
-
-  const leaveMutation = useMutation({
-    mutationFn: () =>
-      axiosPrivate.delete(`/api/communities/${communityId}/members`, {
-        timeout: TIMEOUT_LENGTH_MS,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.detail(communityId!) })
-      queryClient.removeQueries({ queryKey: ['discover', 'communities'] })
-      queryClient.removeQueries({ queryKey: ['groups', 'communities'] })
-    },
-    onError: () => toast.error("Couldn't leave community"),
-  })
+  const joinMutation = useJoinCommunity(communityId!)
+  const leaveMutation = useLeaveCommunity(communityId!)
 
   const handleConversationCreated = (conversationId: string) => {
     setComposerOpen(false)
@@ -116,67 +83,79 @@ const CommunityDetailPage = () => {
 
   if (communityLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">Community</h1>
-        </div>
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Community" leading="back" />
+        <PageContainer>
+          <CenteredSpinner label="Loading community" />
+        </PageContainer>
+      </>
     )
   }
 
   if (communityError || !community) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">Community</h1>
-        </div>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Failed to load community. Please try again.</p>
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Community" leading="back" />
+        <PageContainer>
+          <ErrorState noun="this community" />
+        </PageContainer>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="relative bg-card border-b-2 border-primary px-6 py-7 flex items-center justify-center shadow-sm">
-        <img src={logo} alt="Next Level Dads" className="h-10 absolute top-4 left-3" />
-        <h1 className="text-2xl font-heading font-semibold text-foreground">
-          {community.name}
-        </h1>
-      </div>
+    <>
+      <AppBar title={community.name} leading="back" />
 
-      <div className="max-w-md mx-auto px-4 pt-3 pb-6 space-y-4">
-        <Button
-          variant="ghost"
-          size="lg"
-          onClick={() => navigate(-1)}
-          className="-ml-2 text-muted-foreground font-bold"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back
-        </Button>
+      <PageContainer className="space-y-4 animate-fade-in">
+        {/*
+          Invite sits above the card and ahead of the community's own name:
+          it is the one action you take *on behalf of someone else*, so it
+          reads as an aside to the page rather than another membership control
+          competing with Join beneath the description.
+        */}
+        <div className="flex">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-md gap-1.5"
+            onClick={() => setInviteOpen(true)}
+          >
+            <UserPlus aria-hidden className="w-4 h-4" />
+            Invite a friend
+          </Button>
+        </div>
+
+        <InviteFriendsDialog
+          communityId={communityId!}
+          communityName={community.name}
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+        />
 
         {/* Community header card */}
         <div className="bg-card border-2 border-primary/30 rounded-xl p-5 space-y-4 shadow-md">
-          <h2 className="text-xl font-heading font-bold text-foreground">{community.name}</h2>
-          {community.description && (
-            <p className="text-muted-foreground leading-relaxed">{community.description}</p>
-          )}
+          <div className="flex items-start gap-4">
+            <CommunityPhotoEditor
+              communityId={communityId!}
+              imageUrl={community.image_url}
+              communityName={community.name}
+              canEdit={community.role === 'admin'}
+            />
+            <div className="min-w-0 flex-1 space-y-2">
+              <h2 className="text-xl font-heading font-bold text-foreground">{community.name}</h2>
+              {community.description && (
+                <p className="text-muted-foreground leading-relaxed">{community.description}</p>
+              )}
+            </div>
+          </div>
           <div className="flex items-center gap-3 flex-wrap">
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Users className="w-4 h-4" />
               {community.member_count} members
             </span>
             {community.role && (
-              <Badge variant="soft" className="rounded-full text-xs">
+              <Badge variant="soft" className="rounded-md text-caption">
                 {community.role}
               </Badge>
             )}
@@ -185,7 +164,7 @@ const CommunityDetailPage = () => {
           {community.is_member ? (
             <Button
               variant="outline"
-              className="rounded-full"
+              className="rounded-md"
               onClick={() => leaveMutation.mutate()}
               disabled={leaveMutation.isPending}
             >
@@ -198,7 +177,7 @@ const CommunityDetailPage = () => {
           ) : (
             <Button
               variant="outline"
-              className="rounded-full"
+              className="rounded-md"
               onClick={() => joinMutation.mutate()}
               disabled={joinMutation.isPending}
             >
@@ -214,12 +193,12 @@ const CommunityDetailPage = () => {
         {/* Conversations section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
-            <h2 className="text-lg font-heading font-semibold text-foreground">
+            <h2 className="text-subhead font-heading font-semibold text-foreground">
               Conversations
             </h2>
             {!composerOpen && (
               <Button
-                className="rounded-full gap-1.5"
+                className="rounded-md gap-1.5"
                 onClick={() => setComposerOpen(true)}
               >
                 <Plus className="w-4 h-4" />
@@ -235,7 +214,7 @@ const CommunityDetailPage = () => {
                 <button
                   key={f.value}
                   onClick={() => setActiveFilter(f.value)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     activeFilter === f.value
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -251,7 +230,7 @@ const CommunityDetailPage = () => {
                   <button
                     key={w.value}
                     onClick={() => setTimeWindow(w.value)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    className={`px-3 py-1 rounded-md text-caption font-medium transition-colors ${
                       timeWindow === w.value
                         ? 'bg-foreground text-background'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -278,7 +257,7 @@ const CommunityDetailPage = () => {
             </div>
           ) : conversationsError ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 Failed to load conversations. Please try again.
               </p>
             </div>
@@ -294,19 +273,32 @@ const CommunityDetailPage = () => {
                   <ConversationCard key={conv.id} conversation={conv} />
                 ))}
               </div>
-              <div ref={conversationsSentinelRef} className="h-4" />
-              {isFetchingNextConversations && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                </div>
-              )}
+              <InfiniteSentinel
+                hasNextPage={hasNextConversations}
+                isFetchingNextPage={isFetchingNextConversations}
+                fetchNextPage={handleFetchNextConversations}
+                noun="posts"
+              />
             </>
           )}
         </div>
-      </div>
+      </PageContainer>
+    </>
+  )
+}
 
-      <BottomNav />
-    </div>
+/**
+ * The provider sits above the whole page so that every like, reply and post
+ * inside it — however deep — is counted toward the join prompt, and so the
+ * header's own Join button clears that count through the same context.
+ */
+const CommunityDetailPage = () => {
+  const { communityId } = useParams<{ communityId: string }>()
+
+  return (
+    <JoinNudgeProvider communityId={communityId}>
+      <CommunityDetailBody communityId={communityId} />
+    </JoinNudgeProvider>
   )
 }
 

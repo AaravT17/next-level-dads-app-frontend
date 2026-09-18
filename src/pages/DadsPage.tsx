@@ -1,0 +1,650 @@
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
+import { toast } from 'sonner'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
+import { QueryState } from '@/components/feedback/QueryState'
+import { EmptyState } from '@/components/feedback/EmptyState'
+import { DadListSkeleton } from '@/components/feedback/skeletons/CardSkeletons'
+import DadCard from '@/components/DadCard'
+import { ConnectionRequestsPanel } from '@/features/connections/components/ConnectionRequestsPanel'
+import { SentRequestsPanel } from '@/features/connections/components/SentRequestsPanel'
+import { useOutgoingRequests } from '@/features/connections/hooks/useOutgoingRequests'
+import { NO_REQUEST_FILTERS } from '@/features/connections/hooks/useIncomingRequests'
+import { useUserStats } from '@/hooks/useNavBadges'
+import { ROUTES } from '@/lib/routes'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { RefreshCw, Search, X, SlidersHorizontal, SearchX, UserRoundCheck, Users } from 'lucide-react'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import axiosPrivate from '@/api/axiosPrivate'
+import {
+  TIMEOUT_LENGTH_MS,
+  PROFILES_PAGE_LIMIT,
+  DISCOVER_DADS_FILTERS_AGE_RANGES,
+  STAGE_OPTIONS,
+  PROVINCE_OPTIONS,
+  INTEREST_DISPLAY_MAP,
+} from '@/config/constants'
+import { Profile, DiscoverDadsFilters, DiscoverDadsCursor } from '@/types/users'
+
+/**
+ * Browse dads.
+ *
+ * Was the first of three unrelated tabs inside a 1,146-line Discover screen.
+ * The communities and events tabs moved to Groups, where the same objects now
+ * live under a joined/all scope instead of being duplicated across sections.
+ */
+
+async function fetchDiscoverProfiles(
+  filters: DiscoverDadsFilters,
+  cursor?: DiscoverDadsCursor,
+): Promise<Profile[]> {
+  const params = new URLSearchParams()
+  filters.interests.forEach((i) => params.append('interests', i))
+  filters.children_age_ranges.forEach((r) =>
+    params.append('children_age_ranges', r),
+  )
+  filters.provinces.forEach((p) => params.append('provinces', p))
+  filters.age_ranges.forEach((r) => params.append('age_ranges', r))
+  if (filters.name) params.append('name', filters.name)
+  if (cursor) {
+    params.append('cursor_id', cursor.cursor_id)
+    params.append('cursor_created_at', cursor.cursor_created_at)
+  }
+  const res = await axiosPrivate.get<Profile[]>('/api/users/', {
+    params,
+    timeout: TIMEOUT_LENGTH_MS,
+  })
+  return res.data
+}
+
+interface InterestOption {
+  id: string
+  slug: string
+  name: string
+}
+
+async function fetchInterests(): Promise<InterestOption[]> {
+  const res = await axiosPrivate.get<InterestOption[]>('/api/interests/', {
+    timeout: TIMEOUT_LENGTH_MS,
+  })
+  return res.data
+}
+
+
+/**
+ * A repeatable search parameter as a referentially stable array.
+ *
+ * Serialising first means the identity only changes when that parameter's
+ * values do -- which is what the effects consuming these arrays depend on.
+ */
+function useArrayParam(searchParams: URLSearchParams, key: string): string[] {
+  const serialized = JSON.stringify(searchParams.getAll(key))
+  return useMemo(() => JSON.parse(serialized) as string[], [serialized])
+}
+
+const DadsPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const queryClient = useQueryClient()
+
+  const getStringParam = useCallback((key: string) => searchParams.get(key) || '', [searchParams])
+
+  const urlDadSearch = getStringParam('dad_name')
+  const [dadSearchQuery, setDadSearchQuery] = useState(urlDadSearch)
+
+  // Keyed on the serialised values of *this* parameter rather than on a getter
+  // closed over searchParams. The getter changed identity whenever any search
+  // param changed, so submitting the name box gave all four filter arrays new
+  // identities, and the sync effect below then wiped in-progress selections out
+  // of the open filter sheet.
+  const urlChildrenAges = useArrayParam(searchParams, 'children_age_ranges')
+  const urlInterests = useArrayParam(searchParams, 'interests')
+  const urlProvinces = useArrayParam(searchParams, 'provinces')
+  const urlAgeRanges = useArrayParam(searchParams, 'age_ranges')
+
+  const [pendingChildrenAges, setPendingChildrenAges] = useState<string[]>(urlChildrenAges)
+  const [pendingInterests, setPendingInterests] = useState<string[]>(urlInterests)
+  const [pendingLocations, setPendingLocations] = useState<string[]>(urlProvinces)
+  const [pendingDadAges, setPendingDadAges] = useState<string[]>(urlAgeRanges)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [interestSearchQuery, setInterestSearchQuery] = useState('')
+  const [interestSearchFocused, setInterestSearchFocused] = useState(false)
+
+  // Reset pending filters to URL state when the sheet closes without applying
+  const handleFiltersOpenChange = (open: boolean) => {
+    if (!open) {
+      setPendingChildrenAges(urlChildrenAges)
+      setPendingInterests(urlInterests)
+      setPendingLocations(urlProvinces)
+      setPendingDadAges(urlAgeRanges)
+    }
+    setFiltersOpen(open)
+  }
+
+  const dadsFilters: DiscoverDadsFilters = useMemo(
+    () => ({
+      interests: urlInterests,
+      children_age_ranges: urlChildrenAges,
+      provinces: urlProvinces,
+      age_ranges: urlAgeRanges,
+      name: urlDadSearch,
+    }),
+    [urlInterests, urlChildrenAges, urlProvinces, urlAgeRanges, urlDadSearch],
+  )
+
+  const {
+    data: dadsData,
+    isLoading: dadsLoading,
+    isError: dadsError,
+    error: dadsQueryError,
+    refetch: refetchDads,
+    isRefetching: isRefetchingDads,
+    fetchNextPage: fetchNextDads,
+    hasNextPage: hasNextDads,
+    isFetchingNextPage: isFetchingNextDads,
+  } = useInfiniteQuery({
+    queryKey: ['dads', dadsFilters],
+    queryFn: ({ pageParam }) => fetchDiscoverProfiles(dadsFilters, pageParam),
+    initialPageParam: undefined as DiscoverDadsCursor | undefined,
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 5,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
+      const lastItem = lastPage[lastPage.length - 1]
+      return { cursor_id: lastItem.id, cursor_created_at: lastItem.created_at }
+    },
+  })
+
+  const profiles = useMemo(() => dadsData?.pages.flat() ?? [], [dadsData])
+
+  /**
+   * Everyone you have already acted on.
+   *
+   * Browse returns only dads with no connection to you in either direction, so
+   * an empty grid has three unrelated causes and one of them is good news.
+   * Both counts come from queries this screen already mounts — the stats
+   * document behind the AppBar badge, and the list the sent panel renders —
+   * so neither adds a request.
+   *
+   * The pending flag is not decoration. Either query still in flight reads as
+   * zero, which is indistinguishable from a genuinely new account, and the
+   * grid can resolve empty before they land — so the empty state would
+   * announce the wrong one and then correct itself a moment later.
+   */
+  const { data: stats, isPending: isStatsPending } = useUserStats()
+  const { data: sentData, isPending: isSentPending } = useOutgoingRequests(NO_REQUEST_FILTERS)
+  const connectionCount = stats?.connections ?? 0
+  const sentCount = sentData?.pages.flat().length ?? 0
+  const isHistoryPending = isStatsPending || isSentPending
+  const hasReachedEveryone = connectionCount > 0 || sentCount > 0
+
+  const hasActiveFilters =
+    urlInterests.length > 0 ||
+    urlChildrenAges.length > 0 ||
+    urlProvinces.length > 0 ||
+    urlAgeRanges.length > 0 ||
+    urlDadSearch !== ''
+
+  const { data: interestOptions = [] } = useQuery({
+    queryKey: ['interests'],
+    queryFn: fetchInterests,
+    staleTime: Infinity,
+  })
+
+  useEffect(() => {
+    if (axios.isAxiosError(dadsQueryError) && dadsQueryError.response?.status === 429) {
+      toast.error('Too many requests. Please slow down.')
+    }
+  }, [dadsQueryError])
+
+  // Sync input with URL params when navigating back
+  useEffect(() => {
+    setDadSearchQuery(urlDadSearch)
+  }, [urlDadSearch])
+
+  useEffect(() => {
+    setPendingChildrenAges(urlChildrenAges)
+    setPendingInterests(urlInterests)
+    setPendingLocations(urlProvinces)
+    setPendingDadAges(urlAgeRanges)
+  }, [urlChildrenAges, urlInterests, urlProvinces, urlAgeRanges])
+
+  const togglePendingChildrenAge = (stage: string) => {
+    setPendingChildrenAges((prev) =>
+      prev.includes(stage) ? prev.filter((s) => s !== stage) : [...prev, stage],
+    )
+  }
+  const togglePendingInterest = (interest: string) => {
+    setPendingInterests((prev) =>
+      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest],
+    )
+  }
+  const togglePendingLocation = (location: string) => {
+    setPendingLocations((prev) =>
+      prev.includes(location) ? prev.filter((l) => l !== location) : [...prev, location],
+    )
+  }
+  const togglePendingDadAge = (ageRange: string) => {
+    setPendingDadAges((prev) =>
+      prev.includes(ageRange) ? prev.filter((a) => a !== ageRange) : [...prev, ageRange],
+    )
+  }
+
+  const applyDadsFilters = () => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      newParams.delete('children_age_ranges')
+      newParams.delete('interests')
+      newParams.delete('provinces')
+      newParams.delete('age_ranges')
+      pendingChildrenAges.forEach((v) => newParams.append('children_age_ranges', v))
+      pendingInterests.forEach((v) => newParams.append('interests', v))
+      pendingLocations.forEach((v) => newParams.append('provinces', v))
+      pendingDadAges.forEach((v) => newParams.append('age_ranges', v))
+      return newParams
+    })
+    setFiltersOpen(false)
+  }
+
+  const clearDadsFilters = () => {
+    setPendingChildrenAges([])
+    setPendingInterests([])
+    setPendingLocations([])
+    setPendingDadAges([])
+    setDadSearchQuery('')
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      newParams.delete('children_age_ranges')
+      newParams.delete('interests')
+      newParams.delete('provinces')
+      newParams.delete('age_ranges')
+      newParams.delete('dad_name')
+      return newParams
+    })
+  }
+
+  /**
+   * What an empty grid means.
+   *
+   * Three causes, and telling them apart is the difference between a dead end
+   * and a finished job. Filters are the reader's own doing and come first —
+   * the grid may be full without them, and the answer needs nothing loaded.
+   * Past that, having connected with or written to anybody is what separates
+   * "you have reached everyone here" from a platform that has nobody else on
+   * it yet, and only the first of those deserves a way onward. Until those
+   * counts arrive the skeleton stays up rather than pick one and be wrong.
+   */
+  const emptyState = hasActiveFilters ? (
+    <EmptyState
+      icon={SearchX}
+      title="No dads match your filters"
+      description="Try widening your search."
+      action={{ label: 'Clear filters', onClick: clearDadsFilters }}
+    />
+  ) : isHistoryPending ? (
+    <DadListSkeleton />
+  ) : hasReachedEveryone ? (
+    <EmptyState
+      icon={UserRoundCheck}
+      title="You're all caught up"
+      description="You have connected with or sent a request to every dad here. New ones will show up as they join."
+      action={
+        connectionCount > 0
+          ? { label: 'See your connections', to: ROUTES.CONNECTIONS }
+          : undefined
+      }
+    />
+  ) : (
+    <EmptyState
+      icon={Users}
+      title="No dads yet"
+      description="Check back soon as more dads join."
+    />
+  )
+
+  const clearDadSearch = () => {
+    setDadSearchQuery('')
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      newParams.delete('dad_name')
+      return newParams
+    })
+  }
+
+  const handleDadSearch = () => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev)
+      if (dadSearchQuery) {
+        newParams.set('dad_name', dadSearchQuery)
+      } else {
+        newParams.delete('dad_name')
+      }
+      return newParams
+    })
+  }
+
+  const handleRefreshDads = () => {
+    queryClient.removeQueries({ queryKey: ['dads'] })
+    queryClient.removeQueries({ queryKey: ['profile'] })
+    // Both request panels sit on this page too, so Refresh has to mean them.
+    queryClient.removeQueries({ queryKey: ['connections', 'requests'] })
+    queryClient.removeQueries({ queryKey: ['connections', 'sent'] })
+  }
+
+  return (
+    <>
+      <AppBar title="Dads" width="wide" />
+
+      <PageContainer width="wide" className="animate-fade-in">
+  <div className="space-y-4 animate-fade-in">
+    {/*
+      Requests first: they are addressed to you, and browsing is what you do
+      when nothing is waiting. The panel removes itself when the list is empty.
+    */}
+    <ConnectionRequestsPanel />
+
+    {/*
+      Then what you are waiting on. Collapsed by default and quieter than the
+      panel above: browse no longer carries already-requested dads, so this is
+      where a sent request lives and where it can be taken back.
+    */}
+    <SentRequestsPanel />
+
+    <div className="mb-4 flex items-center gap-3">
+    <form
+      className="relative flex-1 sm:max-w-md"
+      onSubmit={(e) => {
+        e.preventDefault()
+        handleDadSearch()
+      }}
+    >
+      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+      <Input
+        placeholder="Search dads..."
+        value={dadSearchQuery}
+        onChange={(e) => setDadSearchQuery(e.target.value)}
+        className="pl-10 pr-10 rounded-md"
+      />
+      {dadSearchQuery && (
+        <button
+          type="button"
+          onClick={clearDadSearch}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+    </form>
+
+    <div className="shrink-0">
+      <Sheet
+        open={filtersOpen}
+        onOpenChange={handleFiltersOpenChange}
+      >
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            className="rounded-md"
+          >
+            <SlidersHorizontal className="w-4 h-4 mr-2" />
+            Filters
+          </Button>
+        </SheetTrigger>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md overflow-y-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <SheetHeader>
+            <SheetTitle>Filter Dads</SheetTitle>
+            <SheetDescription>
+              Refine your search to find the perfect connections
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-6">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                Children's Age
+              </h3>
+              <p className="text-caption text-muted-foreground">
+                Select all that apply
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {STAGE_OPTIONS.map((stage) => (
+                  <Badge
+                    key={stage.value}
+                    variant={
+                      pendingChildrenAges.includes(stage.value)
+                        ? 'default'
+                        : 'outline'
+                    }
+                    className="cursor-pointer rounded-md"
+                    onClick={() =>
+                      togglePendingChildrenAge(stage.value)
+                    }
+                  >
+                    {stage.label}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                Interests
+              </h3>
+              <p className="text-caption text-muted-foreground">
+                Search and select interests
+              </p>
+
+              {/* Selected interests display */}
+              {pendingInterests.length > 0 && (
+                <div className="flex gap-2 flex-wrap mb-2">
+                  {pendingInterests.map((slug) => {
+                    const display = INTEREST_DISPLAY_MAP[slug]
+                    return (
+                      <Badge
+                        key={slug}
+                        variant="default"
+                        className="cursor-pointer rounded-md"
+                        onClick={() => togglePendingInterest(slug)}
+                      >
+                        {display && <span className="mr-1">{display.emoji}</span>}
+                        {display?.label ?? slug} ✕
+                      </Badge>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Interest search input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search interests..."
+                  value={interestSearchQuery}
+                  onChange={(e) => setInterestSearchQuery(e.target.value)}
+                  onFocus={() => setInterestSearchFocused(true)}
+                  onBlur={() => setInterestSearchFocused(false)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Interest suggestions — visible while input is focused */}
+              {interestSearchFocused && (() => {
+                const filtered = interestOptions.filter((opt) => {
+                  if (pendingInterests.includes(opt.slug)) return false
+                  if (!interestSearchQuery) return true
+                  return (
+                    opt.name.toLowerCase().includes(interestSearchQuery.toLowerCase()) ||
+                    opt.slug.toLowerCase().includes(interestSearchQuery.toLowerCase())
+                  )
+                })
+                return (
+                  <div className="max-h-40 overflow-y-auto border border-border rounded-md bg-card">
+                    {filtered.length > 0 ? filtered.map((opt) => {
+                      const display = INTEREST_DISPLAY_MAP[opt.slug]
+                      return (
+                        <button
+                          key={opt.slug}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            togglePendingInterest(opt.slug)
+                            setInterestSearchQuery('')
+                          }}
+                        >
+                          {display && <span className="mr-1.5">{display.emoji}</span>}
+                          {display?.label ?? opt.name}
+                        </button>
+                      )
+                    }) : (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        {interestSearchQuery ? 'No matching interests' : 'All interests selected'}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                Location
+              </h3>
+              <p className="text-caption text-muted-foreground">
+                Select all that apply
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {PROVINCE_OPTIONS.map((province) => (
+                  <Badge
+                    key={province.value}
+                    variant={
+                      pendingLocations.includes(province.value)
+                        ? 'default'
+                        : 'outline'
+                    }
+                    className="cursor-pointer rounded-md"
+                    onClick={() =>
+                      togglePendingLocation(province.value)
+                    }
+                  >
+                    {province.label}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                Age
+              </h3>
+              <p className="text-caption text-muted-foreground">
+                Select all that apply
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {DISCOVER_DADS_FILTERS_AGE_RANGES.map((range) => (
+                  <Badge
+                    key={range}
+                    variant={
+                      pendingDadAges.includes(range)
+                        ? 'default'
+                        : 'outline'
+                    }
+                    className="cursor-pointer rounded-md"
+                    onClick={() => togglePendingDadAge(range)}
+                  >
+                    {range}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-4 flex gap-3">
+              <Button
+                className="flex-1"
+                onClick={applyDadsFilters}
+              >
+                Apply Filters
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={clearDadsFilters}
+              >
+                Clear All
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+    </div>
+
+    <div className="space-y-4">
+      <QueryState
+        query={{
+          isPending: dadsLoading,
+          isError: dadsError,
+          error: dadsQueryError,
+          data: profiles,
+          refetch: refetchDads,
+          isRefetching: isRefetchingDads,
+        }}
+        noun="dads"
+        skeleton={<DadListSkeleton />}
+        // A 429 already surfaces as a toast; keep the list on screen rather
+        // than replacing it with an error panel.
+        ignoreError={(e) => axios.isAxiosError(e) && e.response?.status === 429}
+        empty={emptyState}
+      >
+        {(items) => (
+          <ul role="list" className="grid gap-4 sm:grid-cols-2">
+            {items.map((profile) => (
+              <li key={profile.id}>
+                <DadCard {...profile} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </QueryState>
+
+      <InfiniteSentinel
+        hasNextPage={hasNextDads}
+        isFetchingNextPage={isFetchingNextDads}
+        fetchNextPage={fetchNextDads}
+        noun="dads"
+      />
+    </div>
+
+    <div className="pt-4 flex justify-center">
+      <Button
+        variant="outline"
+        className="w-full sm:w-auto sm:px-8 rounded-md"
+        onClick={handleRefreshDads}
+      >
+        <RefreshCw className="w-4 h-4 mr-2" />
+        Refresh
+      </Button>
+    </div>
+  </div>
+      </PageContainer>
+    </>
+  )
+}
+
+export default DadsPage

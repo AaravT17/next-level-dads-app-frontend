@@ -1,3 +1,5 @@
+import type { InterestItem, IcebreakerEntry } from './users'
+
 // ── Conversation types ─────────────────────────────────────────────────────
 
 export interface AuthorInfo {
@@ -90,11 +92,28 @@ export interface Community {
   id: string
   name: string
   description: string | null
+  image_url: string | null
   member_count: number
   created_by: string | null
   created_at: string
   is_member: boolean
   role: CommunityRole
+  /**
+   * Conversations with activity since you last opened this community.
+   *
+   * Only populated for communities you belong to; discover and the community
+   * detail page return 0. Saturates server-side, so a large number means "at
+   * least this many" — the badge renders 99+ past the cap.
+   */
+  new_activity_count: number
+}
+
+export interface CommunityInviteRequest {
+  recipient_ids: string[]
+}
+
+export interface CommunityInviteResponse {
+  invited_count: number
 }
 
 export interface DiscoverCommunitiesFilters {
@@ -115,8 +134,10 @@ export interface CommunityMemberResponse {
   province: string
   about: string
   avatar_url: string | null
-  interests: string[]
-  children: string[]
+  interests: InterestItem[]
+  children_age_ranges: string[]
+  kid_count: number | null
+  icebreakers: IcebreakerEntry[] | null
   created_at: string
   joined_at: string
   role: 'admin' | 'member'

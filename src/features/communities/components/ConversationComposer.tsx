@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import axios from 'axios'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
@@ -8,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { CONVERSATION_PROMPT_TYPE_OPTIONS } from '@/config/constants'
 import { useCreateConversation } from '../hooks/useCreateConversation'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import type { ConversationCreate } from '@/types/communities'
@@ -35,14 +36,20 @@ export function ConversationComposer({
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({ defaultValues: { title: '', body: '', prompt_type: '' } })
+
+  // Held in the form rather than local state so reset() clears the chips along
+  // with the fields after a successful post.
+  const promptType = watch('prompt_type')
 
   const onSubmit = (values: FormValues) => {
     const payload: ConversationCreate = {
       title: values.title.trim(),
       body: values.body.trim(),
-      prompt_type: values.prompt_type.trim() || undefined,
+      prompt_type: values.prompt_type || undefined,
     }
     mutate(payload, {
       onSuccess: (conversation) => {
@@ -87,7 +94,7 @@ export function ConversationComposer({
               })}
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title.message}</p>
+              <p className="text-caption text-destructive">{errors.title.message}</p>
             )}
           </div>
 
@@ -103,21 +110,51 @@ export function ConversationComposer({
               })}
             />
             {errors.body && (
-              <p className="text-xs text-destructive">{errors.body.message}</p>
+              <p className="text-caption text-destructive">{errors.body.message}</p>
             )}
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="conv-type">
+          {/*
+            A fixed set of chips, not a text box.
+
+            The old field invited free text, so the chip on the card was only
+            as useful as the odds of two dads picking the same word. Five
+            options shown at once also read as optional in a way a dropdown
+            does not: nothing is selected until you choose, and choosing the
+            same one again clears it.
+
+            Real buttons rather than the clickable Badge used elsewhere in the
+            app, so the set is reachable by keyboard and announces its state.
+          */}
+          <fieldset className="space-y-1.5">
+            <legend className="text-label text-foreground">
               Type{' '}
               <span className="text-muted-foreground font-normal">(optional)</span>
-            </Label>
-            <Input
-              id="conv-type"
-              placeholder="e.g. question, story, tip..."
-              {...register('prompt_type', { maxLength: { value: 50, message: 'Max 50 characters' } })}
-            />
-          </div>
+            </legend>
+            <div className="flex flex-wrap gap-2 pt-0.5">
+              {CONVERSATION_PROMPT_TYPE_OPTIONS.map(({ value, label }) => {
+                const isSelected = promptType === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() =>
+                      setValue('prompt_type', isSelected ? '' : value)
+                    }
+                    className={cn(
+                      'rounded-md border px-2.5 py-1 text-caption transition-colors duration-fast',
+                      isSelected
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground',
+                    )}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </fieldset>
 
           <div className="flex gap-2 pt-1">
             {onCancel && (
@@ -128,7 +165,7 @@ export function ConversationComposer({
             <Button
               type="submit"
               disabled={isPending || isBanned}
-              className="flex-1 rounded-full"
+              className="flex-1 rounded-md"
             >
               {isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -138,10 +175,10 @@ export function ConversationComposer({
             </Button>
           </div>
           {notice && (
-            <p className="text-xs text-destructive text-center">{notice}</p>
+            <p className="text-caption text-destructive text-center">{notice}</p>
           )}
           {isError && !isBanned && !(axios.isAxiosError(error) && error.response?.status === 429) && (
-            <p className="text-xs text-destructive text-center">
+            <p className="text-caption text-destructive text-center">
               Failed to post. Please try again.
             </p>
           )}

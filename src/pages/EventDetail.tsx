@@ -1,12 +1,12 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { formatEventDate, formatEventTime, formatPrice, mailtoHref, telHref } from '@/utils/format'
 import { Card, CardContent } from '@/components/ui/card'
 import {
-  ArrowLeft,
   Calendar,
   Clock,
   MapPin,
@@ -14,11 +14,12 @@ import {
   User,
   Mail,
   Phone,
-  Loader2,
 } from 'lucide-react'
-import logo from '@/assets/logo.png'
-import BottomNav from '@/components/BottomNav'
-import { useToast } from '@/hooks/use-toast'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
+import { EmptyState } from '@/components/feedback/EmptyState'
+import { toastError } from '@/lib/toast'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Event } from '@/types/events'
@@ -30,34 +31,10 @@ async function fetchEvent(id: string): Promise<Event> {
   return res.data
 }
 
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-const formatTime = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
-const formatPrice = (price: string) => {
-  const numPrice = Number(price)
-  if (numPrice === 0) return 'Free'
-  return `$${numPrice.toFixed(2)}`
-}
-
 const EventDetail = () => {
   const { eventId } = useParams<{ eventId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
   const {
     data: event,
@@ -70,49 +47,40 @@ const EventDetail = () => {
     staleTime: 0, // Always fresh fetch
   })
 
-  // Update list caches when event is fetched
-  const updateEventInLists = (event: Event) => {
-    const { is_attending } = event
-
-    // Update in discover events - keep only if not attending
+  // Update list caches when event is fetched.
+  //
+  // Memoised so the effect below can depend on it honestly. Both deps are
+  // stable for the life of the route — the query client is a singleton and the
+  // id comes from the path — so this does not add a render to the effect.
+  const updateEventInLists = useCallback(
+    (event: Event) => {
+    // One namespace now: patch the row in place instead of removing it from
+    // whichever list the viewer was not looking at.
     queryClient.setQueriesData<InfiniteData<Event[]>>(
-      { queryKey: ['discover', 'events'] },
+      { queryKey: ['events'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            !is_attending
-              ? page.map((e) => (e.id === eventId ? { ...e, ...event } : e))
-              : page.filter((e) => e.id !== eventId),
+            page.map((e) => (e.id === eventId ? { ...e, ...event } : e)),
           ),
         }
       },
     )
 
-    // Update in groups events - keep only if attending
-    queryClient.setQueriesData<InfiniteData<Event[]>>(
-      { queryKey: ['groups', 'events'] },
-      (oldData) => {
-        if (!oldData) return oldData
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page) =>
-            is_attending
-              ? page.map((e) => (e.id === eventId ? { ...e, ...event } : e))
-              : page.filter((e) => e.id !== eventId),
-          ),
-        }
-      },
-    )
-  }
+    // The joined list genuinely changes membership, so let it refetch.
+    queryClient.invalidateQueries({ queryKey: ['events', 'joined'] })
+    },
+    [queryClient, eventId],
+  )
 
   // Update list caches when event is fetched
   useEffect(() => {
     if (event) {
       updateEventInLists(event)
     }
-  }, [event])
+  }, [event, updateEventInLists])
 
   const handleBack = () => {
     navigate(-1)
@@ -132,45 +100,30 @@ const EventDetail = () => {
       }
     })
 
-    // Update discover events - remove if now attending
+    // One namespace: patch in place so the card stays where the viewer
+    // found it and only its button changes.
     queryClient.setQueriesData<InfiniteData<Event[]>>(
-      { queryKey: ['discover', 'events'] },
+      { queryKey: ['events'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            isAttending
-              ? page.filter((e) => e.id !== eventId)
-              : page.map((e) =>
-                  e.id === eventId
-                    ? { ...e, is_attending: isAttending, attendee_count: e.attendee_count + countDelta }
-                    : e,
-                ),
+            page.map((e) =>
+              e.id === eventId
+                ? {
+                    ...e,
+                    is_attending: isAttending,
+                    attendee_count: e.attendee_count + countDelta,
+                  }
+                : e,
+            ),
           ),
         }
       },
     )
 
-    // Update groups events - remove if no longer attending
-    queryClient.setQueriesData<InfiniteData<Event[]>>(
-      { queryKey: ['groups', 'events'] },
-      (oldData) => {
-        if (!oldData) return oldData
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page) =>
-            !isAttending
-              ? page.filter((e) => e.id !== eventId)
-              : page.map((e) =>
-                  e.id === eventId
-                    ? { ...e, is_attending: isAttending, attendee_count: e.attendee_count + countDelta }
-                    : e,
-                ),
-          ),
-        }
-      },
-    )
+    queryClient.invalidateQueries({ queryKey: ['events', 'joined'] })
   }
 
   // POST /api/events/{id}/attendees - Register for event
@@ -181,23 +134,11 @@ const EventDetail = () => {
     },
     onError: (err: AxiosError) => {
       if (err.response?.status === 403) {
-        toast({
-          title: 'Paid Event',
-          description: 'This is a paid event. Please register through the event page.',
-          variant: 'destructive',
-        })
+        toastError('Paid Event', 'This is a paid event. Please register through the event page.')
       } else if (err.response?.status === 404) {
-        toast({
-          title: 'Not Found',
-          description: 'This event could not be found.',
-          variant: 'destructive',
-        })
+        toastError('Not Found', 'This event could not be found.')
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to register for event. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to register for event. Please try again.')
       }
     },
   })
@@ -208,12 +149,8 @@ const EventDetail = () => {
     onSuccess: () => {
       updateAttendanceInCache(false)
     },
-    onError: (err: AxiosError) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to unregister from event. Please try again.',
-        variant: 'destructive',
-      })
+    onError: () => {
+      toastError('Failed to unregister from event. Please try again.')
     },
   })
 
@@ -235,80 +172,37 @@ const EventDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">
-            Event Details
-          </h1>
-        </div>
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Event Details" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <CenteredSpinner label="Loading event" />
+        </PageContainer>
+      </>
     )
   }
 
   if (isError || !event) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
+      <>
+        <AppBar title="Event Not Found" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <EmptyState
+            title="This event could not be found."
+            description="It may have been removed or the link may be out of date."
+            action={{ label: 'Go back', onClick: handleBack }}
           />
-          <h1 className="text-2xl font-heading font-semibold text-foreground">
-            Event Not Found
-          </h1>
-        </div>
-        <div className="max-w-md mx-auto px-6 py-6 text-center">
-          <p className="text-muted-foreground mb-4">
-            This event could not be found.
-          </p>
-          <Button
-            onClick={handleBack}
-            variant="outline"
-            className="rounded-full"
-          >
-            Go Back
-          </Button>
-        </div>
-        <BottomNav />
-      </div>
+        </PageContainer>
+      </>
     )
   }
 
   const hostDisplay = getHostDisplay()
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
-        <h1 className="text-2xl font-heading font-semibold text-foreground">
-          Event Details
-        </h1>
-      </div>
+    <>
+      <AppBar title="Event Details" leading="back" onBack={handleBack} />
 
-      <div className="max-w-md mx-auto px-6 py-6">
-        <Button
-          variant="ghost"
-          onClick={handleBack}
-          className="mb-4 -ml-2 text-muted-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-
+      <PageContainer className="animate-fade-in">
         <Card className="overflow-hidden shadow-lg">
           <CardContent className="p-6 space-y-6">
             {/* Header */}
@@ -335,9 +229,9 @@ const EventDetail = () => {
               <div className="flex items-center gap-3">
                 <Calendar className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Date</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {formatDate(event.starts_at)}
+                  <p className="text-caption text-muted-foreground">Date</p>
+                  <p className="text-body font-medium text-foreground">
+                    {formatEventDate(event.starts_at)}
                   </p>
                 </div>
               </div>
@@ -345,10 +239,10 @@ const EventDetail = () => {
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Time</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {formatTime(event.starts_at)}
-                    {event.ends_at && ` - ${formatTime(event.ends_at)}`}
+                  <p className="text-caption text-muted-foreground">Time</p>
+                  <p className="text-body font-medium text-foreground">
+                    {formatEventTime(event.starts_at)}
+                    {event.ends_at && ` - ${formatEventTime(event.ends_at)}`}
                   </p>
                 </div>
               </div>
@@ -356,8 +250,8 @@ const EventDetail = () => {
               <div className="flex items-center gap-3">
                 <MapPin className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Location</p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-caption text-muted-foreground">Location</p>
+                  <p className="text-body font-medium text-foreground">
                     {event.location}
                   </p>
                 </div>
@@ -367,16 +261,16 @@ const EventDetail = () => {
                 <div className="flex items-start gap-3">
                   <User className="w-5 h-5 text-primary mt-0.5" />
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Hosted by</p>
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-caption text-muted-foreground">Hosted by</p>
+                    <p className="text-body font-medium text-foreground">
                       {hostDisplay}
                     </p>
                     {(event.contact_email || event.contact_phone) && (
                       <div className="pt-1 space-y-1">
                         {event.contact_email && (
                           <a
-                            href={`mailto:${event.contact_email}`}
-                            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                            href={mailtoHref(event.contact_email)}
+                            className="flex items-center gap-2 text-caption text-muted-foreground hover:text-primary transition-colors"
                           >
                             <Mail className="w-3.5 h-3.5" />
                             {event.contact_email}
@@ -384,8 +278,8 @@ const EventDetail = () => {
                         )}
                         {event.contact_phone && (
                           <a
-                            href={`tel:${event.contact_phone}`}
-                            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                            href={telHref(event.contact_phone)}
+                            className="flex items-center gap-2 text-caption text-muted-foreground hover:text-primary transition-colors"
                           >
                             <Phone className="w-3.5 h-3.5" />
                             {event.contact_phone}
@@ -404,7 +298,7 @@ const EventDetail = () => {
                 <p className="text-2xl font-bold text-foreground">
                   {formatPrice(event.price_cad)}
                 </p>
-                <p className="text-xs text-muted-foreground">Entry fee</p>
+                <p className="text-caption text-muted-foreground">Entry fee</p>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Users className="w-5 h-5" />
@@ -415,7 +309,7 @@ const EventDetail = () => {
             {/* Registration Status */}
             {event.is_attending && (
               <div className="bg-primary/10 rounded-lg p-4 text-center">
-                <p className="text-sm font-medium text-primary">
+                <p className="text-body font-medium text-primary">
                   You're registered for this event
                 </p>
               </div>
@@ -423,7 +317,7 @@ const EventDetail = () => {
 
             {/* Action Button */}
             <Button
-              className="w-full rounded-full"
+              className="w-full rounded-md"
               variant={event.is_attending ? 'outline' : 'default'}
               size="lg"
               onClick={event.is_attending ? handleUnregister : handleRegister}
@@ -432,10 +326,8 @@ const EventDetail = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-
-      <BottomNav />
-    </div>
+      </PageContainer>
+    </>
   )
 }
 

@@ -1,9 +1,8 @@
-// TODO: Add date separators between messages (e.g. "Today", "Yesterday", specific dates) so users can orient
-// themselves in longer conversations — currently messages only show time, no date context.
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   useQuery,
+  useInfiniteQuery,
   useMutation,
   useQueryClient,
   InfiniteData,
@@ -22,20 +21,23 @@ import {
   Reply,
   X,
 } from 'lucide-react'
-import { groupsTab, chatManage } from '@/lib/routes'
+import { chatManage, ROUTES } from '@/lib/routes'
+import { UserAvatar } from '@/components/media/UserAvatar'
+import { SharedCommunityCard } from '@/features/communities/components/SharedCommunityCard'
+import { formatClock } from '@/utils/format'
 import {
   type ChatType,
   type Message,
   type Chat,
   type MessagesCursor,
 } from '@/types/chats'
-import { useAuth } from '@/contexts/AuthContext'
-import { useChat } from '@/contexts/ChatContext'
+import { useAuth } from '@/contexts/useAuth'
+import { useChat } from '@/contexts/useChat'
+import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, MESSAGES_PAGE_LIMIT } from '@/config/constants'
 import {
-  insertMessage,
   updateChatPreviewOnNewMessage,
   insertChatPreview,
   updateChatPreviewOnEdit,
@@ -51,30 +53,31 @@ import { toast } from 'sonner'
 
 const Chat = () => {
   const { user } = useAuth()
-  const { registerMessageHandler, registerReconnectHandler, sendWsMessage } =
-    useChat()
+  const {
+    registerMessageHandler,
+    registerReconnectHandler,
+    sendWsMessage,
+    wsReady,
+  } = useChat()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  // Same gate the community composers use, so a ban reads the same way
+  // wherever the user runs into it.
+  const { isBanned, notice: banNotice, handlePostError } = useModerationBan()
   const { id } = useParams<{ id: string }>()
-  const [searchParams] = useSearchParams()
 
   const chatId = id || ''
-  const from = searchParams.get('from')
 
   // ============================================
   // Local state
   // ============================================
 
-  const [messages, setMessages] = useState<Message[]>([])
   const [messageInput, setMessageInput] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [replyingTo, setReplyingTo] = useState<Message | null>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [olderCursor, setOlderCursor] = useState<MessagesCursor | null>(null)
-  const [isFetchingOlder, setIsFetchingOlder] = useState(false)
-  const [hasMoreOlder, setHasMoreOlder] = useState(true)
 
   // ============================================
   // Refs
@@ -86,13 +89,13 @@ const Chat = () => {
   const isAtBottomRef = useRef<boolean>(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollBehaviorRef = useRef<'smooth' | 'instant' | null>('instant')
-  const hasInitialisedRef = useRef(false)
+  const prevScrollHeightRef = useRef<number>(0)
 
   // ============================================
   // Chat metadata query
   // ============================================
 
-  const { data: chatData } = useQuery({
+  const { data: chatData, error: chatError } = useQuery({
     queryKey: ['chats', chatId],
     queryFn: async () => {
       const res = await axiosPrivate.get<Chat>(`/api/chats/${chatId}`, {
@@ -109,6 +112,15 @@ const Chat = () => {
     staleTime: Infinity,
   })
 
+  // Redirect to chat list on 403/404 (removed from chat or chat deleted)
+  useEffect(() => {
+    if (!chatError) return
+    if (axios.isAxiosError(chatError) && (chatError.response?.status === 403 || chatError.response?.status === 404 || chatError.response?.status === 422)) {
+      toast.error('This chat is no longer available.')
+      navigate(ROUTES.CHATS, { replace: true })
+    }
+  }, [chatError, navigate])
+
   const chatType: ChatType = chatData?.type ?? 'dm'
   const isGroupChat = chatType === 'group'
   const displayName = isGroupChat
@@ -119,46 +131,93 @@ const Chat = () => {
     : (chatData?.other_user?.avatar_url ?? null)
 
   // ============================================
-  // Messages initial load
+  // Messages query (infinite, oldest-first pages)
   // ============================================
 
-  const { data: initialMessages, isSuccess: messagesLoaded } = useQuery({
+  const {
+    data: messagesData,
+    fetchPreviousPage,
+    hasPreviousPage,
+    isFetchingPreviousPage,
+  } = useInfiniteQuery({
     queryKey: ['messages', chatId],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams()
+      if (pageParam) {
+        params.append('cursor_id', pageParam.cursor_id)
+        params.append('cursor_created_at', pageParam.cursor_created_at)
+      }
       const res = await axiosPrivate.get<Message[]>(
         `/api/chats/${chatId}/messages`,
-        {
-          timeout: TIMEOUT_LENGTH_MS,
-        },
+        { params, timeout: TIMEOUT_LENGTH_MS },
       )
-      // Reverse once on arrival: API returns newest-first, cache stores oldest-first
+      // API returns newest-first, cache stores oldest-first
       return [...res.data].reverse()
     },
-    enabled: !!chatId,
+    initialPageParam: undefined as MessagesCursor | undefined,
+    enabled: !!chatId && wsReady,
     staleTime: Infinity,
+    getPreviousPageParam: (firstPage) => {
+      if (firstPage.length < MESSAGES_PAGE_LIMIT) return undefined
+      const oldest = firstPage[0]
+      return { cursor_id: oldest.id, cursor_created_at: oldest.created_at }
+    },
+    getNextPageParam: () => undefined,
   })
 
-  // On initial load: cache is already oldest-first, init state directly
-  useEffect(() => {
-    if (!messagesLoaded || !initialMessages) return
-    if (hasInitialisedRef.current) return
-    hasInitialisedRef.current = true
-    setMessages(initialMessages)
+  const messages = useMemo(
+    () => messagesData?.pages.flat() ?? [],
+    [messagesData],
+  )
 
-    // Cursor points to the oldest loaded message (index 0 in oldest-first)
-    if (initialMessages.length > 0) {
-      const oldest = initialMessages[0]
-      setOlderCursor({
-        cursor_id: oldest.id,
-        cursor_created_at: oldest.created_at,
-      })
-      setHasMoreOlder(true)
-    } else {
-      setHasMoreOlder(false)
+  type DateItem = { type: 'date'; label: string }
+  type MessageItem = { type: 'message'; message: Message }
+
+  const messagesWithDates = useMemo(() => {
+    const items: (DateItem | MessageItem)[] = []
+    let prevDate = ''
+
+    for (const msg of messages) {
+      const msgDate = new Date(msg.created_at)
+      const dateKey = msgDate.toLocaleDateString()
+
+      if (dateKey !== prevDate) {
+        const today = new Date()
+        const yesterday = new Date()
+        yesterday.setDate(today.getDate() - 1)
+
+        let label: string
+        if (dateKey === today.toLocaleDateString()) {
+          label = 'Today'
+        } else if (dateKey === yesterday.toLocaleDateString()) {
+          label = 'Yesterday'
+        } else {
+          label = msgDate.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        }
+
+        items.push({ type: 'date', label })
+        prevDate = dateKey
+      }
+
+      items.push({ type: 'message', message: msg })
     }
-  }, [messagesLoaded, initialMessages])
 
-  // Scroll to bottom after initial load, reconnect, or sending a message
+    return items
+  }, [messages])
+
+  // The route component is retained while its :id parameter changes, so each
+  // chat needs its own initial-scroll intent rather than relying on mount.
+  // A layout effect makes this available before the messages effect, including
+  // when the next chat's messages are already in the query cache.
+  useLayoutEffect(() => {
+    scrollBehaviorRef.current = 'instant'
+  }, [chatId])
+
+  // Scroll to bottom after initial load, reconnect, or sending a message.
   useEffect(() => {
     if (scrollBehaviorRef.current && messages.length > 0) {
       const behavior = scrollBehaviorRef.current
@@ -166,6 +225,18 @@ const Chat = () => {
       messagesEndRef.current?.scrollIntoView({ behavior })
     }
   }, [messages])
+
+  // Restore scroll position after prepending older pages
+  useLayoutEffect(() => {
+    if (prevScrollHeightRef.current > 0 && !isFetchingPreviousPage) {
+      const container = scrollContainerRef.current
+      if (container) {
+        container.scrollTop =
+          container.scrollHeight - prevScrollHeightRef.current
+      }
+      prevScrollHeightRef.current = 0
+    }
+  }, [isFetchingPreviousPage])
 
   // ============================================
   // Bottom sentinel — isAtBottom tracking
@@ -188,66 +259,22 @@ const Chat = () => {
   // Top sentinel — load older messages
   // ============================================
 
-  const fetchOlderMessages = useCallback(async () => {
-    if (!olderCursor || isFetchingOlder || !hasMoreOlder) return
-
-    setIsFetchingOlder(true)
-    const container = scrollContainerRef.current
-    const prevScrollHeight = container?.scrollHeight ?? 0
-
-    try {
-      const params = new URLSearchParams({
-        cursor_id: olderCursor.cursor_id,
-        cursor_created_at: olderCursor.cursor_created_at,
-      })
-      const res = await axiosPrivate.get<Message[]>(
-        `/api/chats/${chatId}/messages`,
-        {
-          params,
-          timeout: TIMEOUT_LENGTH_MS,
-        },
-      )
-      const older = res.data
-
-      if (older.length === 0) {
-        setHasMoreOlder(false)
-        return
-      }
-
-      const reversed = [...older].reverse()
-      setMessages((prev) => [...reversed, ...prev])
-
-      // Update cursor to the oldest message in this page
-      const oldestInPage = older[older.length - 1]
-      setOlderCursor({
-        cursor_id: oldestInPage.id,
-        cursor_created_at: oldestInPage.created_at,
-      })
-
-      // Preserve scroll position
-      requestAnimationFrame(() => {
-        if (container) {
-          container.scrollTop = container.scrollHeight - prevScrollHeight
-        }
-      })
-
-      if (older.length < MESSAGES_PAGE_LIMIT) setHasMoreOlder(false)
-    } catch {
-      // silently fail — user can scroll up again to retry
-    } finally {
-      setIsFetchingOlder(false)
-    }
-  }, [chatId, olderCursor, isFetchingOlder, hasMoreOlder])
+  const handleFetchOlder = useCallback(() => {
+    if (!hasPreviousPage || isFetchingPreviousPage) return
+    prevScrollHeightRef.current =
+      scrollContainerRef.current?.scrollHeight ?? 0
+    fetchPreviousPage()
+  }, [hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage])
 
   useEffect(() => {
     const sentinel = topSentinelRef.current
     if (!sentinel) return
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) fetchOlderMessages()
+      if (entries[0].isIntersecting) handleFetchOlder()
     })
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [fetchOlderMessages])
+  }, [handleFetchOlder])
 
   // ============================================
   // WS handler
@@ -262,23 +289,9 @@ const Chat = () => {
     if (!chatId) return
     const unregister = registerMessageHandler(chatId, (event) => {
       if (event.type === 'messages:new') {
-        const msg = event.payload
-        setMessages((prev) => insertMessage(prev, msg))
         if (!isAtBottomRef.current) {
           setUnreadCount((n) => n + 1)
         }
-      } else if (event.type === 'messages:edit') {
-        const { id, content, edited_at } = event.payload
-        setMessages((prev) =>
-          prev.map((m) => (m.id === id ? { ...m, content, edited_at } : m)),
-        )
-      } else if (event.type === 'messages:delete') {
-        const { id } = event.payload
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === id ? { ...m, is_deleted: true, content: '' } : m,
-          ),
-        )
       }
     })
     return unregister
@@ -286,7 +299,6 @@ const Chat = () => {
 
   useEffect(() => {
     return registerReconnectHandler(() => {
-      hasInitialisedRef.current = false
       scrollBehaviorRef.current = 'instant'
     })
   }, [registerReconnectHandler])
@@ -316,7 +328,6 @@ const Chat = () => {
       setMessageInput('')
       setReplyingTo(null)
       sendWsMessage({ type: 'chats:read', chat_id: chatId })
-      // Update all three: chat preview, messages cache, local state
       const found = updateChatPreviewOnNewMessage(queryClient, newMsg)
       if (!found) {
         axiosPrivate
@@ -328,13 +339,14 @@ const Chat = () => {
       }
       updateMessagesCache(queryClient, chatId, newMsg)
       scrollBehaviorRef.current = 'smooth'
-      setMessages((prev) => insertMessage(prev, newMsg))
     },
     onError: (error) => {
       if (axios.isAxiosError(error) && error.response?.status === 429) {
         toast.error('Too many messages sent. Please slow down.')
       } else {
-        toast.error('Failed to send message.')
+        // Recognises the ban 403 and flips the composer to disabled, which
+        // covers a ban that lands mid-session.
+        handlePostError(error, 'message')
       }
     },
   })
@@ -374,13 +386,6 @@ const Chat = () => {
       }
       updateChatPreviewOnEdit(queryClient, patch)
       patchMessageInCache(queryClient, chatId, patch)
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === patch.id
-            ? { ...m, content: patch.content, edited_at: patch.edited_at }
-            : m,
-        ),
-      )
     },
     onError: () => {
       toast.error('Failed to edit message.')
@@ -407,11 +412,6 @@ const Chat = () => {
       }
       updateChatPreviewOnDelete(queryClient, patch)
       patchMessageInCache(queryClient, chatId, patch)
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId ? { ...m, is_deleted: true, content: '' } : m,
-        ),
-      )
     },
     onError: () => {
       toast.error('Failed to delete message.')
@@ -429,11 +429,7 @@ const Chat = () => {
   }
 
   const handleBack = () => {
-    if (from === 'groups') {
-      navigate(groupsTab('communities'))
-    } else {
-      navigate(-1)
-    }
+    navigate(ROUTES.CHATS, { replace: true })
   }
 
   const cancelEdit = () => {
@@ -457,64 +453,52 @@ const Chat = () => {
     setUnreadCount(0)
   }
 
-  const formatTime = (isoString: string) => {
-    const date = new Date(isoString)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-
   // ============================================
   // Render
   // ============================================
 
   return (
-    <div className="h-dvh bg-background flex flex-col">
-      {/* Header */}
-      <div className="bg-card border-b border-border shrink-0">
-        <div className="max-w-md mx-auto px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleBack}
-              className="text-muted-foreground"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
+    // `relative` so the scroll-to-latest button anchors to this pane rather
+    // than to the shell, whose bottom edge sits below the primary nav.
+    <div className="relative flex-1 min-h-0 bg-background flex flex-col">
+      {/* Thread header — secondary bar below the unified AppBar */}
+      <div className="bg-card border-b border-border shrink-0 px-4 py-4 flex items-center gap-4">
+        <button
+          onClick={handleBack}
+          aria-label="Back to conversations"
+          className="text-muted-foreground lg:hidden shrink-0"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
 
-            {isGroupChat ? (
-              <button
-                onClick={() => navigate(chatManage(chatId))}
-                className="flex items-center gap-4 flex-1 text-left"
-              >
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                  <Users className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <div className="flex-1">
-                  <h1 className="text-lg font-heading font-semibold text-foreground">
-                    {displayName}
-                  </h1>
-                  <p className="text-xs text-muted-foreground">Group</p>
-                </div>
-              </button>
-            ) : (
-              <>
-                <Avatar className="w-10 h-10 shrink-0">
-                  <AvatarImage src={avatarUrl ?? undefined} />
-                  <AvatarFallback>{displayName[0] ?? '?'}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h1 className="text-lg font-heading font-semibold text-foreground">
-                    {displayName}
-                  </h1>
-                </div>
-              </>
-            )}
+        {isGroupChat ? (
+          <button
+            onClick={() => navigate(chatManage(chatId))}
+            className="flex items-center gap-4 flex-1 text-left min-w-0"
+          >
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-heading font-heading font-semibold text-foreground truncate">
+                {displayName}
+              </h2>
+            </div>
+          </button>
+        ) : (
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <UserAvatar name={displayName} src={avatarUrl} size="sm" />
+            <h2 className="text-heading font-heading font-semibold text-foreground truncate">
+              {displayName}
+            </h2>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Messages */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 max-w-md mx-auto w-full px-6 py-4 overflow-y-auto relative"
+        className="flex-1 min-h-0 w-full px-6 py-4 overflow-y-auto relative"
       >
         {/* Top sentinel — triggers loading older messages */}
         <div
@@ -522,14 +506,27 @@ const Chat = () => {
           className="h-1"
         />
 
-        {isFetchingOlder && (
+        {isFetchingPreviousPage && (
           <div className="flex justify-center py-3">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           </div>
         )}
 
         <div className="space-y-4">
-          {messages.map((msg) => {
+          {messagesWithDates.map((item, idx) => {
+            if (item.type === 'date') {
+              return (
+                <div key={`date-${idx}`} className="flex items-center gap-3 py-2">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-caption text-muted-foreground font-medium shrink-0">
+                    {item.label}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              )
+            }
+
+            const msg = item.message
             const isSelf = msg.sender_id === user?.id
             const isEditing = editingId === msg.id
 
@@ -554,7 +551,7 @@ const Chat = () => {
                   className={`flex flex-col ${isSelf ? 'items-end' : ''} max-w-xs`}
                 >
                   {!isSelf && isGroupChat && (
-                    <span className="text-xs text-muted-foreground mb-1">
+                    <span className="text-caption text-muted-foreground mb-1">
                       {msg.sender_name ?? 'Unknown'}
                     </span>
                   )}
@@ -565,15 +562,15 @@ const Chat = () => {
                         {msg.reply_to && !msg.is_deleted && (
                           <div className="mb-1.5 pl-2 border-l-2 border-muted-foreground/40">
                             {msg.reply_to.is_deleted ? (
-                              <p className="text-xs text-muted-foreground italic">
+                              <p className="text-caption text-muted-foreground italic">
                                 Message deleted
                               </p>
                             ) : (
                               <>
-                                <p className="text-xs font-medium text-muted-foreground truncate">
+                                <p className="text-caption font-medium text-muted-foreground truncate">
                                   {msg.reply_to.sender_name ?? 'Unknown'}
                                 </p>
-                                <p className="text-xs text-muted-foreground truncate">
+                                <p className="text-caption text-muted-foreground truncate">
                                   {msg.reply_to.content}
                                 </p>
                               </>
@@ -635,15 +632,15 @@ const Chat = () => {
                         {msg.reply_to && !msg.is_deleted && (
                           <div className="mb-1.5 pl-2 border-l-2 border-muted-foreground/40">
                             {msg.reply_to.is_deleted ? (
-                              <p className="text-xs text-muted-foreground italic">
+                              <p className="text-caption text-muted-foreground italic">
                                 Message deleted
                               </p>
                             ) : (
                               <>
-                                <p className="text-xs font-medium text-muted-foreground truncate">
+                                <p className="text-caption font-medium text-muted-foreground truncate">
                                   {msg.reply_to.sender_name ?? 'Unknown'}
                                 </p>
-                                <p className="text-xs text-muted-foreground truncate">
+                                <p className="text-caption text-muted-foreground truncate">
                                   {msg.reply_to.content}
                                 </p>
                               </>
@@ -655,6 +652,13 @@ const Chat = () => {
                         >
                           {msg.is_deleted ? 'Message deleted' : msg.content}
                         </p>
+
+                        {/* Community invite. Withheld on delete both here and
+                            server-side, so a deleted invite stops linking on
+                            the deleter's screen too, not just after a refetch. */}
+                        {msg.shared_community && !msg.is_deleted && (
+                          <SharedCommunityCard community={msg.shared_community} />
+                        )}
                       </div>
 
                       {/* Hover actions */}
@@ -664,7 +668,7 @@ const Chat = () => {
                         >
                           <button
                             onClick={() => setReplyingTo(msg)}
-                            className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                            className="p-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                           >
                             <Reply className="w-3 h-3" />
                           </button>
@@ -675,13 +679,13 @@ const Chat = () => {
                                   setEditingId(msg.id)
                                   setEditContent(msg.content)
                                 }}
-                                className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                                className="p-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                               >
                                 <Pencil className="w-3 h-3" />
                               </button>
                               <button
                                 onClick={() => deleteMessage.mutate(msg.id)}
-                                className="p-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                                className="p-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
@@ -692,8 +696,8 @@ const Chat = () => {
                     </div>
                   )}
 
-                  <span className="text-xs text-muted-foreground mt-1">
-                    {formatTime(msg.created_at)}
+                  <span className="text-caption text-muted-foreground mt-1">
+                    {formatClock(msg.created_at)}
                     {msg.edited_at && !msg.is_deleted && (
                       <span className="ml-1 opacity-60">edited</span>
                     )}
@@ -714,14 +718,14 @@ const Chat = () => {
 
       {/* Down arrow + unread badge */}
       {!isAtBottom && (
-        <div className="absolute bottom-24 right-6 max-w-md">
+        <div className="absolute bottom-24 right-6">
           <button
             onClick={handleScrollToBottom}
-            className="relative bg-card border border-border rounded-full p-2 shadow-md text-muted-foreground hover:text-foreground"
+            className="relative bg-card border border-border rounded-md p-2 shadow-md text-muted-foreground hover:text-foreground"
           >
             <ChevronDown className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-semibold rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-caption font-semibold rounded-full w-4 h-4 flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -732,12 +736,12 @@ const Chat = () => {
       {/* Input */}
       <div className="bg-card border-t border-border shrink-0">
         {replyingTo && (
-          <div className="max-w-md mx-auto px-6 pt-3 flex items-start gap-2">
+          <div className="px-6 pt-3 flex items-start gap-2">
             <div className="flex-1 pl-2 border-l-2 border-primary min-w-0">
-              <p className="text-xs font-medium text-primary">
+              <p className="text-caption font-medium text-primary">
                 Replying to {replyingTo.sender_name}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-caption text-muted-foreground truncate">
                 {replyingTo.is_deleted ? 'Message deleted' : replyingTo.content}
               </p>
             </div>
@@ -749,10 +753,10 @@ const Chat = () => {
             </button>
           </div>
         )}
-        <div className="max-w-md mx-auto px-6 py-4">
+        <div className="px-6 py-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Type a message..."
+              placeholder={isBanned ? 'Messaging is suspended' : 'Type a message...'}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyDown={(e) => {
@@ -761,13 +765,14 @@ const Chat = () => {
                   handleSend()
                 }
               }}
-              className="rounded-full"
+              disabled={isBanned}
+              className="rounded-md"
             />
             <Button
               size="icon"
               onClick={handleSend}
-              disabled={sendMessage.isPending || !messageInput.trim()}
-              className="rounded-full shrink-0 bg-gradient-gold"
+              disabled={isBanned || sendMessage.isPending || !messageInput.trim()}
+              className="rounded-md shrink-0 bg-gradient-gold"
             >
               {sendMessage.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -776,6 +781,9 @@ const Chat = () => {
               )}
             </Button>
           </div>
+          {banNotice && (
+            <p className="text-caption text-destructive mt-2">{banNotice}</p>
+          )}
         </div>
       </div>
     </div>

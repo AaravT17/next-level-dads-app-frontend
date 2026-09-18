@@ -19,18 +19,18 @@ export function CommunityCard({ community }: CommunityCardProps) {
     >
       <CardContent className="p-6 space-y-3">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-lg font-heading font-semibold text-foreground leading-snug">
+          <h3 className="text-subhead font-heading font-semibold text-foreground leading-snug">
             {community.name}
           </h3>
           {community.role && (
-            <Badge variant="soft" className="shrink-0 text-xs mt-0.5">
+            <Badge variant="soft" className="shrink-0 text-caption mt-0.5">
               {community.role}
             </Badge>
           )}
         </div>
 
         {community.description && (
-          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+          <p className="text-body text-muted-foreground leading-relaxed line-clamp-3">
             {community.description}
           </p>
         )}

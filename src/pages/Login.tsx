@@ -4,18 +4,18 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Eye, EyeOff } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
 import axiosPublic from '@/api/axiosPublic'
 import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
-import { useAuth } from '../contexts/AuthContext'
-import validator from 'validator'
-import { useToast } from '@/components/ui/use-toast'
+import { useAuth } from '../contexts/useAuth'
+import { isValidEmail } from '@/utils/auth'
+import { toastError, toastSuccess } from '@/lib/toast'
+import { getErrorMessage, isHttpStatus } from '@/utils/errors'
 
 const Login = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -27,19 +27,11 @@ const Login = () => {
     if (isLoading) return
     const trimmedEmail = email.trim()
     if (!trimmedEmail || !password) {
-      toast({
-        title: 'Missing fields',
-        description: 'Please fill in all fields.',
-        variant: 'destructive',
-      })
+      toastError('Missing fields', 'Please fill in all fields.')
       return
     }
-    if (!validator.isEmail(trimmedEmail)) {
-      toast({
-        title: 'Invalid email address',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      })
+    if (!isValidEmail(trimmedEmail)) {
+      toastError('Invalid email address', 'Please enter a valid email address.')
       return
     }
     setIsLoading(true)
@@ -67,8 +59,14 @@ const Login = () => {
           province: userRes.data.province,
           about: userRes.data.about,
           avatarUrl: userRes.data.avatar_url,
-          interests: userRes.data.interests,
-          children_age_ranges: userRes.data.children,
+          interests: userRes.data.interests ?? [],
+          children_age_ranges: userRes.data.children_age_ranges ?? [],
+          kid_count: userRes.data.kid_count ?? null,
+          goals: userRes.data.goals ?? null,
+          primary_goal: userRes.data.primary_goal ?? null,
+          connection_styles: userRes.data.connection_styles ?? null,
+          match_priorities: userRes.data.match_priorities ?? null,
+          icebreakers: userRes.data.icebreakers ?? null,
           isAdmin: userRes.data.is_admin ?? false,
           preferences: {
             marketing_emails_opt_in: userRes.data.preferences?.marketing_emails_opt_in ?? false,
@@ -77,29 +75,27 @@ const Login = () => {
             terms: userRes.data.legal_acceptances?.terms ?? false,
             privacy_policy: userRes.data.legal_acceptances?.privacy_policy ?? false,
           },
+          notificationState: {
+            lastReadAt: userRes.data.notification_state?.last_read_at ?? null,
+            lastClearedAt: userRes.data.notification_state?.last_cleared_at ?? null,
+          },
         },
         accessToken,
       })
-      toast({
-        title: 'Login successful',
-        description: 'Welcome back!',
-      })
-      navigate(ROUTES.DISCOVER)
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+      toastSuccess('Login successful', 'Welcome back!')
+      navigate(ROUTES.HOME_AFTER_AUTH)
+    } catch (err) {
+      if (isHttpStatus(err, 404)) {
         // user exists but profile not set up — commit token so SetupRoute allows access
         setAuth({ user: null, accessToken })
         navigate(ROUTES.SETUP)
         return
       }
       setAccessToken(null)
-      toast({
-        title: 'Login failed',
-        description:
-          err.response?.data?.detail ||
-          'An error occurred while logging in. Please try again.',
-        variant: 'destructive',
-      })
+      toastError(
+        'Login failed',
+        getErrorMessage(err, 'An error occurred while logging in. Please try again.'),
+      )
     } finally {
       setIsLoading(false)
     }
@@ -108,15 +104,10 @@ const Login = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="w-48 h-auto"
-          />
+          <AppLogo className="w-48 h-auto" />
         </div>
 
         <Card className="shadow-md">
@@ -132,7 +123,7 @@ const Login = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="email"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Email
                 </label>
@@ -142,14 +133,14 @@ const Login = () => {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-full"
+                  className="rounded-md"
                 />
               </div>
 
               <div className="space-y-2">
                 <label
                   htmlFor="password"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Password
                 </label>
@@ -160,7 +151,7 @@ const Login = () => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -190,21 +181,19 @@ const Login = () => {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full rounded-full font-semibold text-base shadow-md"
-                style={{ backgroundColor: '#D8A24A' }}
+                className="w-full rounded-md font-semibold text-base shadow-md"
                 disabled={isLoading}
               >
                 Login
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-body text-muted-foreground">
               Don't have an account?{' '}
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.REGISTER)}
-                className="font-semibold hover:underline"
-                style={{ color: '#D8A24A' }}
+                className="font-semibold text-primary hover:underline"
                 disabled={isLoading}
               >
                 Register

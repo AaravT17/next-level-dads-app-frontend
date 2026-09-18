@@ -1,12 +1,18 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MessageCircle, Heart, Users, Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { conversationDetail } from '@/lib/routes'
+import { communityDetail, conversationDetail } from '@/lib/routes'
+import { conversationPromptTypeLabel } from '@/config/constants'
 import type { Conversation } from '@/types/communities'
 import { PendingReportGate } from './PendingReportGate'
 
 interface ConversationCardProps {
   conversation: Conversation
+  /**
+   * Shown as an eyebrow above the title. Only the cross-community feed passes
+   * this — inside a community the source is already obvious from the page.
+   */
+  communityName?: string
 }
 
 function timeAgo(iso: string): string {
@@ -20,7 +26,7 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-export function ConversationCard({ conversation }: ConversationCardProps) {
+export function ConversationCard({ conversation, communityName }: ConversationCardProps) {
   const navigate = useNavigate()
 
   return (
@@ -31,6 +37,17 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
       }
     >
       <CardContent className="p-4 space-y-2">
+        {communityName && (
+          <Link
+            to={communityDetail(conversation.community_id)}
+            // The whole card opens the post, so the link has to claim its own click.
+            onClick={(e) => e.stopPropagation()}
+            className="inline-block text-overline uppercase text-primary hover:underline"
+          >
+            {communityName}
+          </Link>
+        )}
+
         {conversation.has_pending_report && !conversation.is_deleted ? (
           <PendingReportGate compact revealable={false}>
             <span />
@@ -55,16 +72,16 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
 
         <div className="flex items-center justify-between gap-2">
           {conversation.author && (
-            <p className="text-xs text-muted-foreground">{conversation.author.name}</p>
+            <p className="text-caption text-muted-foreground">{conversation.author.name}</p>
           )}
           {!conversation.is_deleted && conversation.prompt_type && (
-            <span className="text-xs text-muted-foreground/70 bg-muted px-2.5 py-1 rounded-full ml-auto">
-              {conversation.prompt_type}
+            <span className="text-caption text-muted-foreground/70 bg-muted px-2.5 py-1 rounded-md ml-auto">
+              {conversationPromptTypeLabel(conversation.prompt_type)}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground border-t border-border pt-2 mt-1">
+        <div className="flex items-center gap-4 text-caption text-muted-foreground border-t border-border pt-2 mt-1">
           <span className="flex items-center gap-1">
             <MessageCircle className="w-3.5 h-3.5" />
             {conversation.reply_count}

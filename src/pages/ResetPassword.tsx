@@ -4,16 +4,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Eye, EyeOff, XCircle } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
-import { useToast } from '@/components/ui/use-toast'
+import { getErrorMessage } from '@/utils/errors'
+import { toastError, toastSuccess } from '@/lib/toast'
 import { MIN_PASSWORD_LENGTH } from '@/config/constants'
-import { supabase } from '@/lib/supabase'
+import { supabaseAuth } from '@/lib/supabase'
 import { isStrongPassword } from '@/utils/auth'
 
 const ResetPassword = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showNewPassword, setShowNewPassword] = useState(false)
@@ -57,7 +57,7 @@ const ResetPassword = () => {
       }
 
       // Establish Supabase session with recovery tokens
-      const { error: sessionError } = await supabase.auth.setSession({
+      const { error: sessionError } = await supabaseAuth.setSession({
         access_token,
         refresh_token,
       })
@@ -77,54 +77,37 @@ const ResetPassword = () => {
     e.preventDefault()
     if (isLoading) return
     if (!newPassword || !confirmPassword) {
-      toast({
-        title: 'Missing fields',
-        description: 'Please fill in all fields.',
-        variant: 'destructive',
-      })
+      toastError('Missing fields', 'Please fill in all fields.')
       return
     }
     if (newPassword !== confirmPassword) {
-      toast({
-        title: 'Passwords do not match',
-        description: 'Please make sure your passwords match.',
-        variant: 'destructive',
-      })
+      toastError('Passwords do not match', 'Please make sure your passwords match.')
       return
     }
     if (!isStrongPassword(newPassword)) {
-      toast({
-        title: 'Weak password',
-        description: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long and include uppercase letters, lowercase letters, numbers, and special characters.`,
-        variant: 'destructive',
-      })
+      toastError('Weak password', `Password must be at least ${MIN_PASSWORD_LENGTH} characters long and include uppercase letters, lowercase letters, numbers, and special characters.`)
       return
     }
     setIsLoading(true)
     try {
-      let res: any = await supabase.auth.updateUser({
+      const updated = await supabaseAuth.updateUser({
         password: newPassword,
       })
-      if (res.error) {
-        throw res.error
+      if (updated.error) {
+        throw updated.error
       }
-      res = await supabase.auth.signOut()
-      if (res.error) {
-        throw res.error
+      const signedOut = await supabaseAuth.signOut()
+      if (signedOut.error) {
+        throw signedOut.error
       }
       window.history.replaceState({}, document.title, ROUTES.RESET_PASSWORD) // clear query params from URL
-      toast({
-        title: 'Password reset successful',
-        description: 'Your password has been reset.',
-      })
+      toastSuccess('Password reset successful', 'Your password has been reset.')
       navigate(ROUTES.LOGIN)
-    } catch (err: any) {
-      toast({
-        title: 'Password reset failed',
-        description:
-          err.message || 'An error occurred while resetting your password.',
-        variant: 'destructive',
-      })
+    } catch (err) {
+      toastError(
+        'Password reset failed',
+        getErrorMessage(err, 'An error occurred while resetting your password.'),
+      )
     } finally {
       setIsLoading(false)
     }
@@ -133,15 +116,10 @@ const ResetPassword = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="w-48 h-auto"
-          />
+          <AppLogo className="w-48 h-auto" />
         </div>
 
         <Card className="shadow-md">
@@ -155,18 +133,16 @@ const ResetPassword = () => {
                 <p className="text-center text-muted-foreground">{linkError}</p>
                 <Button
                   size="lg"
-                  className="w-full rounded-full font-semibold text-base shadow-md"
-                  style={{ backgroundColor: '#D8A24A' }}
+                  className="w-full rounded-md font-semibold text-base shadow-md"
                   onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
                 >
                   Request New Link
                 </Button>
-                <p className="text-center text-sm text-muted-foreground">
+                <p className="text-center text-body text-muted-foreground">
                   <button
                     type="button"
                     onClick={() => navigate(ROUTES.LOGIN)}
-                    className="font-semibold hover:underline"
-                    style={{ color: '#D8A24A' }}
+                    className="font-semibold text-primary hover:underline"
                   >
                     Back to Login
                   </button>
@@ -185,7 +161,7 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="newPassword"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   New Password
                 </label>
@@ -196,7 +172,7 @@ const ResetPassword = () => {
                     placeholder="Enter your new password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -215,7 +191,7 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="confirmPassword"
-                  className="text-sm font-medium text-foreground"
+                  className="text-label font-medium text-foreground"
                 >
                   Confirm Password
                 </label>
@@ -226,7 +202,7 @@ const ResetPassword = () => {
                     placeholder="Confirm your new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-full pr-10"
+                    className="rounded-md pr-10"
                   />
                   <button
                     type="button"
@@ -245,20 +221,18 @@ const ResetPassword = () => {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full rounded-full font-semibold text-base shadow-md"
-                style={{ backgroundColor: '#D8A24A' }}
+                className="w-full rounded-md font-semibold text-base shadow-md"
                 disabled={isLoading || !sessionReady}
               >
                 {sessionReady ? 'Reset Password' : 'Loading...'}
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-body text-muted-foreground">
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.LOGIN)}
-                className="font-semibold hover:underline"
-                style={{ color: '#D8A24A' }}
+                className="font-semibold text-primary hover:underline"
                 disabled={isLoading}
               >
                 Back to Login

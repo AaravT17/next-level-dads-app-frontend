@@ -20,7 +20,57 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-unused-vars": "off",
+      // Was "off". Stripping per-page shells during the UI rework leaves
+      // orphaned imports behind; this catches them without failing the build.
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+
+      // --- UI rework guard rails ---------------------------------------
+      // Design tokens live in src/index.css. Inline hex bypasses them and is
+      // how ~50 stray colours accumulated before the rework. Use the Tailwind
+      // token classes (bg-primary, text-foreground, ...) instead.
+      // The sweep is done; colours live in src/index.css.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "JSXAttribute[name.name='style'] Property > Literal[value=/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/]",
+          message:
+            "Inline hex colour in a style prop. Use a design token class instead (see src/index.css).",
+        },
+        // A Tailwind arbitrary value is the other way a raw colour gets in, and
+        // the style-prop selector above never saw it. Covers plain strings and
+        // template literals anywhere inside className, so cn(...) and
+        // conditional class expressions are caught too.
+        {
+          selector:
+            "JSXAttribute[name.name='className'] Literal[value=/\\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\]/]",
+          message:
+            "Arbitrary hex colour in a Tailwind class. Use a design token class instead (see src/index.css).",
+        },
+        {
+          selector:
+            "JSXAttribute[name.name='className'] TemplateElement[value.raw=/\\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\]/]",
+          message:
+            "Arbitrary hex colour in a Tailwind class. Use a design token class instead (see src/index.css).",
+        },
+      ],
+      // Sonner is the single toast system. The shadcn stack is being removed.
+      // The shadcn toast stack is gone; sonner is the only toast system.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/hooks/use-toast",
+              message: "Use toastError/toastSuccess/toastInfo from @/lib/toast instead.",
+            },
+            {
+              name: "@/components/ui/use-toast",
+              message: "Use toastError/toastSuccess/toastInfo from @/lib/toast instead.",
+            },
+          ],
+        },
+      ],
     },
   },
 );

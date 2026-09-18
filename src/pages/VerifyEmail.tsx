@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
 
 type VerificationState = 'loading' | 'success' | 'error'
@@ -77,15 +77,10 @@ const VerifyEmail = () => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: '#EFE8DC' }}
     >
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex justify-center">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="w-48 h-auto"
-          />
+          <AppLogo className="w-48 h-auto" />
         </div>
 
         <Card className="shadow-md">
@@ -112,14 +107,13 @@ const VerifyEmail = () => {
                   Your email has been successfully verified. You can now log in
                   to your account.
                 </p>
-                <p className="text-center text-sm text-muted-foreground">
+                <p className="text-center text-body text-muted-foreground">
                   Redirecting to login in {countdown} second
                   {countdown !== 1 ? 's' : ''}...
                 </p>
                 <Button
                   size="lg"
-                  className="w-full rounded-full font-semibold text-base shadow-md"
-                  style={{ backgroundColor: '#D8A24A' }}
+                  className="w-full rounded-md font-semibold text-base shadow-md"
                   onClick={handleManualRedirect}
                 >
                   Go to Login
@@ -134,13 +128,13 @@ const VerifyEmail = () => {
                   Verification Failed
                 </h1>
                 <p className="text-center text-muted-foreground">{errorMessage}</p>
-                <p className="text-center text-sm text-muted-foreground">
+                <p className="text-center text-body text-muted-foreground">
                   Redirecting to register in {countdown} second
                   {countdown !== 1 ? 's' : ''}...
                 </p>
                 <Button
                   size="lg"
-                  className="w-full rounded-full font-semibold text-base shadow-md bg-destructive hover:bg-destructive/90"
+                  className="w-full rounded-md font-semibold text-base shadow-md bg-destructive hover:bg-destructive/90"
                   onClick={handleManualRedirect}
                 >
                   Go to Register

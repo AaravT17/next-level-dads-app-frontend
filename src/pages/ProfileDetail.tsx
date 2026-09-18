@@ -1,19 +1,23 @@
-import { useEffect } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ReportUserButton } from '@/features/moderation/components/ReportUserButton'
+import { ConnectRequestDialog } from '@/features/connections/components/ConnectRequestDialog'
+import { feedKeys } from '@/features/feed/hooks/feedKeys'
+import { staysInList } from '@/features/connections/lib/listMembership'
 import { useQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
-import BottomNav from '@/components/BottomNav'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { CenteredSpinner } from '@/components/feedback/Spinner'
+import { ErrorState } from '@/components/feedback/ErrorState'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { MapPin, Calendar, ArrowLeft, Loader2 } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { Baby, MapPin } from 'lucide-react'
 import { getStageDisplayLabel } from '@/utils/users'
+import { initials } from '@/utils/format'
 import { chat } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
-import { useToast } from '@/hooks/use-toast'
-import { TIMEOUT_LENGTH_MS } from '@/config/constants'
+import { toastError } from '@/lib/toast'
+import { TIMEOUT_LENGTH_MS, INTEREST_DISPLAY_MAP, ICEBREAKER_PROMPTS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
 import type { Chat } from '@/types/chats'
 
@@ -26,32 +30,38 @@ async function fetchProfile(id: string): Promise<Profile> {
 
 const ProfileDetail = () => {
   const navigate = useNavigate()
-  const location = useLocation()
   const { id } = useParams<{ id: string }>()
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
-  // Derive context from route path
-  const isFromDiscover = location.pathname.startsWith('/discover/dads')
-
-  // Update profile in all list caches
-  const updateProfileInLists = (profile: Profile) => {
+  // Update profile in all list caches.
+  //
+  // Memoised so the effect below can depend on it honestly. Both deps are
+  // stable for the life of the route — the query client is a singleton and the
+  // id comes from the path — so this does not add a render to the effect.
+  const updateProfileInLists = useCallback((profile: Profile) => {
     const { connection_status } = profile
 
-    // Update in discover profiles - keep only if null or pending_outgoing
+    // Browse list: any connection state at all takes the row out, since the
+    // grid is only dads you have not acted on.
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
-      { queryKey: ['discover', 'profiles'] },
+      { queryKey: ['dads'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            connection_status === null || connection_status === 'pending_outgoing'
+            staysInList('dads', connection_status)
               ? page.map((p) => (p.id === id ? { ...p, ...profile } : p))
               : page.filter((p) => p.id !== id),
           ),
         }
       },
+    )
+
+    // Feed suggestions keep every row and refresh it in place.
+    queryClient.setQueryData<Profile[]>(feedKeys.suggestedDads, (oldData) =>
+      oldData?.map((p) => (p.id === id ? { ...p, ...profile } : p)),
     )
 
     // Update in connections list - keep only if connected
@@ -62,7 +72,7 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            connection_status === 'connected'
+            staysInList('connections', connection_status)
               ? page.map((p) => (p.id === id ? { ...p, ...profile } : p))
               : page.filter((p) => p.id !== id),
           ),
@@ -78,14 +88,14 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            connection_status === 'pending_incoming'
+            staysInList('requests', connection_status)
               ? page.map((p) => (p.id === id ? { ...p, ...profile } : p))
               : page.filter((p) => p.id !== id),
           ),
         }
       },
     )
-  }
+  }, [queryClient, id])
 
   const {
     data: profile,
@@ -103,15 +113,7 @@ const ProfileDetail = () => {
     if (profile) {
       updateProfileInLists(profile)
     }
-  }, [profile])
-
-  const initials = profile
-    ? profile.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-    : ''
+  }, [profile, updateProfileInLists])
 
   const handleBack = () => {
     navigate(-1)
@@ -125,15 +127,17 @@ const ProfileDetail = () => {
       return { ...oldData, connection_status: newStatus }
     })
 
-    // Update in discover profiles - keep only if null or pending_outgoing
+    // Browse list: the grid only holds dads you have not acted on, so any
+    // status at all takes the row out. Matches DadCard's 'dads' context —
+    // going back to /dads after connecting here must not show him again.
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
-      { queryKey: ['discover', 'profiles'] },
+      { queryKey: ['dads'] },
       (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            newStatus === null || newStatus === 'pending_outgoing'
+            staysInList('dads', newStatus)
               ? page.map((profile) =>
                   profile.id === id
                     ? { ...profile, connection_status: newStatus }
@@ -145,6 +149,15 @@ const ProfileDetail = () => {
       },
     )
 
+    // Feed suggestions: never removed, only restyled. Reaching this screen
+    // from a suggestion and connecting has to leave the feed row intact, with
+    // its button caught up — the same rule DadCard's 'suggestion' context uses.
+    queryClient.setQueryData<Profile[]>(feedKeys.suggestedDads, (oldData) =>
+      oldData?.map((profile) =>
+        profile.id === id ? { ...profile, connection_status: newStatus } : profile,
+      ),
+    )
+
     // Update in connections list - update status, remove if not connected
     queryClient.setQueriesData<InfiniteData<Profile[]>>(
       { queryKey: ['connections', 'connected'] },
@@ -153,7 +166,7 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            newStatus === 'connected'
+            staysInList('connections', newStatus)
               ? page.map((profile) =>
                   profile.id === id
                     ? { ...profile, connection_status: newStatus }
@@ -173,7 +186,7 @@ const ProfileDetail = () => {
         return {
           ...oldData,
           pages: oldData.pages.map((page) =>
-            newStatus === 'pending_incoming'
+            staysInList('requests', newStatus)
               ? page.map((profile) =>
                   profile.id === id
                     ? { ...profile, connection_status: newStatus }
@@ -188,22 +201,31 @@ const ProfileDetail = () => {
 
   // POST /api/connections/{id} - Send connection request
   const sendConnectionRequest = useMutation({
-    mutationFn: () =>
+    mutationFn: (note: string | null) =>
       axiosPrivate.post<{ connection_status: ConnectionStatus }>(
         `/api/connections/${id}`,
+        // No body at all when there is no note, so the request stays identical
+        // to the one-tap connect on the browse grid.
+        note ? { note } : undefined,
       ),
     onSuccess: (res) => {
+      setIsNoteDialogOpen(false)
       updateStatusInCache(res.data.connection_status)
     },
-    onError: (err: AxiosError<{ connection_status: ConnectionStatus }>) => {
+    onError: (err: AxiosError<{ connection_status: ConnectionStatus; detail?: string }>) => {
       if (err.response?.status === 409 && err.response.data?.connection_status) {
+        setIsNoteDialogOpen(false)
         updateStatusInCache(err.response.data.connection_status)
+      } else if (err.response?.status === 400 || err.response?.status === 403) {
+        // The note was rejected (profanity, length, or an active ban). Keep the
+        // dialog open so the text is still there to edit.
+        toastError(
+          typeof err.response.data?.detail === 'string'
+            ? err.response.data.detail
+            : 'Your note could not be sent. Please revise it and try again.',
+        )
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to send connection request. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to send connection request. Please try again.')
       }
     },
   })
@@ -218,11 +240,7 @@ const ProfileDetail = () => {
       if (err.response?.status === 404) {
         updateStatusInCache(null)
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to accept connection. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to accept connection. Please try again.')
       }
     },
   })
@@ -258,16 +276,12 @@ const ProfileDetail = () => {
       }
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update connection. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to update connection. Please try again.')
     },
   })
 
   const handleConnect = () => {
-    sendConnectionRequest.mutate()
+    setIsNoteDialogOpen(true)
   }
 
   const handleCancelRequest = () => {
@@ -295,11 +309,7 @@ const ProfileDetail = () => {
       navigate(chat(data.id))
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to open chat. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to open chat. Please try again.')
     },
   })
 
@@ -328,14 +338,13 @@ const ProfileDetail = () => {
       return (
         <div className="flex gap-2">
           <Button
-            className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
+            className="flex-1 rounded-md font-semibold"
             onClick={handleChat}
           >
             Chat
           </Button>
           <Button
-            className="flex-1 rounded-full font-semibold"
+            className="flex-1 rounded-md font-semibold"
             variant="outline"
             disabled={isMutating}
             onClick={handleUnconnect}
@@ -350,15 +359,14 @@ const ProfileDetail = () => {
       return (
         <div className="flex gap-2">
           <Button
-            className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
+            className="flex-1 rounded-md font-semibold"
             disabled={isMutating}
             onClick={handleAccept}
           >
             Accept
           </Button>
           <Button
-            className="flex-1 rounded-full font-semibold"
+            className="flex-1 rounded-md font-semibold"
             variant="outline"
             disabled={isMutating}
             onClick={handleIgnore}
@@ -372,8 +380,7 @@ const ProfileDetail = () => {
     if (connection_status === 'pending_outgoing') {
       return (
         <Button
-          className="w-full rounded-full font-semibold"
-          style={{ backgroundColor: '#9ca3af' }}
+          className="w-full rounded-md font-semibold bg-muted text-muted-foreground hover:bg-muted"
           disabled={isMutating}
           onClick={handleCancelRequest}
         >
@@ -385,8 +392,7 @@ const ProfileDetail = () => {
     // connection_status === null
     return (
       <Button
-        className="w-full rounded-full font-semibold"
-        style={{ backgroundColor: '#D8A24A' }}
+        className="w-full rounded-md font-semibold"
         disabled={isMutating}
         onClick={handleConnect}
       >
@@ -397,204 +403,32 @@ const ProfileDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b border-border px-6 py-5 relative">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-          <div className="flex items-center justify-center h-full">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-heading font-semibold text-foreground">
-                Profile
-              </h1>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Profile" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <CenteredSpinner label="Loading profile" />
+        </PageContainer>
+      </>
     )
   }
 
   if (isError || !profile) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b border-border px-6 py-5 relative">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-          <div className="flex items-center justify-center h-full">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-heading font-semibold text-foreground">
-                Profile
-              </h1>
-            </div>
-          </div>
-        </div>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            Failed to load profile. Please try again.
-          </p>
-        </div>
-        <BottomNav />
-      </div>
+      <>
+        <AppBar title="Profile" leading="back" onBack={handleBack} />
+        <PageContainer>
+          <ErrorState noun="this profile" />
+        </PageContainer>
+      </>
     )
   }
 
   // Discover context: Card-based layout with Connect button (DadDetail style)
-  if (isFromDiscover) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b border-border px-6 py-5 relative">
-          <img
-            src={logo}
-            alt="Next Level Dads"
-            className="h-10 absolute top-4 left-3"
-          />
-
-          <div className="flex items-center justify-center h-full">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-2xl font-heading font-semibold text-foreground">
-                Profile
-              </h1>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-md mx-auto px-6 py-6">
-          <Card className="overflow-hidden shadow-md">
-            <CardContent className="p-6 space-y-4">
-              {/* Avatar and basic info */}
-              <div className="flex items-start gap-4">
-                {profile.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={profile.name}
-                    className="w-24 h-24 rounded-lg object-cover flex-shrink-0 aspect-square"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-semibold text-xl flex-shrink-0 aspect-square">
-                    {initials}
-                  </div>
-                )}
-
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-heading font-semibold text-foreground">
-                    {profile.name}, {profile.age ?? '—'}
-                  </h2>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>
-                      {profile.city}, {profile.province}
-                    </span>
-                  </div>
-                  {profile.children.length > 0 && (
-                    <Badge
-                      variant="soft"
-                      className="rounded-full mt-2"
-                    >
-                      {getStageDisplayLabel(profile.children[0])}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Bio */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground">About</h3>
-                <p className="text-foreground text-sm leading-relaxed">
-                  {profile.about}
-                </p>
-              </div>
-
-              {/* Interests */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground">
-                  Interests
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {profile.interests.map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant="outline"
-                      className="rounded-full"
-                      style={{ borderColor: '#D8A24A', color: '#D8A24A' }}
-                    >
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="mt-4">{renderButtons()}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <BottomNav />
-      </div>
-    )
-  }
-
-  // Default context: Full-width layout without Connect button (ProfileDetail style)
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="bg-card border-b border-border px-6 py-5 relative">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
+    <>
+      <AppBar title="Profile" leading="back" onBack={handleBack} />
 
-        <div className="flex items-center justify-center h-full">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              className="rounded-full"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-2xl font-heading font-semibold text-foreground">
-              Profile
-            </h1>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-6 py-8 space-y-6 animate-fade-in">
+      <PageContainer className="space-y-6 animate-fade-in">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="w-32 h-32 rounded-lg overflow-hidden border-4 border-primary/20">
             {profile.avatar_url ? (
@@ -605,7 +439,7 @@ const ProfileDetail = () => {
               />
             ) : (
               <div className="w-full h-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-2xl">
-                {initials}
+                {initials(profile?.name)}
               </div>
             )}
           </div>
@@ -620,50 +454,81 @@ const ProfileDetail = () => {
                 {profile.city}, {profile.province}
               </span>
             </div>
+            {profile.kid_count != null && profile.kid_count > 0 && (
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
+                <Baby className="w-4 h-4" />
+                <span>Dad of {profile.kid_count}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="bg-card rounded-lg p-6 space-y-4 shadow-md">
+        <div className="space-y-4">
           <div>
-            <h3 className="font-semibold text-foreground mb-2">About Me</h3>
+            <h3 className="font-semibold text-foreground mb-2">About</h3>
             <p className="text-muted-foreground leading-relaxed">
               {profile.about}
             </p>
           </div>
 
-          <div>
-            <h3 className="font-semibold text-foreground mb-2">
-              Children's Age
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.children.map((child) => (
-                <Badge
-                  key={child}
-                  variant="soft"
-                  className="rounded-full"
-                >
-                  <Calendar className="w-3 h-3 mr-1" />
-                  {getStageDisplayLabel(child)}
-                </Badge>
-              ))}
+          {profile.children_age_ranges.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Kids' stages</h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.children_age_ranges.map((stage) => (
+                  <span
+                    key={stage}
+                    className="rounded-md border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground"
+                  >
+                    {getStageDisplayLabel(stage)}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div>
-            <h3 className="font-semibold text-foreground mb-3">Interests</h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.interests.map((interest) => (
-                <Badge
-                  key={interest}
-                  variant="soft"
-                  className="rounded-full"
-                >
-                  {interest}
-                </Badge>
-              ))}
+          {profile.interests.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-foreground mb-3">Interests</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {profile.interests.map((interest) => {
+                  const display = INTEREST_DISPLAY_MAP[interest.slug]
+                  return (
+                    <div
+                      key={interest.id}
+                      className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-card p-4 text-center"
+                    >
+                      <span className="text-2xl">{display?.emoji ?? '✨'}</span>
+                      <span className="text-sm font-medium text-foreground">{display?.label ?? interest.slug}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
+
+        {profile.icebreakers && profile.icebreakers.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="font-semibold text-foreground">Get to know me</h3>
+            {profile.icebreakers.map((ib) => {
+              const prompt = ICEBREAKER_PROMPTS.find((p) => p.slug === ib.prompt_slug)
+              return (
+                <div
+                  key={ib.prompt_slug}
+                  className="rounded-xl border-2 border-primary/30 bg-card px-6 py-5 shadow-lg"
+                >
+                  <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                    {prompt?.text ?? ib.prompt_slug}
+                  </p>
+                  <p className="mt-3 text-base leading-relaxed text-foreground whitespace-pre-line">
+                    {ib.answer}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* Action buttons */}
         <div className="px-6">{renderButtons()}</div>
@@ -674,10 +539,18 @@ const ProfileDetail = () => {
             <ReportUserButton userId={id} userName={profile.name} />
           </div>
         )}
-      </div>
 
-      <BottomNav />
-    </div>
+        {profile && (
+          <ConnectRequestDialog
+            open={isNoteDialogOpen}
+            onOpenChange={setIsNoteDialogOpen}
+            recipientName={profile.name}
+            isSending={sendConnectionRequest.isPending}
+            onSend={(note) => sendConnectionRequest.mutate(note)}
+          />
+        )}
+      </PageContainer>
+    </>
   )
 }
 

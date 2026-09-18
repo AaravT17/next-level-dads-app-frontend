@@ -1,10 +1,15 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   useInfiniteQuery,
   useMutation,
 } from '@tanstack/react-query'
-import BottomNav from '@/components/BottomNav'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { QueryState } from '@/components/feedback/QueryState'
+import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
+import { EmptyState } from '@/components/feedback/EmptyState'
+import { ChatListSkeleton } from '@/components/feedback/skeletons/CardSkeletons'
+import { UserAvatar } from '@/components/media/UserAvatar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -16,20 +21,23 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Search, Users, Plus, Check, Loader2 } from 'lucide-react'
-import logo from '@/assets/logo.png'
 import { chat } from '@/lib/routes'
 import { toast } from 'sonner'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
+import { cn } from '@/lib/utils'
+import { formatChatListRelative } from '@/utils/format'
 import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT, CHATS_PAGE_LIMIT } from '@/config/constants'
 import { Chat, ChatsCursor } from '@/types/chats'
 import { ConnectionResponse, ConnectionsCursor } from '@/types/users'
+import { useChat } from '@/contexts/useChat'
 
 // ============================================
 // Chats
 // ============================================
 
 const Chats = () => {
+  const { wsReady, isChatMember } = useChat()
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [newChatSearch, setNewChatSearch] = useState('')
   const [debouncedNewChatSearch, setDebouncedNewChatSearch] = useState('')
@@ -40,6 +48,9 @@ const Chats = () => {
 
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  // With the two-pane desktop layout the list stays visible beside the thread,
+  // so the open conversation needs to be marked.
+  const { id: selectedChatId } = useParams<{ id: string }>()
   const nameParam = searchParams.get('name') ?? ''
 
   // Sync input with URL param on mount (e.g. back navigation)
@@ -92,10 +103,11 @@ const Chats = () => {
         params,
         timeout: TIMEOUT_LENGTH_MS,
       })
-      return res.data
+      return res.data.filter((c) => isChatMember(c.id))
     },
     initialPageParam: undefined as ChatsCursor | undefined,
-    staleTime: Infinity,
+    enabled: wsReady,
+    staleTime: 180_000,
     getNextPageParam: (lastPage) => {
       if (lastPage.length < CHATS_PAGE_LIMIT) return undefined
       const last = lastPage[lastPage.length - 1]
@@ -129,7 +141,7 @@ const Chats = () => {
         params,
         timeout: TIMEOUT_LENGTH_MS,
       })
-      return res.data
+      return res.data.filter((c) => isChatMember(c.id))
     },
     initialPageParam: undefined as ChatsCursor | undefined,
     enabled: !!nameParam,
@@ -151,20 +163,6 @@ const Chats = () => {
   const fetchNext = nameParam ? fetchNextSearch : fetchNextChats
   const hasNext = nameParam ? hasNextSearch : hasNextChats
   const isFetchingNext = nameParam ? isFetchingNextSearch : isFetchingNextChats
-
-  // Chat list sentinel
-  const chatSentinelRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const sentinel = chatSentinelRef.current
-    if (!sentinel) return
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasNext && !isFetchingNext) {
-        fetchNext()
-      }
-    })
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNext, isFetchingNext, fetchNext])
 
   // ============================================
   // Connections query (for new chat dialog)
@@ -287,36 +285,13 @@ const Chats = () => {
     return c.last_message.content
   }
 
-  const formatTime = (isoString: string) => {
-    const date = new Date(isoString)
-    const now = new Date()
-    const isToday = date.toDateString() === now.toDateString()
-    if (isToday) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
-  }
-
   // ============================================
   // Render
   // ============================================
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="relative bg-card border-b border-border px-6 py-5 flex items-center justify-center">
-        <img
-          src={logo}
-          alt="Next Level Dads"
-          className="h-10 absolute top-4 left-3"
-        />
-        <div className="text-center">
-          <h1 className="text-2xl font-heading font-semibold text-foreground">
-            Chats
-          </h1>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-6 py-6">
+    <>
+      <PageContainer restoreScroll={false}>
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
@@ -324,7 +299,7 @@ const Chats = () => {
               placeholder="Search conversations..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-10 rounded-full"
+              className="pl-10 rounded-md"
             />
           </div>
           <Dialog
@@ -352,7 +327,7 @@ const Chats = () => {
                     placeholder="Search connections..."
                     value={newChatSearch}
                     onChange={(e) => setNewChatSearch(e.target.value)}
-                    className="pl-9 rounded-full"
+                    className="pl-9 rounded-md"
                   />
                 </div>
 
@@ -364,7 +339,7 @@ const Chats = () => {
                         <div
                           key={id}
                           onClick={() => toggleConnectionSelection(id)}
-                          className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded-full text-sm cursor-pointer hover:bg-primary/20"
+                          className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded-md text-sm cursor-pointer hover:bg-primary/20"
                         >
                           <span>{connection.name.split(' ')[0]}</span>
                           <span className="text-muted-foreground">×</span>
@@ -379,7 +354,7 @@ const Chats = () => {
                     placeholder="Group name..."
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
-                    className="rounded-full"
+                    className="rounded-md"
                   />
                 )}
 
@@ -429,8 +404,7 @@ const Chats = () => {
                   <Button
                     onClick={handleCreateChat}
                     disabled={createChat.isPending}
-                    className="w-full rounded-full"
-                    style={{ backgroundColor: '#D8A24A' }}
+                    className="w-full rounded-md"
                   >
                     {createChat.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -446,89 +420,100 @@ const Chats = () => {
           </Dialog>
         </div>
 
-        {activeLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : activeError ? (
-          <div className="text-center py-12 px-6">
-            <p className="text-muted-foreground">Failed to load chats.</p>
-          </div>
-        ) : activeChats.length > 0 ? (
-          <>
-            <div className="divide-y divide-border">
-              {activeChats.map((c) => {
+        <QueryState
+          query={{
+            isPending: activeLoading,
+            isError: activeError,
+            error: null,
+            data: activeChats,
+            refetch: fetchNext,
+          }}
+          noun="chats"
+          skeleton={<ChatListSkeleton />}
+          empty={
+            <EmptyState
+              title={nameParam ? 'No conversations found' : 'No chats yet'}
+              description={
+                nameParam
+                  ? 'Try a different name.'
+                  : 'Start a conversation with one of your connections.'
+              }
+            />
+          }
+        >
+          {(items) => (
+            <ul role="list" className="divide-y divide-border">
+              {items.map((c) => {
                 const displayName = getChatDisplayName(c)
                 const avatarUrl = getChatAvatar(c)
                 const preview = getLastMessagePreview(c)
-                const time = c.last_message ? formatTime(c.last_message.created_at) : null
+                const time = formatChatListRelative(c.updated_at)
                 const hasUnread = c.last_read_at === null || c.updated_at > c.last_read_at
 
                 return (
-                  <div
-                    key={c.id}
-                    onClick={() => navigate(chat(c.id))}
-                    className="px-2 py-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
+                  <li key={c.id}>
+                    <Link
+                      to={chat(c.id)}
+                      aria-current={selectedChatId === c.id ? 'true' : undefined}
+                      className={cn(
+                        'flex items-center gap-4 pl-4 pr-2 py-4 transition-all duration-fast',
+                        selectedChatId === c.id
+                          ? 'bg-primary/20 ring-1 ring-primary/40 hover:scale-[1.05] hover:bg-primary/25 hover:shadow-[0_2px_8px_0_hsl(var(--foreground)/0.08)]'
+                          : hasUnread
+                          ? 'bg-muted/40 shadow-[inset_4px_0_0_hsl(var(--primary))] hover:scale-[1.05] hover:bg-muted/70 hover:shadow-[inset_4px_0_0_hsl(var(--primary)),0_2px_8px_0_hsl(var(--foreground)/0.08)]'
+                          : 'bg-muted/10 hover:scale-[1.05] hover:bg-muted/25 hover:shadow-sm',
+                      )}
+                    >
                       <div className="relative shrink-0">
                         {c.type === 'dm' ? (
-                          <Avatar className="w-14 h-14">
-                            <AvatarImage
-                              src={avatarUrl ?? undefined}
-                              alt={displayName}
-                            />
-                            <AvatarFallback>{displayName[0]}</AvatarFallback>
-                          </Avatar>
+                          <UserAvatar name={displayName} src={avatarUrl} size="md" />
                         ) : (
                           <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
-                            <Users className="w-6 h-6 text-muted-foreground" />
+                            <Users aria-hidden className="w-6 h-6 text-muted-foreground" />
                           </div>
                         )}
                         {hasUnread && (
-                          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary border-2 border-background" />
+                          <span className="sr-only">Unread messages.</span>
                         )}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className={`truncate ${hasUnread ? 'font-bold text-foreground' : 'font-medium text-foreground'}`}>
+                          <h2
+                            className={`truncate text-subhead ${hasUnread ? 'font-bold text-foreground' : 'font-medium text-foreground'}`}
+                          >
                             {displayName}
-                          </h3>
+                          </h2>
                           {time && (
-                            <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                            <span className="text-caption text-muted-foreground shrink-0 ml-2">
                               {time}
                             </span>
                           )}
                         </div>
-                        <p className={`text-sm truncate ${hasUnread ? 'text-foreground font-medium' : preview ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}>
+                        <p
+                          className={`text-body truncate ${hasUnread ? 'text-foreground font-medium' : preview ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}
+                        >
                           {preview || 'No messages yet'}
                         </p>
                       </div>
-                    </div>
-                  </div>
+                    </Link>
+                  </li>
                 )
               })}
-            </div>
-            <div ref={chatSentinelRef} className="h-1" />
-            {isFetchingNext && (
-              <div className="flex justify-center py-4">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="text-center py-12 px-6">
-            <p className="text-muted-foreground">
-              {nameParam ? 'No conversations found' : 'No chats yet'}
-            </p>
-          </div>
-        )}
-      </div>
+            </ul>
+          )}
+        </QueryState>
 
-      <BottomNav />
-    </div>
+        <InfiniteSentinel
+          hasNextPage={hasNext}
+          isFetchingNextPage={isFetchingNext}
+          fetchNextPage={fetchNext}
+          noun="chats"
+        />
+      </PageContainer>
+    </>
   )
 }
+
 
 export default Chats

@@ -1,4 +1,6 @@
-import { MapPin } from 'lucide-react'
+import { useState } from 'react'
+import { MapPin, MessageCircle, UserMinus, UserPlus, Check, X, Clock, Baby } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   useMutation,
@@ -7,21 +9,38 @@ import {
 } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import { Button } from './ui/button'
-import { Badge } from './ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
+import { cn } from '@/lib/utils'
 import { Card, CardContent } from './ui/card'
-import { getStageDisplayLabel } from '@/utils/users'
+import { ConnectionNote } from '@/features/connections/components/ConnectionNote'
+import { ConnectRequestDialog } from '@/features/connections/components/ConnectRequestDialog'
+import { feedKeys } from '@/features/feed/hooks/feedKeys'
+import {
+  staysInList,
+  type ListContext,
+} from '@/features/connections/lib/listMembership'
+import { initials } from '@/utils/format'
 import { profileDetail, chat } from '@/lib/routes'
-import { useToast } from '@/hooks/use-toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Profile, ConnectionStatus } from '@/types/users'
 import type { Chat } from '@/types/chats'
 
-type ListContext = 'discover' | 'connections' | 'requests'
-
 interface DadCardProps extends Profile {
   connection_id?: string
   connection_updated_at?: string
+  /** Message attached to a pending request; only requests carry one. */
+  note?: string | null
+  /** Clamp a long note — the Dads panel sits above the browse grid. */
+  clampNote?: boolean
+  /**
+   * Which list this card belongs to, when the URL does not say.
+   *
+   * The Dads screen shows incoming requests above the browse grid, so the
+   * pathname alone can no longer tell the two apart on that page.
+   */
+  listContext?: ListContext
 }
 
 const DadCard = ({
@@ -30,33 +49,35 @@ const DadCard = ({
   age,
   city,
   province,
-  children,
   about,
-  interests,
+  kid_count,
   avatar_url,
   connection_status,
+  note,
+  clampNote = false,
+  listContext: listContextProp,
 }: DadCardProps) => {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
 
-  // Determine which list context we're in based on route
+  /**
+   * Which list this card sits in.
+   *
+   * Unlike CommunityCard, this branching is real: a declined request should
+   * leave the requests list, while a browse result should stay put with its
+   * button changed. The three lists mean different things.
+   */
   const getListContext = (): ListContext => {
+    if (listContextProp) return listContextProp
     const { pathname } = location
-    if (pathname.startsWith('/discover')) return 'discover'
-    if (pathname.startsWith('/connections')) return 'connections'
-    if (pathname.startsWith('/requests')) return 'requests'
-    return 'discover' // fallback
+    if (pathname.startsWith('/you/connections')) return 'connections'
+    if (pathname.startsWith('/you/requests')) return 'requests'
+    return 'dads'
   }
 
   const listContext = getListContext()
-
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
 
   const handleCardClick = () => {
     navigate(profileDetail(id))
@@ -64,16 +85,20 @@ const DadCard = ({
 
   // Update connection status in current list's cache only (from card)
   const updateStatusInCache = (newStatus: ConnectionStatus) => {
-    if (listContext === 'discover') {
-      // Update in discover profiles - keep only if null or pending_outgoing
+    if (listContext === 'dads') {
+      // The grid holds dads you have not acted on yet, and the server now
+      // agrees: a sent request drops out of /api/users/ entirely. So acting on
+      // a card removes it, rather than leaving behind a waiting card the next
+      // refetch would delete anyway. The request is not lost with it — it
+      // lands in the sent-requests panel at the top of this same screen.
       queryClient.setQueriesData<InfiniteData<Profile[]>>(
-        { queryKey: ['discover', 'profiles'] },
+        { queryKey: ['dads'] },
         (oldData) => {
           if (!oldData) return oldData
           return {
             ...oldData,
             pages: oldData.pages.map((page) =>
-              newStatus === null || newStatus === 'pending_outgoing'
+              staysInList('dads', newStatus)
                 ? page.map((profile) =>
                     profile.id === id
                       ? { ...profile, connection_status: newStatus }
@@ -84,6 +109,22 @@ const DadCard = ({
           }
         },
       )
+    } else if (listContext === 'suggestion') {
+      // A dad suggested between feed posts stays exactly where he is, whatever
+      // you do to him. The grid can afford to close a gap because the reader is
+      // scanning it; the feed cannot, because the reader is reading it, and
+      // pulling a row out from under them shifts every post below mid-sentence.
+      // Only the button changes — Connect becomes Cancel request.
+      //
+      // This is also the cache the Home screen actually reads. Before the feed
+      // had a context of its own these cards fell through to the 'dads' branch
+      // above, which writes to a query Home never mounts, so connecting from a
+      // suggestion left the button saying Connect until the pool went stale.
+      queryClient.setQueryData<Profile[]>(feedKeys.suggestedDads, (oldData) =>
+        oldData?.map((profile) =>
+          profile.id === id ? { ...profile, connection_status: newStatus } : profile,
+        ),
+      )
     } else if (listContext === 'connections') {
       // Update in connections list - remove if not connected
       queryClient.setQueriesData<InfiniteData<Profile[]>>(
@@ -93,7 +134,29 @@ const DadCard = ({
           return {
             ...oldData,
             pages: oldData.pages.map((page) =>
-              newStatus === 'connected'
+              staysInList('connections', newStatus)
+                ? page.map((profile) =>
+                    profile.id === id
+                      ? { ...profile, connection_status: newStatus }
+                      : profile,
+                  )
+                : page.filter((profile) => profile.id !== id),
+            ),
+          }
+        },
+      )
+    } else if (listContext === 'sent') {
+      // Sent requests: keep only while still unanswered. Cancelling drops the
+      // status to null and the row leaves; an accept turns it into a
+      // connection, which does not belong in a list of open requests either.
+      queryClient.setQueriesData<InfiniteData<Profile[]>>(
+        { queryKey: ['connections', 'sent'] },
+        (oldData) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) =>
+              staysInList('sent', newStatus)
                 ? page.map((profile) =>
                     profile.id === id
                       ? { ...profile, connection_status: newStatus }
@@ -113,7 +176,7 @@ const DadCard = ({
           return {
             ...oldData,
             pages: oldData.pages.map((page) =>
-              newStatus === 'pending_incoming'
+              staysInList('requests', newStatus)
                 ? page.map((profile) =>
                     profile.id === id
                       ? { ...profile, connection_status: newStatus }
@@ -128,35 +191,56 @@ const DadCard = ({
 
     // Remove detail page cache so it fetches fresh on navigation
     queryClient.removeQueries({ queryKey: ['profile', id] })
+
+    // The sent-requests panel shares the Dads screen with the browse grid, so
+    // connecting from one has to be visible in the other. Invalidated rather
+    // than patched: the panel's rows are keyed on the connection row, and the
+    // POST only returns a status — there is no connection id to insert.
+    if (listContext !== 'sent') {
+      queryClient.invalidateQueries({ queryKey: ['connections', 'sent'] })
+    }
+
+    // The pending-requests badge in the nav reads this.
+    queryClient.invalidateQueries({ queryKey: ['user', 'stats'] })
   }
 
   // POST /api/connections/{id} - Send connection request
   const sendConnectionRequest = useMutation({
-    mutationFn: () =>
+    mutationFn: (note: string | null) =>
       axiosPrivate.post<{ connection_status: ConnectionStatus }>(
         `/api/connections/${id}`,
+        // Omit the body entirely when there is no note.
+        note ? { note } : undefined,
       ),
     onSuccess: (res) => {
+      setIsNoteDialogOpen(false)
       updateStatusInCache(res.data.connection_status)
+      if (listContext === 'dads') {
+        // On the grid the card leaves on success, so this is the only thing
+        // that says the request went. Everywhere else the button turning into
+        // "Cancel request" says it in place, and a toast would just repeat it.
+        toastSuccess(`Request sent to ${name}.`)
+      }
     },
-    onError: (err: AxiosError<{ connection_status: ConnectionStatus }>) => {
+    onError: (err: AxiosError<{ connection_status: ConnectionStatus; detail?: string }>) => {
       if (
         err.response?.status === 409 &&
         err.response.data?.connection_status
       ) {
+        setIsNoteDialogOpen(false)
         updateStatusInCache(err.response.data.connection_status)
       } else if (err.response?.status === 429) {
-        toast({
-          title: 'Error',
-          description: 'Connection request limit reached. Please try again later.',
-          variant: 'destructive',
-        })
+        toastError('Connection request limit reached. Please try again later.')
+      } else if (err.response?.status === 400 || err.response?.status === 403) {
+        // The note was rejected. Leave the dialog open so it can be edited
+        // rather than retyped.
+        toastError(
+          typeof err.response.data?.detail === 'string'
+            ? err.response.data.detail
+            : 'Your note could not be sent. Please revise it and try again.',
+        )
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to send connection request. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to send connection request. Please try again.')
       }
     },
   })
@@ -171,11 +255,7 @@ const DadCard = ({
       if (err.response?.status === 404) {
         updateStatusInCache(null)
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to accept connection. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to accept connection. Please try again.')
       }
     },
   })
@@ -211,16 +291,12 @@ const DadCard = ({
       }
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update connection. Please try again.',
-        variant: 'destructive',
-      })
+      toastError('Failed to update connection. Please try again.')
     },
   })
 
   const handleConnect = () => {
-    sendConnectionRequest.mutate()
+    setIsNoteDialogOpen(true)
   }
 
   const handleCancelRequest = () => {
@@ -249,17 +325,9 @@ const DadCard = ({
     },
     onError: (err: AxiosError) => {
       if (err.response?.status === 429) {
-        toast({
-          title: 'Error',
-          description: 'Too many chats created. Please slow down.',
-          variant: 'destructive',
-        })
+        toastError('Too many chats created. Please slow down.')
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to open chat. Please try again.',
-          variant: 'destructive',
-        })
+        toastError('Failed to open chat. Please try again.')
       }
     },
   })
@@ -278,101 +346,135 @@ const DadCard = ({
     removeConnection.isPending ||
     createChat.isPending
 
+  /**
+   * Round icon actions, pinned to the card's top-right.
+   *
+   * These stay circular against the otherwise squared-off system on purpose:
+   * a circle here is a *shape*, not a rounded rectangle pretending to be one,
+   * which is the same reason avatars and count badges kept their radius.
+   *
+   * Icon-only, so every one carries a label and a tooltip — the meaning of
+   * "unconnect" or "ignore" is not obvious from a glyph alone.
+   */
+  const IconAction = ({
+    label,
+    icon: Icon,
+    onClick,
+    variant = 'default',
+    disabled,
+  }: {
+    label: string
+    icon: LucideIcon
+    onClick: () => void
+    variant?: 'default' | 'outline' | 'muted'
+    disabled?: boolean
+  }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          size="icon"
+          variant={variant === 'outline' ? 'outline' : 'default'}
+          aria-label={label}
+          disabled={disabled}
+          className={cn(
+            // 44px — the standard touch-target size, and enough presence for
+            // Connect to read as the primary action on the browse screen.
+            'h-11 w-11 rounded-full shrink-0',
+            variant === 'muted' && 'bg-muted text-muted-foreground hover:bg-muted',
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClick()
+          }}
+        >
+          <Icon className="w-5 h-5" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
+
   const renderButtons = () => {
     if (connection_status === 'blocked') return null
 
     if (connection_status === 'connected') {
       return (
-        <div className="flex gap-2">
-          <Button
-            className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleChat()
-            }}
-          >
-            Chat
-          </Button>
-          <Button
-            className="flex-1 rounded-full font-semibold"
+        <div className="flex shrink-0 items-center gap-2">
+          <IconAction label="Message" icon={MessageCircle} onClick={handleChat} />
+          <IconAction
+            label="Remove connection"
+            icon={UserMinus}
             variant="outline"
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleUnconnect()
-            }}
-          >
-            Unconnect
-          </Button>
+            onClick={handleUnconnect}
+          />
         </div>
       )
     }
 
     if (connection_status === 'pending_incoming') {
       return (
-        <div className="flex gap-2">
-          <Button
-            className="flex-1 rounded-full font-semibold"
-            style={{ backgroundColor: '#D8A24A' }}
+        <div className="flex shrink-0 items-center gap-2">
+          <IconAction
+            label="Accept request"
+            icon={Check}
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleAccept()
-            }}
-          >
-            Accept
-          </Button>
-          <Button
-            className="flex-1 rounded-full font-semibold"
+            onClick={handleAccept}
+          />
+          <IconAction
+            label="Ignore request"
+            icon={X}
             variant="outline"
             disabled={isLoading}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleIgnore()
-            }}
-          >
-            Ignore
-          </Button>
+            onClick={handleIgnore}
+          />
         </div>
       )
     }
 
     if (connection_status === 'pending_outgoing') {
       return (
-        <Button
-          className="w-full rounded-full font-semibold"
-          style={{ backgroundColor: '#9ca3af' }}
-          disabled={isLoading}
-          onClick={(e) => {
-            e.stopPropagation()
-            handleCancelRequest()
-          }}
-        >
-          Requested
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <IconAction
+            label="Cancel request"
+            icon={Clock}
+            variant="muted"
+            disabled={isLoading}
+            onClick={handleCancelRequest}
+          />
+        </div>
       )
     }
 
     // connection_status === null
     return (
-      <Button
-        className="w-full rounded-full font-semibold"
-        style={{ backgroundColor: '#D8A24A' }}
-        disabled={isLoading}
-        onClick={(e) => {
-          e.stopPropagation()
-          handleConnect()
-        }}
-      >
-        Connect
-      </Button>
+      <div className="flex shrink-0 items-center gap-2">
+        <IconAction
+          label={`Connect with ${name}`}
+          icon={UserPlus}
+          disabled={isLoading}
+          onClick={handleConnect}
+        />
+      </div>
     )
   }
 
   return (
+    <>
     <Card
-      className="overflow-hidden shadow-md cursor-pointer"
+      className={cn(
+        'overflow-hidden shadow-md cursor-pointer',
+        // The browse grid pins a height because grid equalises rows against
+        // each other, not the whole grid, so varying bio lengths leave every
+        // row a different height from the last.
+        listContext === 'dads' && 'h-[174px]',
+        // A rail is one row, so stretching to the tallest card is enough and
+        // needs no magic number -- the same thing ResumeRail's cards do. A
+        // fixed height would be worse here: these cards are roughly half the
+        // width of a browse-grid card, so a long city name wraps and the
+        // clamped bio would be clipped by the pinned height.
+        listContext === 'suggestion' && 'h-full',
+      )}
       onClick={handleCardClick}
     >
       <CardContent className="p-4 space-y-3">
@@ -385,52 +487,53 @@ const DadCard = ({
             />
           ) : (
             <div className="w-20 h-20 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-semibold text-lg flex-shrink-0 aspect-square">
-              {initials}
+              {initials(name)}
             </div>
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-heading font-semibold text-foreground">
+            <h3 className="text-subhead font-heading font-semibold text-foreground truncate">
               {name}, {age ?? '—'}
             </h3>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+            <div className="flex items-center gap-1 text-caption text-muted-foreground mt-0.5">
               <MapPin className="w-3 h-3" />
               <span>
                 {city}, {province}
               </span>
             </div>
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {children.map((child) => (
-                <Badge
-                  key={child}
-                  variant="soft"
-                  className="rounded-full text-xs"
-                >
-                  {getStageDisplayLabel(child)}
-                </Badge>
-              ))}
-            </div>
+            {kid_count != null && kid_count > 0 && (
+              <div className="flex items-center gap-1 text-caption text-muted-foreground mt-0.5">
+                <Baby className="w-3 h-3" />
+                <span>
+                  {kid_count} {kid_count === 1 ? 'kid' : 'kids'}
+                </span>
+              </div>
+            )}
           </div>
+
+          {renderButtons()}
         </div>
 
-        <p className="text-foreground text-sm leading-relaxed">{about}</p>
+        <p className="text-foreground text-body leading-relaxed line-clamp-2">{about}</p>
 
-        <div className="flex flex-wrap gap-1.5">
-          {interests.map((interest) => (
-            <Badge
-              key={interest}
-              variant="outline"
-              className="rounded-full text-xs"
-              style={{ borderColor: '#D8A24A', color: '#D8A24A' }}
-            >
-              {interest}
-            </Badge>
-          ))}
-        </div>
-
-        {renderButtons()}
+        {note && <ConnectionNote note={note} clamp={clampNote} />}
       </CardContent>
     </Card>
+
+    {/*
+      A sibling of Card, never a child. React synthetic events bubble through
+      the React tree rather than the DOM tree, so a dialog rendered inside
+      Card still fires Card's click-to-navigate handler even though Radix
+      portals it to <body> — closing the dialog would open the profile.
+    */}
+    <ConnectRequestDialog
+      open={isNoteDialogOpen}
+      onOpenChange={setIsNoteDialogOpen}
+      recipientName={name}
+      isSending={sendConnectionRequest.isPending}
+      onSend={(note) => sendConnectionRequest.mutate(note)}
+    />
+    </>
   )
 }
 

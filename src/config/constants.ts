@@ -2,38 +2,51 @@ export const MIN_PASSWORD_LENGTH = 8
 
 export const TIMEOUT_LENGTH_MS = 10000
 
+// --- Field limits ---
+export const MAX_NAME_LENGTH = 100
+export const MAX_CITY_LENGTH = 100
 export const MAX_BIO_LENGTH = 500
+export const MAX_ICEBREAKER_ANSWER_LENGTH = 250
+export const MIN_INTERESTS = 3
+export const MAX_INTERESTS = 7
+export const MIN_ICEBREAKERS = 1
+export const MAX_ICEBREAKERS = 3
 
-export const INTEREST_OPTIONS = [
-  'Sports',
-  'Cooking',
-  'Outdoors',
-  'Fitness',
-  'Gaming',
-  'Music',
-  'Reading',
-  'Travel',
-  'Tech',
-  'DIY',
-  'Photography',
-  'Art',
-  'Cars',
-  'Parenting',
-  'Mental Wellness',
-  'Movies',
-  'Coffee',
-  'Home Projects',
-  'Volunteering',
-  'Board Games',
-  'Faith',
-  'Entrepreneurship',
-  'Pets',
-  'Gardening',
-  'Podcasts',
-  'Finance',
-  'Writing',
-]
+// --- Interests (slug → display) ---
+export const INTEREST_DISPLAY_MAP: Record<string, { label: string; emoji: string }> = {
+  'sports': { label: 'Sports', emoji: '⚽' },
+  'fitness': { label: 'Fitness', emoji: '💪' },
+  'golf': { label: 'Golf', emoji: '⛳' },
+  'outdoors': { label: 'Outdoors', emoji: '🏕️' },
+  'gaming': { label: 'Gaming', emoji: '🎮' },
+  'food': { label: 'Food & Cooking', emoji: '🍳' },
+  'music': { label: 'Music', emoji: '🎵' },
+  'movies-tv': { label: 'Movies & TV', emoji: '🎬' },
+  'comedy': { label: 'Comedy & Standup', emoji: '😂' },
+  'theatre': { label: 'Theatre', emoji: '🎭' },
+  'true-crime': { label: 'True Crime', emoji: '🔍' },
+  'travel': { label: 'Travel', emoji: '✈️' },
+  'tech': { label: 'Tech', emoji: '💻' },
+  'cars': { label: 'Cars', emoji: '🚗' },
+  'reading': { label: 'Reading', emoji: '📚' },
+  'photography': { label: 'Photography', emoji: '📷' },
+  'podcasts': { label: 'Podcasts', emoji: '🎙️' },
+  'art': { label: 'Art', emoji: '🎨' },
+  'fashion': { label: 'Fashion', emoji: '👟' },
+  'collectibles': { label: 'Collectibles', emoji: '🃏' },
+  'history': { label: 'History', emoji: '🏛️' },
+  'diy': { label: 'DIY & Home Projects', emoji: '🔨' },
+  'board-games': { label: 'Board Games', emoji: '🎲' },
+  'pets': { label: 'Pets', emoji: '🐾' },
+  'gardening': { label: 'Gardening', emoji: '🌱' },
+  'volunteering': { label: 'Volunteering', emoji: '🤝' },
+  'finance': { label: 'Finance', emoji: '💰' },
+  'entrepreneurship': { label: 'Entrepreneurship', emoji: '🚀' },
+  'faith-spirituality': { label: 'Faith & Spirituality', emoji: '🙏' },
+  'health-wellness': { label: 'Health & Wellness', emoji: '🧠' },
+}
 
+// --- Stages ---
 export const STAGE_OPTIONS = [
   { label: 'Expecting (pregnant/adopting)', value: 'Expecting' },
   { label: 'Newborn (0–1 year)', value: 'Newborn' },
@@ -48,6 +61,7 @@ export const STAGE_DISPLAY_MAP: Record<string, string> = Object.fromEntries(
   STAGE_OPTIONS.map(({ label, value }) => [value, label]),
 )
 
+// --- Provinces (QC removed) ---
 export const PROVINCE_OPTIONS = [
   { label: 'Alberta', value: 'AB' },
   { label: 'British Columbia', value: 'BC' },
@@ -59,11 +73,78 @@ export const PROVINCE_OPTIONS = [
   { label: 'Nunavut', value: 'NU' },
   { label: 'Ontario', value: 'ON' },
   { label: 'Prince Edward Island', value: 'PE' },
-  { label: 'Quebec', value: 'QC' },
   { label: 'Saskatchewan', value: 'SK' },
   { label: 'Yukon', value: 'YT' },
 ]
 
+// --- Goals ---
+export const GOAL_OPTIONS: { value: string; label: string; hint: string }[] = [
+  { value: 'dad-friends', label: 'Make dad friends', hint: 'Meet dads I genuinely connect with' },
+  { value: 'events', label: 'Events & meetups', hint: 'Find things to do and people to meet' },
+  { value: 'playdates', label: 'Playdates & family time', hint: 'Connect with other families and kids' },
+  { value: 'advice', label: 'Advice & support', hint: 'Talk with dads who get it' },
+  { value: 'communities', label: 'Communities', hint: 'Groups around my interests or stage' },
+  { value: 'resources', label: 'Parenting resources', hint: 'Useful information, when I need it' },
+  { value: 'experts', label: 'Experts & workshops', hint: 'Learn from people who know their stuff' },
+]
+
+// --- Connection Styles ---
+export const CONNECTION_STYLE_OPTIONS: { value: string; label: string; hint: string }[] = [
+  { value: 'close', label: 'Close friendships', hint: 'Genuine friendships that grow over time' },
+  { value: 'casual', label: 'Casual friendships', hint: 'Coffee, food, the occasional hang' },
+  { value: 'activity', label: 'Activity buddies', hint: 'Sports, gaming, workouts, projects' },
+  { value: 'family', label: 'Family friendships', hint: 'Families who get to know each other' },
+  { value: 'playdate', label: 'Playdate connections', hint: "Kids around mine's age" },
+  { value: 'gets-it', label: 'Someone who gets it', hint: 'Honest, supportive conversations' },
+]
+
+// --- Match Priorities ---
+export const MATCH_PRIORITY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'nearby', label: 'Lives nearby' },
+  { value: 'kid-ages', label: 'Kids around the same age' },
+  { value: 'interests', label: 'Shared interests' },
+  { value: 'connection-type', label: 'Same kind of connection' },
+  { value: 'age', label: 'Around my age' },
+  { value: 'no-preference', label: 'No strong preference' },
+]
+
+// --- Icebreaker Prompts ---
+export const ICEBREAKER_PROMPTS: { slug: string; text: string }[] = [
+  { slug: 'fatherhood-taught-me', text: 'Fatherhood has taught me...' },
+  { slug: 'favourite-thing-with-kids', text: 'My favourite thing to do with my kids is...' },
+  { slug: 'wish-id-known', text: "One thing I wish I'd known before becoming a dad..." },
+  { slug: 'dad-skill', text: "The dad skill I'm most proud of is..." },
+  { slug: 'hoping-to-meet', text: "I'm hoping to meet dads who..." },
+  { slug: 'get-along-if', text: "We'll probably get along if..." },
+  { slug: 'ideal-hangout', text: 'My ideal hangout is...' },
+  { slug: 'always-down-to', text: "I'm always down to..." },
+  { slug: 'life-goal', text: 'A life goal of mine is...' },
+  { slug: 'ask-me-about', text: 'Ask me about...' },
+  { slug: 'currently-obsessed', text: "I'm currently obsessed with..." },
+  { slug: 'perfect-weekend', text: 'A perfect weekend looks like...' },
+  { slug: 'want-to-learn', text: 'Something I want to learn this year is...' },
+  { slug: 'wont-shut-up', text: "I won't shut up about..." },
+  { slug: 'unpopular-opinion', text: 'My most unpopular opinion is...' },
+  { slug: 'way-to-my-heart', text: 'The way to my heart is...' },
+  { slug: 'dad-joke', text: 'My go-to dad joke is...' },
+  { slug: 'weirdly-competitive', text: "I'm weirdly competitive about..." },
+  { slug: 'hill-ill-die-on', text: "The hill I'll die on is..." },
+  { slug: 'guilty-pleasure', text: 'My guilty pleasure is...' },
+  { slug: 'dream-dinner-guest', text: 'My dream dinner guest is...' },
+  { slug: 'settle-this', text: 'Let\'s settle this once and for all...' },
+  { slug: 'dream-travel-destination', text: 'My dream travel destination is...' },
+  { slug: 'bucket-list', text: 'One thing on my bucket list is...' },
+  { slug: 'party-story', text: 'My go-to story at a party is...' },
+  { slug: 'fun-fact', text: 'A fun fact about me is...' },
+  { slug: 'proudest-achievement', text: 'My proudest achievement is...' },
+  { slug: 'two-truths-and-a-lie', text: 'Two truths and a lie...' },
+  { slug: 'biggest-pet-peeve', text: 'My biggest pet peeve is...' },
+  { slug: 'random-fact-i-love', text: 'A random fact I love is...' },
+  { slug: 'favourite-quote', text: 'My favourite quote is...' },
+  { slug: 'dad-stereotype', text: 'The dad stereotype that fits me perfectly is...' },
+]
+
+// --- Pagination ---
 export const PROFILES_PAGE_LIMIT = 20
 export const COMMUNITIES_PAGE_LIMIT = 20
 export const CONVERSATIONS_PAGE_LIMIT = 10
@@ -73,7 +154,117 @@ export const EVENTS_PAGE_LIMIT = 20
 export const CHATS_PAGE_LIMIT = 20
 export const MESSAGES_PAGE_LIMIT = 50
 export const PARTICIPANTS_PAGE_LIMIT = 20
+export const NOTIFICATIONS_PAGE_LIMIT = 20
 
+// --- Banner notifications ---
+export const BANNER_DISMISS_MS = 5000
+
+/** How many "get back into it" cards the Home surfaces ask for. */
+export const RESUME_PAGE_LIMIT = 10
+
+/**
+ * How many of those the Home rail actually shows.
+ *
+ * Fewer than are fetched, on purpose. Past about seven the rail stops being a
+ * shelf you can reach the end of and starts being a second feed laid on its
+ * side, above the feed you came for. The rest are not thrown away — /home/resume
+ * renders the same query in full, which is what the rail's arrow points at.
+ */
+export const RESUME_RAIL_VISIBLE_LIMIT = 7
+
+/**
+ * What a post is for. Optional, and shown as a chip on the card.
+ *
+ * Was a free-text box reading "e.g. question, story, tip...", which is a chip
+ * that only helps if everyone happens to pick the same word for the same
+ * thing. Closed to five, because the label earns its place by being
+ * comparable across posts — a reader scanning a community can trust that
+ * every "Question" means a question.
+ *
+ * `value` is what is stored and what the API validates against; `label` is
+ * display only. Keep this in step with CONVERSATION_PROMPT_TYPES in the API's
+ * constants.py — that set is the one that can refuse a post, and changing the
+ * options is a matter of editing both lists.
+ */
+export const CONVERSATION_PROMPT_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'question', label: 'Question' },
+  { value: 'advice', label: 'Advice' },
+  { value: 'story', label: 'Story' },
+  { value: 'win', label: 'Win' },
+  { value: 'vent', label: 'Vent' },
+]
+
+const CONVERSATION_PROMPT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  CONVERSATION_PROMPT_TYPE_OPTIONS.map(({ value, label }) => [value, label]),
+)
+
+/**
+ * The chip text for a stored type.
+ *
+ * Falls back to the raw value rather than hiding it: posts written while the
+ * field was free text hold arbitrary words, and they are still real posts.
+ * Their chips keep reading as they always did.
+ */
+export function conversationPromptTypeLabel(value: string): string {
+  return CONVERSATION_PROMPT_TYPE_LABELS[value] ?? value
+}
+
+/**
+ * Whether anyone can set or change a community's photo from the UI.
+ *
+ * On. It gates two controls: the edit button on a community's own page, which
+ * additionally requires the viewer to be an admin, and the picker in the create
+ * dialog, which needs no such check because whoever creates a community is made
+ * its admin in the same transaction.
+ *
+ * Permission is the server's call either way -- PUT and DELETE
+ * /api/communities/{id}/image both run the admin assertion -- so this decides
+ * whether the control is offered, never who is allowed to use it.
+ *
+ * Typed as `boolean` rather than inferred so the gated branches stay
+ * type-checked from either setting.
+ */
+export const COMMUNITY_PHOTO_EDITING_ENABLED: boolean = true
+
+/**
+ * Feed suggestion cadence: one suggestion card after every Nth post.
+ *
+ * Four keeps suggestions discoverable without the feed reading as promotional.
+ * The interleave is a pure function of this number, so tuning it is a one-line
+ * change with no layout work.
+ */
+export const FEED_SUGGESTION_INTERVAL = 4
+
+/** How many of each suggestion kind to hold, so the feed can scroll a while. */
+export const FEED_SUGGESTION_POOL_SIZE = 6
+
+/**
+ * Dads per suggestion rail.
+ *
+ * A dad suggestion is a shelf, not a card: one profile dropped between posts
+ * asked the reader to judge a stranger on the spot, and at full feed width it
+ * was also the largest thing on the page. Four gives the rail something to
+ * scroll without turning the feed into a directory, and each slot takes its
+ * four from the pool, so the rails deal it out rather than repeat it. The last
+ * one wraps to the front to fill itself; see interleaveFeed.
+ */
+export const FEED_SUGGESTED_DADS_PER_RAIL = 4
+
+/**
+ * How many dads to hold for the rails to deal from.
+ *
+ * Four rails' worth. A page of posts carries two dad slots, so this covers a
+ * couple of pages of scrolling before the pool runs dry and the slots start
+ * being skipped.
+ *
+ * Sent as `limit`, which /api/users/ does not currently read — it answers with
+ * its own page of PROFILES_PAGE_LIMIT either way, which is more than this asks
+ * for. Asking for the right amount anyway means the rails keep their shape if
+ * the endpoint ever starts honouring it.
+ */
+export const FEED_SUGGESTED_DADS_POOL_SIZE = FEED_SUGGESTED_DADS_PER_RAIL * 4
+
+// --- Discover Filters ---
 export const DISCOVER_DADS_FILTERS_AGE_RANGES = [
   'Under 25',
   '25-29',

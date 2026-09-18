@@ -25,4 +25,11 @@ export default defineConfig(({ mode }) => ({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  test: {
+    // Pure logic only for now, so no DOM environment is needed. Adding
+    // component tests later means installing jsdom and switching this to
+    // 'jsdom' plus a setup file.
+    environment: 'node',
+    include: ['src/**/*.test.{ts,tsx}'],
+  },
 }))

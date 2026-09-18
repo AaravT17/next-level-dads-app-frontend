@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import type { ModerationNotification } from '@/types/moderation'
 import { moderationApi } from '../api/moderationApi'
 import { moderationKeys } from './moderationKeys'

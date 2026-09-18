@@ -25,3 +25,8 @@ dist-ssr
 
 .env
 .claude
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Local working notes
+*.local.md

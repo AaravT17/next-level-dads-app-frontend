@@ -27,7 +27,7 @@ export function PendingReportGate({
           <p className={compact ? 'text-sm font-medium' : 'font-medium'}>
             Potentially harmful content
           </p>
-          <p className={compact ? 'mt-1 text-xs' : 'mt-1 text-sm'}>
+          <p className={compact ? 'mt-1 text-caption' : 'mt-1 text-sm'}>
             This content has been reported and is awaiting moderator review.
           </p>
           {revealable && (

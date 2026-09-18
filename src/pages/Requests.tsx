@@ -1,47 +1,28 @@
-import { useState, useMemo, useRef, useEffect, useCallback, useLayoutEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import BottomNav from '@/components/BottomNav'
+import { useState, useMemo, useEffect, useCallback, useLayoutEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import DadCard from '@/components/DadCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Search, X, Loader2, RefreshCw } from 'lucide-react'
-import logo from '@/assets/logo.png'
+import { Search, X, RefreshCw } from 'lucide-react'
+import { AppBar } from '@/components/layout/AppBar'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { QueryState } from '@/components/feedback/QueryState'
+import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
+import { EmptyState } from '@/components/feedback/EmptyState'
+import { DadListSkeleton } from '@/components/feedback/skeletons/CardSkeletons'
 import { ROUTES } from '@/lib/routes'
-import axiosPrivate from '@/api/axiosPrivate'
-import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT } from '@/config/constants'
-import {
-  ConnectionResponse,
-  ConnectionsFilters,
-  ConnectionsCursor,
-} from '@/types/users'
-
-async function fetchRequests(
-  filters: ConnectionsFilters,
-  cursor?: ConnectionsCursor,
-): Promise<ConnectionResponse[]> {
-  const params = new URLSearchParams()
-  if (filters.name) {
-    params.append('name', filters.name)
-  }
-  if (cursor) {
-    params.append('cursor_id', cursor.cursor_id)
-    params.append('cursor_updated_at', cursor.cursor_updated_at)
-  }
-  const res = await axiosPrivate.get<ConnectionResponse[]>(
-    '/api/connections/requests',
-    {
-      params,
-      timeout: TIMEOUT_LENGTH_MS,
-    },
-  )
-  return res.data
-}
+import { useBackTarget } from '@/hooks/useBackTarget'
+import { useIncomingRequests } from '@/features/connections/hooks/useIncomingRequests'
+import { ConnectionsFilters } from '@/types/users'
 
 const Requests = () => {
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
+
+  // Reached from the You tab, from the profile screen, and from the requests
+  // panel on /dads. Back goes wherever the link came from.
+  const backTo = useBackTarget(ROUTES.YOU)
 
   // Parse URL params for initial state
   const getStringParam = useCallback(
@@ -59,54 +40,24 @@ const Requests = () => {
 
   // Reset other profile list caches when entering Requests section
   useLayoutEffect(() => {
-    queryClient.removeQueries({ queryKey: ['discover', 'profiles'] })
+    queryClient.removeQueries({ queryKey: ['dads'] })
     queryClient.removeQueries({ queryKey: ['connections', 'connected'] })
     queryClient.removeQueries({ queryKey: ['profile'] })
   }, [queryClient])
 
   const {
     data,
-    isLoading,
+    isPending,
     isError,
+    error,
+    refetch,
+    isRefetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['connections', 'requests', filters],
-    queryFn: ({ pageParam }) => fetchRequests(filters, pageParam),
-    initialPageParam: undefined as ConnectionsCursor | undefined,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 5, // 5 minutes
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
-      const lastItem = lastPage[lastPage.length - 1]
-      return {
-        cursor_id: lastItem.connection_id,
-        cursor_updated_at: lastItem.connection_updated_at,
-      }
-    },
-  })
+  } = useIncomingRequests(filters)
 
   const requests = useMemo(() => data?.pages.flat() ?? [], [data])
-
-  const sentinelRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current
-    if (!sentinel) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
-        }
-      },
-      { threshold: 0.1 },
-    )
-
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // Sync input field with URL params when navigating back
   useEffect(() => {
@@ -140,31 +91,10 @@ const Requests = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="bg-card border-b border-border">
-        <div className="max-w-md mx-auto px-6 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1">
-            <img
-              src={logo}
-              alt="Next Level Dads"
-              className="h-8"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(ROUTES.PROFILE)}
-              className="rounded-full"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-2xl font-heading font-semibold text-foreground">
-              Connection Requests
-            </h1>
-          </div>
-        </div>
-      </div>
+    <>
+      <AppBar title="Connection Requests" leading="back" backTo={backTo} />
 
-      <div className="max-w-md mx-auto px-6 py-6 space-y-4 animate-fade-in">
+      <PageContainer className="space-y-4 animate-fade-in">
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -177,12 +107,14 @@ const Requests = () => {
               placeholder="Search requests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10 rounded-full"
+              className="pl-10 pr-10 rounded-md"
+              aria-label="Search requests"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={clearSearch}
+                aria-label="Clear search"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="w-4 h-4" />
@@ -191,56 +123,47 @@ const Requests = () => {
           </div>
         </form>
 
-        <div className="space-y-4">
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : isError ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                Failed to load requests. Please try again.
-              </p>
-            </div>
-          ) : requests.length > 0 ? (
-            <>
-              {requests.map((request) => (
-                <DadCard
-                  key={request.id}
-                  {...request}
-                />
+        <QueryState
+          query={{ isPending, isError, error, data: requests, refetch, isRefetching }}
+          noun="requests"
+          skeleton={<DadListSkeleton />}
+          empty={
+            <EmptyState
+              title="No pending requests"
+              description="Connection requests from other dads will appear here."
+            />
+          }
+        >
+          {(items) => (
+            <ul role="list" className="space-y-4">
+              {items.map((request) => (
+                <li key={request.id}>
+                  <DadCard {...request} />
+                </li>
               ))}
-              <div
-                ref={sentinelRef}
-                className="h-4"
-              />
-              {isFetchingNextPage && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No pending requests</p>
-            </div>
+            </ul>
           )}
-        </div>
+        </QueryState>
+
+        <InfiniteSentinel
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          fetchNextPage={fetchNextPage}
+          noun="requests"
+        />
 
         <div className="pt-4">
           <Button
             variant="outline"
-            className="w-full rounded-full"
+            className="w-full rounded-md"
             onClick={handleRefresh}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
         </div>
-      </div>
-
-      <BottomNav />
-    </div>
+      </PageContainer>
+    </>
   )
 }
 

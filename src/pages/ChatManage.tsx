@@ -5,10 +5,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, Search, Loader2, Shield, ShieldOff, UserMinus, UserPlus, LogOut, Pencil, Check, X } from 'lucide-react'
+import { PageContainer } from '@/components/layout/PageContainer'
 import { toast } from 'sonner'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, PARTICIPANTS_PAGE_LIMIT } from '@/config/constants'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
 import {
   type Chat,
@@ -310,10 +311,10 @@ const ChatManage = () => {
   const groupName = chatData?.name ?? 'Group'
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-md mx-auto px-6 py-4 flex items-center gap-4">
+    <div className="flex-1 min-h-0 bg-background flex flex-col">
+      {/* Header. Kept custom rather than AppBar: the title is inline-editable. */}
+      <div className="shrink-0 bg-card border-b border-border">
+        <div className="px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
             className="text-muted-foreground"
@@ -359,7 +360,7 @@ const ChatManage = () => {
             </div>
           ) : (
             <div className="flex items-center gap-2 flex-1">
-              <h1 className="text-lg font-heading font-semibold text-foreground">
+              <h1 className="text-subhead font-heading font-semibold text-foreground">
                 {groupName}
               </h1>
               {isAdmin && (
@@ -378,7 +379,7 @@ const ChatManage = () => {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-6 py-6 space-y-6">
+      <PageContainer className="space-y-6 animate-fade-in">
 
         {/* Add participants (admin only) */}
         {isAdmin && (
@@ -390,7 +391,7 @@ const ChatManage = () => {
                 placeholder="Search connections..."
                 value={addSearch}
                 onChange={(e) => setAddSearch(e.target.value)}
-                className="pl-9 rounded-full"
+                className="pl-9 rounded-md"
               />
             </div>
 
@@ -425,8 +426,7 @@ const ChatManage = () => {
                   <Button
                     onClick={() => addParticipants.mutate(selectedAddable)}
                     disabled={addParticipants.isPending}
-                    className="w-full rounded-full"
-                    style={{ backgroundColor: '#D8A24A' }}
+                    className="w-full rounded-md"
                   >
                     {addParticipants.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -440,7 +440,7 @@ const ChatManage = () => {
                 )}
               </div>
             ) : addSearch ? (
-              <p className="text-sm text-muted-foreground text-center py-2">No connections found</p>
+              <p className="text-body text-muted-foreground text-center py-2">No connections found</p>
             ) : null}
           </div>
         )}
@@ -467,14 +467,14 @@ const ChatManage = () => {
                     <AvatarFallback>{p.name[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground truncate">
+                    <p className="font-medium text-body text-foreground truncate">
                       {p.name}
                       {p.id === user?.id && (
                         <span className="ml-1 text-muted-foreground font-normal">(you)</span>
                       )}
                     </p>
                     {p.role === 'admin' && (
-                      <p className="text-xs text-primary">Admin</p>
+                      <p className="text-caption text-primary">Admin</p>
                     )}
                   </div>
 
@@ -485,7 +485,7 @@ const ChatManage = () => {
                         <button
                           onClick={() => promoteParticipant.mutate(p.id)}
                           disabled={promoteParticipant.isPending}
-                          className="p-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                          className="p-1.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                           title="Make admin"
                         >
                           <Shield className="w-4 h-4" />
@@ -494,7 +494,7 @@ const ChatManage = () => {
                         <button
                           onClick={() => demoteParticipant.mutate(p.id)}
                           disabled={demoteParticipant.isPending}
-                          className="p-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                          className="p-1.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                           title="Remove admin"
                         >
                           <ShieldOff className="w-4 h-4" />
@@ -503,7 +503,7 @@ const ChatManage = () => {
                       <button
                         onClick={() => removeParticipant.mutate(p.id)}
                         disabled={removeParticipant.isPending}
-                        className="p-1.5 rounded-full bg-muted hover:bg-muted/80 text-destructive"
+                        className="p-1.5 rounded-md bg-muted hover:bg-muted/80 text-destructive"
                         title="Remove from group"
                       >
                         <UserMinus className="w-4 h-4" />
@@ -527,7 +527,7 @@ const ChatManage = () => {
           variant="ghost"
           onClick={() => leaveGroup.mutate()}
           disabled={leaveGroup.isPending}
-          className="w-full rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+          className="w-full rounded-md text-destructive hover:text-destructive hover:bg-destructive/10"
         >
           {leaveGroup.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -538,7 +538,7 @@ const ChatManage = () => {
             </>
           )}
         </Button>
-      </div>
+      </PageContainer>
     </div>
   )
 }

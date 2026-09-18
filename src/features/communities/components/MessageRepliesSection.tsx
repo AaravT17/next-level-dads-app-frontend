@@ -4,6 +4,7 @@ import axios from 'axios'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { initials, formatRelative } from '@/utils/format'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import type { MessageReply } from '@/types/communities'
@@ -15,7 +16,7 @@ import { useHeartReply } from '../hooks/useHeartReply'
 import { useDeleteReply } from '../hooks/useDeleteReply'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { profileDetail } from '@/lib/routes'
 import { PendingReportGate } from './PendingReportGate'
 
@@ -28,25 +29,6 @@ interface MessageRepliesSectionProps {
 
 interface ReplyFormValues {
   body: string
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso)
-  const diff = Date.now() - d.getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return d.toLocaleDateString()
-}
-
-function initials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 }
 
 function ReplyItem({
@@ -73,13 +55,13 @@ function ReplyItem({
               className="w-6 h-6 rounded-full object-cover"
             />
           ) : (
-            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-semibold">
+            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-caption font-semibold">
               {initials(author.name)}
             </div>
           )}
         </Link>
       ) : (
-        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-semibold shrink-0 mt-0.5">
+        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-caption font-semibold shrink-0 mt-0.5">
           ?
         </div>
       )}
@@ -88,19 +70,19 @@ function ReplyItem({
           {author ? (
             <Link
               to={profileDetail(author.id)}
-              className="text-xs font-semibold text-foreground hover:underline"
+              className="text-caption font-semibold text-foreground hover:underline"
             >
               {author.name}
             </Link>
           ) : (
-            <span className="text-xs font-semibold text-foreground">Anonymous</span>
+            <span className="text-caption font-semibold text-foreground">Anonymous</span>
           )}
-          <span className="text-xs text-muted-foreground">{formatTime(reply.created_at)}</span>
+          <span className="text-caption text-muted-foreground">{formatRelative(reply.created_at)}</span>
         </div>
         {reply.has_pending_report && !reply.is_deleted ? (
           <div className="mt-2">
             <PendingReportGate compact>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
+              <p className="text-body whitespace-pre-wrap leading-relaxed text-foreground">
                 {reply.body}
               </p>
             </PendingReportGate>
@@ -206,7 +188,7 @@ export function MessageRepliesSection({
             })}
           />
           {errors.body && (
-            <p className="text-xs text-destructive">{errors.body.message}</p>
+            <p className="text-caption text-destructive">{errors.body.message}</p>
           )}
           <div className="flex gap-2">
             <Button
@@ -225,7 +207,7 @@ export function MessageRepliesSection({
               type="submit"
               size="sm"
               disabled={createReply.isPending || isBanned}
-              className="flex-1 rounded-full"
+              className="flex-1 rounded-md"
             >
               {createReply.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -234,9 +216,9 @@ export function MessageRepliesSection({
               )}
             </Button>
           </div>
-          {notice && <p className="text-xs text-destructive">{notice}</p>}
+          {notice && <p className="text-caption text-destructive">{notice}</p>}
           {createReply.isError && !isBanned && !(axios.isAxiosError(createReply.error) && createReply.error.response?.status === 429) && (
-            <p className="text-xs text-destructive">Failed to send. Please try again.</p>
+            <p className="text-caption text-destructive">Failed to send. Please try again.</p>
           )}
         </form>
       ) : allowComposing ? (

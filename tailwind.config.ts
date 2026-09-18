@@ -1,3 +1,4 @@
+import tailwindcssAnimate from "tailwindcss-animate";
 import type { Config } from "tailwindcss";
 
 export default {
@@ -16,6 +17,20 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         heading: ['Poppins', 'system-ui', 'sans-serif'],
+      },
+      // Semantic type ramp. Additive: these are new names, so nothing that
+      // uses text-sm/text-xs today changes until it is migrated.
+      // font-heading (Poppins) belongs on display/title/heading/subhead only;
+      // everything below those is Inter.
+      fontSize: {
+        display:  ['2rem',      { lineHeight: '2.25rem',  letterSpacing: '-0.02em',  fontWeight: '600' }],
+        title:    ['1.5rem',    { lineHeight: '1.875rem', letterSpacing: '-0.015em', fontWeight: '600' }],
+        heading:  ['1.25rem',   { lineHeight: '1.625rem', letterSpacing: '-0.01em',  fontWeight: '600' }],
+        subhead:  ['1.0625rem', { lineHeight: '1.5rem',   letterSpacing: '-0.005em', fontWeight: '600' }],
+        body:     ['0.9375rem', { lineHeight: '1.4375rem' }],
+        label:    ['0.875rem',  { lineHeight: '1.25rem',  fontWeight: '500' }],
+        caption:  ['0.75rem',   { lineHeight: '1rem' }],
+        overline: ['0.6875rem', { lineHeight: '0.875rem', letterSpacing: '0.06em',   fontWeight: '600' }],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -51,9 +66,26 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        soft: {
+          DEFAULT: "hsl(var(--soft))",
+          foreground: "hsl(var(--soft-foreground))",
+        },
+        badge: {
+          DEFAULT: "hsl(var(--badge))",
+          foreground: "hsl(var(--badge-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
       },
       backgroundImage: {
         'gradient-warm': 'var(--gradient-warm)',
+        'app-ambient': 'var(--app-ambient)',
         'gradient-gold': 'var(--gradient-gold)',
       },
       boxShadow: {
@@ -62,9 +94,19 @@ export default {
         'lg': 'var(--shadow-lg)',
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 0.25rem)",
-        sm: "calc(var(--radius) - 0.5rem)",
+        sm: "calc(var(--radius) / 2)",        /* 2px */
+        md: "var(--radius)",                  /* 4px */
+        lg: "calc(var(--radius) * 1.5)",      /* 6px */
+        xl: "calc(var(--radius) * 2)",        /* 8px */
+      },
+      transitionDuration: {
+        fast: '120ms',
+        base: '200ms',
+        slow: '320ms',
+      },
+      transitionTimingFunction: {
+        'out-soft': 'cubic-bezier(0.22, 1, 0.36, 1)',
+        soft: 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
       keyframes: {
         "accordion-down": {
@@ -97,5 +139,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

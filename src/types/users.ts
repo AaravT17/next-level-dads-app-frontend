@@ -5,6 +5,16 @@ export type ConnectionStatus =
   | 'blocked'
   | null
 
+export interface InterestItem {
+  id: string
+  slug: string
+}
+
+export interface IcebreakerEntry {
+  prompt_slug: string
+  answer: string
+}
+
 export interface Profile {
   id: string
   created_at: string
@@ -15,8 +25,10 @@ export interface Profile {
   province: string
   about: string
   avatar_url: string | null
-  interests: string[]
-  children: string[]
+  interests: InterestItem[]
+  children_age_ranges: string[]
+  kid_count: number | null
+  icebreakers: IcebreakerEntry[] | null
   connection_status: ConnectionStatus
 }
 
@@ -42,11 +54,15 @@ export interface ConnectionResponse {
   province: string
   about: string
   avatar_url: string | null
-  interests: string[]
-  children: string[]
+  interests: InterestItem[]
+  children_age_ranges: string[]
+  kid_count: number | null
+  icebreakers: IcebreakerEntry[] | null
   created_at: string
   connection_id: string
   connection_updated_at: string
+  /** Optional message the sender attached to a pending request. */
+  note: string | null
   connection_status: ConnectionStatus
 }
 
@@ -62,4 +78,14 @@ export interface ConnectionsCursor {
 export interface ConnectionCounts {
   connections: number
   requests: number
+}
+
+/** GET /api/users/me/stats — drives the profile summary and the nav badge. */
+export interface UserStats {
+  connections: number
+  requests: number
+  communities_joined: number
+  events_registered_for: number
+  /** Communities that moved since you last opened them — the Groups nav badge. */
+  communities_with_new_activity: number
 }
