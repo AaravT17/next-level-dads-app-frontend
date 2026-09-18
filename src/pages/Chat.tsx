@@ -429,7 +429,7 @@ const Chat = () => {
   }
 
   const handleBack = () => {
-    navigate(-1)
+    navigate(ROUTES.CHATS, { replace: true })
   }
 
   const cancelEdit = () => {
