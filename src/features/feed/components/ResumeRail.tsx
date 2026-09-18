@@ -180,7 +180,7 @@ export function ResumeRail() {
       */}
       <ul
         role="list"
-        className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 sm:-mx-6 sm:px-6"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2"
       >
         {isPending
           ? Array.from({ length: 3 }, (_, i) => (

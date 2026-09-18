@@ -462,7 +462,19 @@ const DadCard = ({
   return (
     <>
     <Card
-      className={cn('overflow-hidden shadow-md cursor-pointer', listContext === 'dads' && 'h-[174px]')}
+      className={cn(
+        'overflow-hidden shadow-md cursor-pointer',
+        // The browse grid pins a height because grid equalises rows against
+        // each other, not the whole grid, so varying bio lengths leave every
+        // row a different height from the last.
+        listContext === 'dads' && 'h-[174px]',
+        // A rail is one row, so stretching to the tallest card is enough and
+        // needs no magic number -- the same thing ResumeRail's cards do. A
+        // fixed height would be worse here: these cards are roughly half the
+        // width of a browse-grid card, so a long city name wraps and the
+        // clamped bio would be clipped by the pinned height.
+        listContext === 'suggestion' && 'h-full',
+      )}
       onClick={handleCardClick}
     >
       <CardContent className="p-4 space-y-3">

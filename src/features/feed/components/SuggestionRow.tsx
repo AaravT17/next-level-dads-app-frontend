@@ -74,14 +74,14 @@ export function DadSuggestion({ dads }: { dads: Profile[] }) {
         swipeable on touch, keyboard-scrollable on desktop, and every card
         carries its own focusable connect button, so tab order walks the rail.
 
-        The negative margin plus matching padding lets cards bleed to the screen
-        edge as they scroll while the first still lines up with the page gutter.
-        The numbers match ResumeRail so the two shelves on Home scroll on the
-        same edges.
+        The rail is flush with the content column rather than bleeding past it:
+        a shelf that scrolls out beyond the post cards reads as a second, wider
+        layer of the page. Cards now clip on the same line the posts end on, so
+        the rail is visibly part of the same column. Matches ResumeRail.
       */}
       <ul
         role="list"
-        className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 sm:-mx-6 sm:px-6"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2"
       >
         {dads.map((dad) => (
           <li key={dad.id} className="w-[19rem] shrink-0 snap-start sm:w-[20rem]">
