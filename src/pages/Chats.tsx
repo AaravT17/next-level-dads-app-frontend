@@ -26,7 +26,6 @@ import { toast } from 'sonner'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import { cn } from '@/lib/utils'
-import { useIsDesktop } from '@/hooks/useIsDesktop'
 import { formatChatListRelative } from '@/utils/format'
 import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT, CHATS_PAGE_LIMIT } from '@/config/constants'
 import { Chat, ChatsCursor } from '@/types/chats'
@@ -52,7 +51,6 @@ const Chats = () => {
   // With the two-pane desktop layout the list stays visible beside the thread,
   // so the open conversation needs to be marked.
   const { id: selectedChatId } = useParams<{ id: string }>()
-  const isDesktop = useIsDesktop()
   const nameParam = searchParams.get('name') ?? ''
 
   // Sync input with URL param on mount (e.g. back navigation)
@@ -293,7 +291,7 @@ const Chats = () => {
 
   return (
     <>
-      <PageContainer className="animate-fade-in" restoreScroll={false}>
+      <PageContainer restoreScroll={false}>
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />

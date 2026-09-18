@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { lazy } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
@@ -10,7 +10,6 @@ import { THEMES, DEFAULT_THEME, THEME_STORAGE_KEY } from '@/lib/theme'
 import { AuthProvider } from '@/contexts/AuthProvider'
 import { PublicRoute, ProtectedRoute, SetupRoute, AdminRoute } from '@/components/RouteWrappers'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { LegacyRedirect } from '@/components/routing/LegacyRedirect'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { ModerationNotifier } from '@/features/moderation/components/ModerationNotifier'
@@ -71,12 +70,6 @@ const AppContent = () => {
       <LegalAcceptancesModal />
       <BrowserRouter>
         <NotificationProvider>
-        {/*
-          Covers the routes rendered outside AppLayout (auth, setup, 404).
-          Routes inside it have their own boundary, so the shell survives a
-          chunk load there instead of being replaced by this fallback.
-        */}
-        <Suspense fallback={<CenteredSpinner />}>
         <Routes>
           {/* Public - redirect to the app if already authenticated */}
           <Route element={<PublicRoute />}>
@@ -165,7 +158,6 @@ const AppContent = () => {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
-        </Suspense>
         </NotificationProvider>
       </BrowserRouter>
     </TooltipProvider>

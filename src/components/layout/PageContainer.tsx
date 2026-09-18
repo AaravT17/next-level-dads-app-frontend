@@ -27,9 +27,7 @@ export function PageContainer({
   width = 'default',
 }: PageContainerProps) {
   const ref = useRef<HTMLElement>(null)
-  if (restoreScroll) {
-    useScrollRestoration(ref)
-  }
+  useScrollRestoration(ref, restoreScroll)
 
   return (
     <main
