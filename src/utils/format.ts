@@ -56,6 +56,24 @@ export function formatRelative(iso: string): string {
   return date.toLocaleDateString()
 }
 
+/** Chat preview rows: keep the compact relative scale through the first week, then fall back to a date. */
+export function formatChatListRelative(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return '—'
+
+  const now = new Date()
+  const mins = Math.floor((now.getTime() - date.getTime()) / 60000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+
+  const days = Math.floor(hrs / 24)
+  if (days <= 7) return `${days}d ago`
+  return date.toLocaleDateString()
+}
+
 /** Event day: "Tue, Mar 4". */
 export function formatEventDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-CA', {

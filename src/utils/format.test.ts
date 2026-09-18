@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mailtoHref, telHref } from './format'
+import { formatChatListRelative, mailtoHref, telHref } from './format'
 
 // Contact details come from whoever submitted the event and are never
 // validated, so these two functions are the only thing between that input and
@@ -44,5 +44,19 @@ describe('telHref', () => {
 
   it('strips newlines rather than treating them as whitespace', () => {
     expect(telHref('555\n1234')).toBe('tel:5551234')
+  })
+})
+
+describe('formatChatListRelative', () => {
+  it('uses day counts up to one week before falling back to a date', () => {
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
+
+    expect(formatChatListRelative(dayAgo.toISOString())).toBe('1d ago')
+    expect(formatChatListRelative(threeDaysAgo.toISOString())).toBe('3d ago')
+    expect(formatChatListRelative(eightDaysAgo.toISOString())).toBe(
+      eightDaysAgo.toLocaleDateString(),
+    )
   })
 })

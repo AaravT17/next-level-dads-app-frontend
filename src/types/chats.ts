@@ -180,6 +180,12 @@ export type WsEvent =
       }
     }
   | {
+      type: 'notifications:community_activity'
+      payload: {
+        community_id: string
+      }
+    }
+  | {
       type: 'notifications:read'
       payload: {
         last_read_at: string
