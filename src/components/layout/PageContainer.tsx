@@ -8,6 +8,9 @@ export type PageContainerProps = {
   className?: string
   /** Pass false when the page owns its own scrolling region, as Chat does. */
   scroll?: boolean
+  /** Disable route-driven scroll restoration for nested panes that should keep
+   * their own position while the route changes (for example the desktop chat list). */
+  restoreScroll?: boolean
   /** Match the AppBar's width so the header and content share a left edge. */
   width?: ContentWidth
 }
@@ -20,10 +23,11 @@ export function PageContainer({
   children,
   className,
   scroll = true,
+  restoreScroll = true,
   width = 'default',
 }: PageContainerProps) {
   const ref = useRef<HTMLElement>(null)
-  useScrollRestoration(ref)
+  useScrollRestoration(ref, restoreScroll)
 
   return (
     <main

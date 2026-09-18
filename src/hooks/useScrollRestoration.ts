@@ -41,11 +41,13 @@ function remember(key: string, top: number): void {
   positions.set(key, top)
 }
 
-export function useScrollRestoration(ref: RefObject<HTMLElement>) {
+export function useScrollRestoration(ref: RefObject<HTMLElement>, enabled = true) {
   const { key } = useLocation()
   const navigationType = useNavigationType()
 
   useLayoutEffect(() => {
+    if (!enabled) return
+
     const el = ref.current
     if (!el) return
 
@@ -87,14 +89,16 @@ export function useScrollRestoration(ref: RefObject<HTMLElement>) {
       el.removeEventListener('touchstart', cancel)
       window.removeEventListener('keydown', cancel)
     }
-  }, [ref, key, navigationType])
+  }, [ref, key, navigationType, enabled])
 
   useEffect(() => {
+    if (!enabled) return
+
     const el = ref.current
     if (!el) return
 
     const onScroll = () => remember(key, el.scrollTop)
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
-  }, [ref, key])
+  }, [ref, key, enabled])
 }

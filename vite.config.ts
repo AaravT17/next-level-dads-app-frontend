@@ -8,8 +8,7 @@ export default defineConfig(({ mode }) => ({
   appType: 'spa',
   server: {
     host: '::',
-    //port: 3000,
-    port: 5173,
+    port: 3000,
     allowedHosts: ['.ngrok-free.dev', 'localhost'],
     proxy: {
       '/api': {

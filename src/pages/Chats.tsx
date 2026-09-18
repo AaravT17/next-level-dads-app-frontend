@@ -26,8 +26,7 @@ import { toast } from 'sonner'
 import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import { cn } from '@/lib/utils'
-import { useIsDesktop } from '@/hooks/useIsDesktop'
-import { formatListTimestamp } from '@/utils/format'
+import { formatChatListRelative } from '@/utils/format'
 import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT, CHATS_PAGE_LIMIT } from '@/config/constants'
 import { Chat, ChatsCursor } from '@/types/chats'
 import { ConnectionResponse, ConnectionsCursor } from '@/types/users'
@@ -52,7 +51,6 @@ const Chats = () => {
   // With the two-pane desktop layout the list stays visible beside the thread,
   // so the open conversation needs to be marked.
   const { id: selectedChatId } = useParams<{ id: string }>()
-  const isDesktop = useIsDesktop()
   const nameParam = searchParams.get('name') ?? ''
 
   // Sync input with URL param on mount (e.g. back navigation)
@@ -293,7 +291,7 @@ const Chats = () => {
 
   return (
     <>
-      <PageContainer className="animate-fade-in">
+      <PageContainer restoreScroll={false}>
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
@@ -449,7 +447,7 @@ const Chats = () => {
                 const displayName = getChatDisplayName(c)
                 const avatarUrl = getChatAvatar(c)
                 const preview = getLastMessagePreview(c)
-                const time = c.last_message ? formatListTimestamp(c.last_message.created_at) : null
+                const time = formatChatListRelative(c.updated_at)
                 const hasUnread = c.last_read_at === null || c.updated_at > c.last_read_at
 
                 return (
@@ -458,12 +456,12 @@ const Chats = () => {
                       to={chat(c.id)}
                       aria-current={selectedChatId === c.id ? 'true' : undefined}
                       className={cn(
-                        'flex items-center gap-4 pl-4 pr-2 py-4 transition-colors duration-fast active:scale-[0.995]',
+                        'flex items-center gap-4 pl-4 pr-2 py-4 transition-all duration-fast',
                         selectedChatId === c.id
-                          ? 'bg-primary/10'
+                          ? 'bg-primary/20 ring-1 ring-primary/40 hover:scale-[1.05] hover:bg-primary/25 hover:shadow-[0_2px_8px_0_hsl(var(--foreground)/0.08)]'
                           : hasUnread
-                          ? 'shadow-[inset_4px_0_0_hsl(var(--primary))] hover:bg-muted/50'
-                          : 'hover:bg-muted/50',
+                          ? 'bg-muted/40 shadow-[inset_4px_0_0_hsl(var(--primary))] hover:scale-[1.05] hover:bg-muted/70 hover:shadow-[inset_4px_0_0_hsl(var(--primary)),0_2px_8px_0_hsl(var(--foreground)/0.08)]'
+                          : 'bg-muted/10 hover:scale-[1.05] hover:bg-muted/25 hover:shadow-sm',
                       )}
                     >
                       <div className="relative shrink-0">

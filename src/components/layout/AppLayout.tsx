@@ -24,7 +24,13 @@ export function AppLayout() {
           suspends. Keeping the boundary here rather than around <Routes> means
           the shell and bottom nav stay put and only the pane swaps.
         */}
-        <Suspense fallback={<CenteredSpinner />}>
+        <Suspense
+          fallback={
+            <div className="flex flex-1 items-center justify-center p-6">
+              <CenteredSpinner />
+            </div>
+          }
+        >
           <Outlet />
         </Suspense>
       </ErrorBoundary>

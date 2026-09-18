@@ -95,8 +95,10 @@ export function NotificationItem({
       type="button"
       onClick={handleClick}
       className={cn(
-        'flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors',
-        highlight && 'shadow-[inset_4px_0_0_hsl(var(--primary))]',
+        'flex items-center gap-3 w-full px-4 py-3 text-left transition-colors',
+        highlight
+          ? 'bg-muted/40 shadow-[inset_4px_0_0_hsl(var(--primary))] hover:bg-muted/60'
+          : 'hover:bg-muted/50',
       )}
     >
       <UserAvatar name={name} src={avatarUrl} size="xs" showInitials={!isGroup} />
