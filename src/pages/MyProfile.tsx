@@ -56,6 +56,7 @@ import {
 } from '@/config/constants'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { getProfileIncomplete } from '@/lib/profileCompleteness'
 import type { InterestItem, IcebreakerEntry } from '@/types/users'
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -73,7 +74,7 @@ interface FormState {
   province: string
   about: string
   children_age_ranges: string[]
-  kid_count: number
+  kid_count: number | null
   goals: string[]
   primary_goal: string
   connection_styles: string[]
@@ -113,7 +114,7 @@ function userToForm(user: {
     province: user.province,
     about: user.about,
     children_age_ranges: [...user.children_age_ranges],
-    kid_count: user.kid_count ?? 0,
+    kid_count: user.kid_count,
     goals: [...(user.goals ?? [])],
     primary_goal: user.primary_goal ?? '',
     connection_styles: [...(user.connection_styles ?? [])],
@@ -223,7 +224,6 @@ const MyProfile = () => {
       'province',
       'about',
       'kid_count',
-      'primary_goal',
     ]
     const trimmedFields = new Set(['name', 'city', 'about'])
     for (const key of simpleFields) {
@@ -236,7 +236,6 @@ const MyProfile = () => {
     // Array fields (compared as sets)
     const arrayFields: (keyof FormState)[] = [
       'children_age_ranges',
-      'goals',
       'connection_styles',
       'match_priorities',
     ]
@@ -244,6 +243,14 @@ const MyProfile = () => {
       if (!valuesEqual(form[key], original[key])) {
         patch[key] = form[key]
       }
+    }
+
+    // Goals + primary_goal must always be sent together if either changed
+    const goalsChanged = !valuesEqual(form.goals, original.goals)
+    const primaryGoalChanged = !valuesEqual(form.primary_goal, original.primary_goal)
+    if (goalsChanged || primaryGoalChanged) {
+      patch.goals = form.goals
+      patch.primary_goal = form.primary_goal
     }
 
     // Interests: diff slugs, send UUIDs
@@ -419,13 +426,11 @@ const MyProfile = () => {
       if (v.length > MAX_INTERESTS)
         return toastError(`You can select at most ${MAX_INTERESTS} interests.`)
     }
-    if ('goals' in patch) {
-      const v = patch.goals as string[]
-      if (v.length === 0) return toastError('Please select at least one goal.')
-    }
-    if ('primary_goal' in patch) {
-      const v = patch.primary_goal as string
-      if (!v) return toastError('Please select a primary goal.')
+    if ('goals' in patch || 'primary_goal' in patch) {
+      const goals = patch.goals as string[]
+      const primaryGoal = patch.primary_goal as string
+      if (goals.length === 0) return toastError('Please select at least one goal.')
+      if (!goals.includes(primaryGoal)) return toastError('Primary goal must be one of your selected goals.')
     }
     if ('connection_styles' in patch) {
       const v = patch.connection_styles as string[]
@@ -450,7 +455,8 @@ const MyProfile = () => {
       }
     }
     if ('kid_count' in patch) {
-      const v = patch.kid_count as number
+      const v = patch.kid_count as number | null
+      if (v === null) return toastError('Please enter the number of kids you have.')
       if (v < 0 || v >= 100) return toastError('Kid count must be between 0 and 99.')
     }
 
@@ -517,6 +523,18 @@ const MyProfile = () => {
   if (!user || !form) return null
 
   const displayAvatar = avatarPreview || user.avatarUrl || avatarDefaultGrey
+
+  const incomplete = getProfileIncomplete({
+    kid_count: form.kid_count,
+    date_of_birth: form.date_of_birth || null,
+    about: form.about || null,
+    goals: form.goals,
+    primary_goal: form.primary_goal || null,
+    connection_styles: form.connection_styles,
+    match_priorities: form.match_priorities,
+    interestCount: form.interest_slugs.length,
+    icebreakerCount: form.icebreakers.length,
+  })
 
   return (
     <>
@@ -595,7 +613,10 @@ const MyProfile = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Date of birth</Label>
+              <div className="flex items-center justify-between">
+                <Label>Date of birth</Label>
+                {incomplete.dateOfBirth && <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-caption font-semibold text-destructive">Incomplete</span>}
+              </div>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -665,7 +686,10 @@ const MyProfile = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="about">About you</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="about">About you</Label>
+                {incomplete.about && <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-caption font-semibold text-destructive">Incomplete</span>}
+              </div>
               <Textarea
                 id="about"
                 placeholder="Tell us a bit about yourself."
@@ -690,16 +714,19 @@ const MyProfile = () => {
           </h3>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>How many kids do you have?</Label>
+              <div className="flex items-center justify-between">
+                <Label>How many kids do you have?</Label>
+                {incomplete.kidCount && <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-caption font-semibold text-destructive">Incomplete</span>}
+              </div>
               <Input
                 type="number"
                 min={0}
                 max={99}
-                value={form.kid_count}
+                value={form.kid_count ?? ''}
                 onChange={(e) => {
                   const v = parseInt(e.target.value, 10)
                   if (!Number.isNaN(v) && v >= 0 && v < 100) set({ kid_count: v })
-                  else if (e.target.value === '') set({ kid_count: 0 })
+                  else if (e.target.value === '') set({ kid_count: null })
                 }}
                 className="w-24 rounded-md"
                 disabled={isLoading}
@@ -744,7 +771,10 @@ const MyProfile = () => {
           <div className="space-y-5">
             {/* Goals */}
             <div className="space-y-2">
-              <Label>What are you hoping to find here?</Label>
+              <div className="flex items-center justify-between">
+                <Label>What are you hoping to find here?</Label>
+                {incomplete.goals && <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-caption font-semibold text-destructive">Incomplete</span>}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {GOAL_OPTIONS.map((g) => {
                   const selected = form.goals.includes(g.value)
@@ -755,10 +785,11 @@ const MyProfile = () => {
                       onClick={() => {
                         const next = toggle(form.goals, g.value)
                         const updates: Partial<FormState> = { goals: next }
-                        if (form.primary_goal && !next.includes(form.primary_goal)) {
-                          updates.primary_goal = next.length === 1 ? next[0] : ''
+                        if (next.length === 0) {
+                          updates.primary_goal = ''
+                        } else if (!next.includes(form.primary_goal)) {
+                          updates.primary_goal = next[0]
                         }
-                        if (next.length === 1) updates.primary_goal = next[0]
                         set(updates)
                       }}
                       disabled={isLoading}
@@ -792,7 +823,10 @@ const MyProfile = () => {
             {/* Primary goal */}
             {form.goals.length > 1 && (
               <div className="space-y-2">
-                <Label>What matters most right now?</Label>
+                <div className="flex items-center justify-between">
+                  <Label>What matters most right now?</Label>
+                  {incomplete.primaryGoal && <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-caption font-semibold text-destructive">Incomplete</span>}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {form.goals.map((g) => {
                     const opt = GOAL_OPTIONS.find((o) => o.value === g)
@@ -819,7 +853,10 @@ const MyProfile = () => {
 
             {/* Connection styles */}
             <div className="space-y-2">
-              <Label>What kind of connections are you after?</Label>
+              <div className="flex items-center justify-between">
+                <Label>What kind of connections are you after?</Label>
+                {incomplete.connectionStyles && <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-caption font-semibold text-destructive">Incomplete</span>}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {CONNECTION_STYLE_OPTIONS.map((c) => {
                   const selected = form.connection_styles.includes(c.value)
@@ -860,7 +897,10 @@ const MyProfile = () => {
 
             {/* Match priorities */}
             <div className="space-y-2">
-              <Label>What matters most when meeting another dad?</Label>
+              <div className="flex items-center justify-between">
+                <Label>What matters most when meeting another dad?</Label>
+                {incomplete.matchPriorities && <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-caption font-semibold text-destructive">Incomplete</span>}
+              </div>
               <div className="flex flex-wrap gap-2">
                 {MATCH_PRIORITY_OPTIONS.map((p) => {
                   const selected = form.match_priorities.includes(p.value)
@@ -890,9 +930,12 @@ const MyProfile = () => {
 
         {/* Interests */}
         <section className="rounded-lg bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Interests
-          </h3>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Interests
+            </h3>
+            {incomplete.interests && <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-caption font-semibold text-destructive">Incomplete</span>}
+          </div>
           <p className="mb-3 text-xs text-muted-foreground">
             Choose {MIN_INTERESTS}-{MAX_INTERESTS}.
           </p>
@@ -940,11 +983,14 @@ const MyProfile = () => {
 
         {/* Icebreakers */}
         <section className="rounded-lg bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Icebreakers
-          </h3>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Icebreakers
+            </h3>
+            {incomplete.icebreakers && <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-caption font-semibold text-destructive">Incomplete</span>}
+          </div>
           <p className="mb-3 text-xs text-muted-foreground">
-            Add up to {MAX_ICEBREAKERS}.
+            Add 3.
           </p>
 
           {/* Saved icebreakers */}
