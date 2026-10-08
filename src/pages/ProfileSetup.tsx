@@ -112,7 +112,7 @@ const ProfileSetup = () => {
   const [about, setAbout] = useState('')
 
   const [stages, setStages] = useState<string[]>([])
-  const [kidCount, setKidCount] = useState<number>(0)
+  const [kidCount, setKidCount] = useState<number | null>(null)
 
   const [goals, setGoals] = useState<string[]>([])
   const [primaryGoal, setPrimaryGoal] = useState<string | null>(null)
@@ -209,12 +209,13 @@ const ProfileSetup = () => {
         return null
       }
       case 'stages': {
+        if (kidCount === null) return 'Please enter the number of kids you have.'
         if (kidCount < 0 || kidCount >= 100) return 'Kid count must be between 0 and 99.'
         return null // stages optional
       }
       case 'goals': {
         if (goals.length === 0) return 'Please select at least one goal.'
-        if (goals.length > 1 && !primaryGoal) return 'Please select a primary goal.'
+        if (!primaryGoal) return 'Please select a primary goal.'
         return null
       }
       case 'connections':
@@ -257,7 +258,7 @@ const ProfileSetup = () => {
       case 'stages':
         return true
       case 'goals':
-        return goals.length > 0 && (goals.length === 1 || !!primaryGoal)
+        return goals.length > 0 && !!primaryGoal
       case 'connections':
         return connectionStyles.length > 0 && matchPriorities.length > 0
       case 'interests':
@@ -279,10 +280,6 @@ const ProfileSetup = () => {
     if (error) {
       toastError(error)
       return
-    }
-    // Auto-set primary goal if only one selected
-    if (step === 'goals' && goals.length === 1) {
-      setPrimaryGoal(goals[0])
     }
     setStepIndex(stepIndex + 1)
     window.scrollTo({ top: 0 })
@@ -324,8 +321,6 @@ const ProfileSetup = () => {
       .map((slug) => slugToId[slug])
       .filter(Boolean)
 
-    const effectivePrimaryGoal = goals.length === 1 ? goals[0] : primaryGoal
-
     const body = {
       name: name.trim(),
       date_of_birth: dob,
@@ -334,9 +329,9 @@ const ProfileSetup = () => {
       about: about.trim(),
       interests: interestUuids,
       children_age_ranges: stages,
-      kid_count: kidCount,
+      kid_count: kidCount!,
       goals,
-      primary_goal: effectivePrimaryGoal,
+      primary_goal: primaryGoal!,
       connection_styles: connectionStyles,
       match_priorities: matchPriorities,
       icebreakers: icebreakers.map((ib) => ({
@@ -665,11 +660,11 @@ const ProfileSetup = () => {
                 type="number"
                 min={0}
                 max={99}
-                value={kidCount}
+                value={kidCount ?? ''}
                 onChange={(e) => {
                   const v = parseInt(e.target.value, 10)
                   if (!Number.isNaN(v) && v >= 0 && v < 100) setKidCount(v)
-                  else if (e.target.value === '') setKidCount(0)
+                  else if (e.target.value === '') setKidCount(null)
                 }}
                 className="w-24 rounded-md border-border shadow-sm"
                 disabled={loading}
@@ -734,8 +729,11 @@ const ProfileSetup = () => {
                     onClick={() => {
                       const next = toggle(goals, g.value)
                       setGoals(next)
-                      if (primaryGoal && !next.includes(primaryGoal))
+                      if (next.length === 0) {
                         setPrimaryGoal(null)
+                      } else if (!next.includes(primaryGoal ?? '')) {
+                        setPrimaryGoal(next[0])
+                      }
                     }}
                     disabled={loading}
                     className={cn(
@@ -976,7 +974,7 @@ const ProfileSetup = () => {
                 Give dads something to start with
               </h2>
               <p className="text-sm text-muted-foreground">
-                You can add up to {MAX_ICEBREAKERS}.
+                Add at least 1 to get started. You can add up to {MAX_ICEBREAKERS}.
               </p>
             </div>
 
@@ -1337,7 +1335,7 @@ const ProfileSetup = () => {
                   <span className="text-sm leading-relaxed text-foreground">
                     Email me about new events, communities and product updates.
                     <span className="mt-0.5 block text-xs text-muted-foreground">
-                      Unsubscribe any time. Never required.
+                      Unsubscribe anytime.
                     </span>
                   </span>
                 </label>

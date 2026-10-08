@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/useAuth'
 import { useChat } from '@/contexts/useChat'
 import { ROUTES } from '@/lib/routes'
+import { getProfileIncomplete } from '@/lib/profileCompleteness'
 
 /**
  * App-wide status strips.
@@ -68,18 +69,19 @@ function IncompleteProfileBanner() {
 
   if (!user) return null
 
-  const isIncomplete =
-    !user.date_of_birth ||
-    !user.about ||
-    user.kid_count == null ||
-    !user.goals?.length ||
-    !user.primary_goal ||
-    !user.connection_styles?.length ||
-    !user.match_priorities?.length ||
-    (user.interests?.length ?? 0) < 3 ||
-    (user.icebreakers?.length ?? 0) < 3
+  const incomplete = getProfileIncomplete({
+    kid_count: user.kid_count,
+    date_of_birth: user.date_of_birth,
+    about: user.about,
+    goals: user.goals,
+    primary_goal: user.primary_goal,
+    connection_styles: user.connection_styles,
+    match_priorities: user.match_priorities,
+    interestCount: user.interests?.length ?? 0,
+    icebreakerCount: user.icebreakers?.length ?? 0,
+  })
 
-  if (!isIncomplete) return null
+  if (!Object.values(incomplete).some(Boolean)) return null
 
   return (
     <div className="shrink-0 bg-primary text-primary-foreground text-label py-2 flex items-center justify-center gap-2 text-center">
