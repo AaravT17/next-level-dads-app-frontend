@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,7 @@ import { getErrorMessage, isHttpStatus } from '@/utils/errors'
 
 const Login = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -83,7 +84,12 @@ const Login = () => {
         accessToken,
       })
       toastSuccess('Login successful', 'Welcome back!')
-      navigate(ROUTES.HOME_AFTER_AUTH)
+      const redirectTo = searchParams.get('redirectTo')
+      const destination =
+        redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+          ? redirectTo
+          : ROUTES.HOME_AFTER_AUTH
+      navigate(destination)
     } catch (err) {
       if (isHttpStatus(err, 404)) {
         // user exists but profile not set up — commit token so SetupRoute allows access

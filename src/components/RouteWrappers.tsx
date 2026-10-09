@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
 
@@ -40,10 +40,21 @@ function LoadingSpinner() {
 /** Requires a token and a profile. */
 export function ProtectedRoute() {
   const { user, accessToken, loading } = useAuth()
+  const location = useLocation()
   if (loading) return <LoadingSpinner />
 
   const gate = resolveAuthGate(accessToken, user)
-  if (gate.kind === 'redirect') return <Navigate to={gate.to} replace />
+  if (gate.kind === 'redirect') {
+    if (gate.to === ROUTES.WELCOME) {
+      const destination = location.pathname + location.search
+      const to =
+        destination !== ROUTES.HOME_AFTER_AUTH
+          ? `${ROUTES.WELCOME}?redirectTo=${encodeURIComponent(destination)}`
+          : ROUTES.WELCOME
+      return <Navigate to={to} replace />
+    }
+    return <Navigate to={gate.to} replace />
+  }
 
   return <Outlet />
 }
