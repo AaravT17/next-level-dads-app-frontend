@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Mail } from 'lucide-react'
 import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
@@ -14,8 +14,13 @@ import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 
 const Welcome = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const { setAuth } = useAuth()
+  const redirectTo = searchParams.get('redirectTo')
+  const validRedirectTo = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+    ? redirectTo
+    : null
 
   // Runs once, against the OAuth fragment the provider redirected back with.
   //
@@ -34,6 +39,14 @@ const Welcome = () => {
     const handleOAuthCallback = async () => {
       const hash = window.location.hash
       if (!hash.includes('access_token')) return
+
+      // Read redirectTo from search params before replaceState clears the URL
+      const oauthSearchParams = new URLSearchParams(window.location.search)
+      const oauthRedirectTo = oauthSearchParams.get('redirectTo')
+      const validOauthRedirectTo =
+        oauthRedirectTo && oauthRedirectTo.startsWith('/') && !oauthRedirectTo.startsWith('//')
+          ? oauthRedirectTo
+          : null
 
       // Parse tokens from hash (format: #access_token=xxx&refresh_token=xxx&...)
       const params = new URLSearchParams(hash.substring(1))
@@ -97,7 +110,7 @@ const Welcome = () => {
           },
           accessToken,
         })
-        navigate(ROUTES.HOME_AFTER_AUTH)
+        navigate(validOauthRedirectTo ?? ROUTES.HOME_AFTER_AUTH)
       } catch (err) {
         if (isHttpStatus(err, 404)) {
           // no profile yet — commit token so SetupRoute allows access
@@ -120,10 +133,14 @@ const Welcome = () => {
 
     setIsLoading(true)
     try {
+      const oauthRedirectUrl = new URL(`${import.meta.env.VITE_FRONTEND_BASE_URL}/`)
+      if (validRedirectTo) {
+        oauthRedirectUrl.searchParams.set('redirectTo', validRedirectTo)
+      }
       const { error } = await supabaseAuth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${import.meta.env.VITE_FRONTEND_BASE_URL}`,
+          redirectTo: oauthRedirectUrl.toString(),
         },
       })
       if (error) {
@@ -159,7 +176,13 @@ const Welcome = () => {
           <Button
             size="lg"
             className="w-full rounded-md font-semibold text-base bg-accent text-white hover:shadow-lg transition-shadow"
-            onClick={() => navigate(ROUTES.LOGIN)}
+            onClick={() =>
+              navigate(
+                validRedirectTo
+                  ? `${ROUTES.LOGIN}?redirectTo=${encodeURIComponent(validRedirectTo)}`
+                  : ROUTES.LOGIN,
+              )
+            }
             disabled={isLoading}
           >
             <Mail className="w-5 h-5 mr-2" />
