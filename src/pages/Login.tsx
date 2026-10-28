@@ -7,13 +7,14 @@ import { Eye, EyeOff } from 'lucide-react'
 import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
 import axiosPublic from '@/api/axiosPublic'
-import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
+import { setAccessToken } from '@/api/axiosPrivate'
+import { fetchMe } from '@/api/me'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useAuth } from '../contexts/useAuth'
 import { isValidEmail } from '@/utils/auth'
 import { toastError, toastSuccess } from '@/lib/toast'
-import { getErrorMessage, isHttpStatus } from '@/utils/errors'
-import { userFromResponse } from '@/lib/user'
+import { getErrorMessage } from '@/utils/errors'
+import { loadProfile } from '@/lib/loadProfile'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -49,11 +50,16 @@ const Login = () => {
       role = res.data.role ?? null
       setAccessToken(accessToken)
 
-      // fetch user profile before committing auth state
-      const userRes = await axiosPrivate.get('/api/users/me', {
-        timeout: TIMEOUT_LENGTH_MS,
-      })
-      setAuth({ user: userFromResponse(userRes.data), accessToken, role })
+      // Fetch the profile before committing auth state. A ghost role has none to
+      // fetch, and an account that has not been set up yet is sent to setup.
+      const profile = await loadProfile(role, fetchMe)
+      if (profile.kind === 'no-profile') {
+        // commit the token so SetupRoute allows access
+        setAuth({ user: null, accessToken, role })
+        navigate(ROUTES.SETUP)
+        return
+      }
+      setAuth({ user: profile.kind === 'member' ? profile.user : null, accessToken, role })
       toastSuccess('Login successful', 'Welcome back!')
       const redirectTo = searchParams.get('redirectTo')
       const destination =
@@ -62,12 +68,6 @@ const Login = () => {
           : ROUTES.HOME_AFTER_AUTH
       navigate(destination)
     } catch (err) {
-      if (isHttpStatus(err, 404)) {
-        // user exists but profile not set up — commit token so SetupRoute allows access
-        setAuth({ user: null, accessToken, role })
-        navigate(ROUTES.SETUP)
-        return
-      }
       setAccessToken(null)
       toastError(
         'Login failed',

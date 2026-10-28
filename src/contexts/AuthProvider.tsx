@@ -5,15 +5,15 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
-import axios from 'axios'
 import { AuthContext } from '@/contexts/AuthContext'
-import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { getErrorMessage } from '@/utils/errors'
 import { toastError } from '@/lib/toast'
 import { withAuth, withAuthFailure, withRefreshedToken, type AuthUpdate } from '@/lib/authState'
-import { userFromResponse } from '@/lib/user'
+import { restoreSession } from '@/lib/restoreSession'
+import { fetchMe } from '@/api/me'
 import { User, AuthState } from '../types/auth'
-import axiosPrivate, {
+import {
+  refreshAccessToken,
   registerAuthCallbacks,
   setAccessToken,
 } from '../api/axiosPrivate'
@@ -90,23 +90,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const hydrate = async () => {
       try {
-        const res = await axiosPrivate.get('/api/users/me', {
-          timeout: TIMEOUT_LENGTH_MS,
-        })
-        setState((prev) => ({ ...prev, user: userFromResponse(res.data) }))
-      } catch (err) {
-        // A 401 here is the ordinary signed-out case: the request goes out with
-        // no token, the interceptor tries the refresh cookie, and there is no
-        // valid one. Anything else — a timeout, an unreachable server, a 500 —
-        // is a real failure, and swallowing it rendered the app as "signed out"
-        // so a backend incident looked like an unexplained logout.
-        const status = axios.isAxiosError(err) ? err.response?.status : undefined
-        if (status !== 401 && status !== 403) {
+        // A refresh that succeeds has already put the token and role into state
+        // through onTokenRefresh above, so only the profile is left to apply.
+        const restored = await restoreSession(refreshAccessToken, fetchMe)
+        if (restored.kind === 'member') {
+          setState((prev) => ({ ...prev, user: restored.user }))
+        } else if (restored.kind === 'failed') {
+          // Anything but the ordinary signed-out case is a real failure, and
+          // swallowing it rendered the app as "signed out" so a backend incident
+          // looked like an unexplained logout.
           toastError(
             'Could not restore your session',
-            getErrorMessage(err, 'Something went wrong. Please try again.'),
+            getErrorMessage(restored.error, 'Something went wrong. Please try again.'),
           )
         }
+        // Signed out, a ghost, and an account not yet set up are all outcomes and
+        // not errors: the route guards take it from here.
       } finally {
         setLoading(false)
       }

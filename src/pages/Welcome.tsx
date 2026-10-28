@@ -7,9 +7,10 @@ import { supabaseAuth } from '@/lib/supabase'
 import { toastError } from '@/lib/toast'
 import { useEffect, useState } from 'react'
 import axiosPublic from '@/api/axiosPublic'
-import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
-import { isHttpStatus } from '@/utils/errors'
-import { userFromResponse } from '@/lib/user'
+import { setAccessToken } from '@/api/axiosPrivate'
+import { fetchMe } from '@/api/me'
+import { getErrorMessage } from '@/utils/errors'
+import { loadProfile } from '@/lib/loadProfile'
 import { useAuth } from '../contexts/useAuth'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 
@@ -76,21 +77,23 @@ const Welcome = () => {
         role = res.data.role ?? null
         setAccessToken(accessToken)
 
-        // fetch user profile before committing auth state
-        const userRes = await axiosPrivate.get('/api/users/me', {
-          timeout: TIMEOUT_LENGTH_MS,
-        })
-        setAuth({ user: userFromResponse(userRes.data), accessToken, role })
-        navigate(validOauthRedirectTo ?? ROUTES.HOME_AFTER_AUTH)
-      } catch (err) {
-        if (isHttpStatus(err, 404)) {
-          // no profile yet — commit token so SetupRoute allows access
+        // Fetch the profile before committing auth state. A ghost role has none to
+        // fetch, and an account that has not been set up yet is sent to setup.
+        const profile = await loadProfile(role, fetchMe)
+        if (profile.kind === 'no-profile') {
+          // commit the token so SetupRoute allows access
           setAuth({ user: null, accessToken, role })
           navigate(ROUTES.SETUP)
           return
         }
+        setAuth({ user: profile.kind === 'member' ? profile.user : null, accessToken, role })
+        navigate(validOauthRedirectTo ?? ROUTES.HOME_AFTER_AUTH)
+      } catch (err) {
         setAccessToken(null)
-        toastError('Sign in failed', 'An error occurred during Google sign in.')
+        toastError(
+          'Sign in failed',
+          getErrorMessage(err, 'An error occurred during Google sign in.'),
+        )
       } finally {
         setIsLoading(false)
       }
