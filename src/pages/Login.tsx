@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/useAuth'
 import { isValidEmail } from '@/utils/auth'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { getErrorMessage, isHttpStatus } from '@/utils/errors'
+import { userFromResponse } from '@/lib/user'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -37,6 +38,7 @@ const Login = () => {
     }
     setIsLoading(true)
     let accessToken: string | null = null
+    let role: string | null = null
     try {
       const res = await axiosPublic.post(
         '/api/auth/login',
@@ -44,45 +46,14 @@ const Login = () => {
         { timeout: TIMEOUT_LENGTH_MS },
       )
       accessToken = res.data.access_token
+      role = res.data.role ?? null
       setAccessToken(accessToken)
 
       // fetch user profile before committing auth state
       const userRes = await axiosPrivate.get('/api/users/me', {
         timeout: TIMEOUT_LENGTH_MS,
       })
-      setAuth({
-        user: {
-          id: userRes.data.id,
-          name: userRes.data.name,
-          age: userRes.data.age,
-          date_of_birth: userRes.data.date_of_birth,
-          city: userRes.data.city,
-          province: userRes.data.province,
-          about: userRes.data.about,
-          avatarUrl: userRes.data.avatar_url,
-          interests: userRes.data.interests ?? [],
-          children_age_ranges: userRes.data.children_age_ranges ?? [],
-          kid_count: userRes.data.kid_count ?? null,
-          goals: userRes.data.goals ?? null,
-          primary_goal: userRes.data.primary_goal ?? null,
-          connection_styles: userRes.data.connection_styles ?? null,
-          match_priorities: userRes.data.match_priorities ?? null,
-          icebreakers: userRes.data.icebreakers ?? null,
-          isAdmin: userRes.data.is_admin ?? false,
-          preferences: {
-            marketing_emails_opt_in: userRes.data.preferences?.marketing_emails_opt_in ?? false,
-          },
-          legal_acceptances: {
-            terms: userRes.data.legal_acceptances?.terms ?? false,
-            privacy_policy: userRes.data.legal_acceptances?.privacy_policy ?? false,
-          },
-          notificationState: {
-            lastReadAt: userRes.data.notification_state?.last_read_at ?? null,
-            lastClearedAt: userRes.data.notification_state?.last_cleared_at ?? null,
-          },
-        },
-        accessToken,
-      })
+      setAuth({ user: userFromResponse(userRes.data), accessToken, role })
       toastSuccess('Login successful', 'Welcome back!')
       const redirectTo = searchParams.get('redirectTo')
       const destination =
@@ -93,7 +64,7 @@ const Login = () => {
     } catch (err) {
       if (isHttpStatus(err, 404)) {
         // user exists but profile not set up — commit token so SetupRoute allows access
-        setAuth({ user: null, accessToken })
+        setAuth({ user: null, accessToken, role })
         navigate(ROUTES.SETUP)
         return
       }

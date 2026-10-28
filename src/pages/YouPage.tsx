@@ -18,6 +18,7 @@ import { UserAvatar } from '@/components/media/UserAvatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
+import { isAdminRole } from '@/lib/roles'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { UserStats } from '@/types/users'
@@ -39,7 +40,7 @@ type Row = {
 const YouPage = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, setAuth } = useAuth()
+  const { user, role, setAuth } = useAuth()
 
   const { data: stats } = useQuery({
     queryKey: ['user', 'stats'],
@@ -92,7 +93,7 @@ const YouPage = () => {
       icon: Settings,
       description: 'Preferences, legal and account',
     },
-    ...(user.isAdmin
+    ...(isAdminRole(role)
       ? [
           {
             label: 'Moderation dashboard',

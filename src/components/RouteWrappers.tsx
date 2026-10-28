@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
+import { isAdminRole } from '@/lib/roles'
 
 /**
  * Route guards.
@@ -72,13 +73,13 @@ export function PublicRoute() {
   return <Outlet />
 }
 
-/** Requires full auth plus the admin flag. */
+/** Requires full auth plus the admin role. */
 export function AdminRoute() {
-  const { user, accessToken, loading } = useAuth()
+  const { user, accessToken, role, loading } = useAuth()
   if (loading) return <LoadingSpinner />
 
   if (!accessToken || !user) return <Navigate to={ROUTES.WELCOME} replace />
-  if (!user.isAdmin) return <Navigate to={ROUTES.HOME_AFTER_AUTH} replace />
+  if (!isAdminRole(role)) return <Navigate to={ROUTES.HOME_AFTER_AUTH} replace />
 
   return <Outlet />
 }

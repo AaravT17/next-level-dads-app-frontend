@@ -49,6 +49,7 @@ import axiosPrivate from '@/api/axiosPrivate'
 import { useAuth } from '@/contexts/useAuth'
 import { toastError } from '@/lib/toast'
 import { getErrorMessage } from '@/utils/errors'
+import { userFromResponse } from '@/lib/user'
 import { cn } from '@/lib/utils'
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -371,32 +372,15 @@ const ProfileSetup = () => {
       // Hydrate auth state once at the end
       setAuth({
         user: {
-          id: res.data.id,
-          name: res.data.name,
-          age: res.data.age,
-          date_of_birth: res.data.date_of_birth,
-          city: res.data.city,
-          province: res.data.province,
-          about: res.data.about,
+          ...userFromResponse(res.data),
+          // The photo may have been uploaded after the profile was created.
           avatarUrl,
-          interests: res.data.interests ?? [],
-          children_age_ranges: res.data.children_age_ranges ?? [],
-          kid_count: res.data.kid_count ?? null,
-          goals: res.data.goals ?? null,
-          primary_goal: res.data.primary_goal ?? null,
-          connection_styles: res.data.connection_styles ?? null,
-          match_priorities: res.data.match_priorities ?? null,
-          icebreakers: res.data.icebreakers ?? null,
-          isAdmin: res.data.is_admin ?? false,
+          // Fall back to what they just chose, and they have just accepted both documents.
           preferences: {
             marketing_emails_opt_in:
               res.data.preferences?.marketing_emails_opt_in ?? marketingOptIn,
           },
           legal_acceptances: { terms: true, privacy_policy: true },
-          notificationState: {
-            lastReadAt: res.data.notification_state?.last_read_at ?? null,
-            lastClearedAt: res.data.notification_state?.last_cleared_at ?? null,
-          },
         },
         accessToken,
       })

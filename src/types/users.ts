@@ -15,6 +15,33 @@ export interface IcebreakerEntry {
   answer: string
 }
 
+/**
+ * The signed-in user's own profile, as GET /api/users/me returns it. The create
+ * and update endpoints answer with the same shape. Fields the backend can omit
+ * are optional here, and `userFromResponse` is where each one gets its default.
+ */
+export interface MeResponse {
+  id: string
+  name: string
+  age: number | null
+  date_of_birth: string | null
+  city: string
+  province: string
+  about: string
+  avatar_url: string | null
+  interests?: InterestItem[]
+  children_age_ranges?: string[]
+  kid_count?: number | null
+  goals?: string[] | null
+  primary_goal?: string | null
+  connection_styles?: string[] | null
+  match_priorities?: string[] | null
+  icebreakers?: IcebreakerEntry[] | null
+  preferences?: { marketing_emails_opt_in?: boolean }
+  legal_acceptances?: { terms?: boolean; privacy_policy?: boolean }
+  notification_state?: { last_read_at?: string | null; last_cleared_at?: string | null }
+}
+
 export interface Profile {
   id: string
   created_at: string

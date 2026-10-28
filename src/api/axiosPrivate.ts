@@ -33,7 +33,13 @@ axiosPrivate.interceptors.request.use((config) => {
   return config
 })
 
-let refreshPromise: Promise<string> | null = null
+// What a successful refresh hands back: the new access token and the account's role.
+export interface RefreshResult {
+  token: string
+  role: string | null
+}
+
+let refreshPromise: Promise<RefreshResult> | null = null
 
 /**
  * Refresh the access token, collapsing concurrent callers onto one request.
@@ -48,7 +54,7 @@ let refreshPromise: Promise<string> | null = null
  * Everyone needing a refresh awaits the same promise, cleared once it settles
  * so the next expiry starts a fresh one.
  */
-export function refreshAccessToken(): Promise<string> {
+export function refreshAccessToken(): Promise<RefreshResult> {
   if (!refreshPromise) {
     refreshPromise = axios
       .post(
@@ -57,9 +63,12 @@ export function refreshAccessToken(): Promise<string> {
         { withCredentials: true },
       )
       .then((res) => {
-        const newToken = res.data.access_token as string
-        authCallbacks?.onTokenRefresh(newToken)
-        return newToken
+        const result: RefreshResult = {
+          token: res.data.access_token as string,
+          role: (res.data.role ?? null) as string | null,
+        }
+        authCallbacks?.onTokenRefresh(result.token, result.role)
+        return result
       })
       .finally(() => {
         refreshPromise = null
@@ -74,7 +83,7 @@ axiosPrivate.interceptors.response.use(
     if (error.response?.status === 401 && !error.config._isRetry) {
       error.config._isRetry = true
       try {
-        const newToken = await refreshAccessToken()
+        const { token: newToken } = await refreshAccessToken()
         error.config.headers['Authorization'] = `Bearer ${newToken}`
         return axiosPrivate(error.config)
       } catch {

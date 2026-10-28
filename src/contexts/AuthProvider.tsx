@@ -10,6 +10,8 @@ import { AuthContext } from '@/contexts/AuthContext'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { getErrorMessage } from '@/utils/errors'
 import { toastError } from '@/lib/toast'
+import { withAuth, withAuthFailure, withRefreshedToken, type AuthUpdate } from '@/lib/authState'
+import { userFromResponse } from '@/lib/user'
 import { User, AuthState } from '../types/auth'
 import axiosPrivate, {
   registerAuthCallbacks,
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
     accessToken: null,
+    role: null,
     loading: true,
   })
 
@@ -31,17 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // in auth state changed, and no effect could honestly depend on setAuth
   // without re-running constantly. Both updaters are already functional, so
   // neither closes over state and an empty dep list is correct.
-  const setAuth = useCallback(
-    (auth: { user: User | null; accessToken: string | null }) => {
-      setAccessToken(auth.accessToken)
-      setState((prev) => ({
-        ...prev,
-        user: auth.user,
-        accessToken: auth.accessToken,
-      }))
-    },
-    [],
-  )
+  const setAuth = useCallback((auth: AuthUpdate) => {
+    setAccessToken(auth.accessToken)
+    setState((prev) => withAuth(prev, auth))
+  }, [])
 
   const setLoading = useCallback((loading: boolean) => {
     setState((prev) => ({
@@ -82,13 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     registerAuthCallbacks({
-      onTokenRefresh: (token) => {
+      onTokenRefresh: (token, role) => {
         setAccessToken(token)
-        setState((prev) => ({ ...prev, accessToken: token }))
+        setState((prev) => withRefreshedToken(prev, token, role))
       },
       onAuthFailure: () => {
         setAccessToken(null)
-        setState((prev) => ({ ...prev, user: null, accessToken: null }))
+        setState((prev) => withAuthFailure(prev))
       },
     })
 
@@ -97,39 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await axiosPrivate.get('/api/users/me', {
           timeout: TIMEOUT_LENGTH_MS,
         })
-        setState((prev) => ({
-          ...prev,
-          user: {
-            id: res.data.id,
-            name: res.data.name,
-            age: res.data.age,
-            date_of_birth: res.data.date_of_birth,
-            city: res.data.city,
-            province: res.data.province,
-            about: res.data.about,
-            avatarUrl: res.data.avatar_url,
-            interests: res.data.interests ?? [],
-            children_age_ranges: res.data.children_age_ranges ?? [],
-            kid_count: res.data.kid_count ?? null,
-            goals: res.data.goals ?? null,
-            primary_goal: res.data.primary_goal ?? null,
-            connection_styles: res.data.connection_styles ?? null,
-            match_priorities: res.data.match_priorities ?? null,
-            icebreakers: res.data.icebreakers ?? null,
-            isAdmin: res.data.is_admin ?? false,
-            preferences: {
-              marketing_emails_opt_in: res.data.preferences?.marketing_emails_opt_in ?? false,
-            },
-            legal_acceptances: {
-              terms: res.data.legal_acceptances?.terms ?? false,
-              privacy_policy: res.data.legal_acceptances?.privacy_policy ?? false,
-            },
-            notificationState: {
-              lastReadAt: res.data.notification_state?.last_read_at ?? null,
-              lastClearedAt: res.data.notification_state?.last_cleared_at ?? null,
-            },
-          },
-        }))
+        setState((prev) => ({ ...prev, user: userFromResponse(res.data) }))
       } catch (err) {
         // A 401 here is the ordinary signed-out case: the request goes out with
         // no token, the interceptor tries the refresh cookie, and there is no
