@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
-import { isAdminRole } from '@/lib/roles'
+import { adminGate, protectedGate, publicGate, setupGate } from '@/lib/authGate'
 
 /**
  * Route guards.
@@ -9,25 +9,14 @@ import { isAdminRole } from '@/lib/roles'
  * Each renders an <Outlet /> so guards compose as parent routes rather than
  * wrapping every element individually.
  *
+ * What each one decides lives in lib/authGate.ts, as explicit allow/redirect
+ * decisions rather than a path compared against a sentinel route. These
+ * components only act on the answer.
+ *
  * The status banners that used to live here moved to
  * components/layout/SystemBanners.tsx, where they render in normal flow
  * instead of covering the page header.
  */
-
-type AuthGate = { kind: 'allow' } | { kind: 'redirect'; to: string }
-
-/**
- * Resolves auth state to an explicit decision.
- *
- * The previous version returned a *path* and callers compared it against
- * ROUTES.DISCOVER to mean "authenticated" — a sentinel that ties the auth gate
- * to whatever the discover tab happens to be called.
- */
-function resolveAuthGate(accessToken: string | null, user: unknown | null): AuthGate {
-  if (!accessToken) return { kind: 'redirect', to: ROUTES.WELCOME }
-  if (!user) return { kind: 'redirect', to: ROUTES.SETUP }
-  return { kind: 'allow' }
-}
 
 function LoadingSpinner() {
   return (
@@ -38,13 +27,13 @@ function LoadingSpinner() {
   )
 }
 
-/** Requires a token and a profile. */
+/** Requires a token, and a profile unless the role is one that browses without. */
 export function ProtectedRoute() {
-  const { user, accessToken, loading } = useAuth()
+  const { user, accessToken, role, loading } = useAuth()
   const location = useLocation()
   if (loading) return <LoadingSpinner />
 
-  const gate = resolveAuthGate(accessToken, user)
+  const gate = protectedGate({ accessToken, user, role })
   if (gate.kind === 'redirect') {
     if (gate.to === ROUTES.WELCOME) {
       const destination = location.pathname + location.search
@@ -62,35 +51,33 @@ export function ProtectedRoute() {
 
 /** Login and registration screens: sends already-authenticated users onward. */
 export function PublicRoute() {
-  const { user, accessToken, loading } = useAuth()
+  const { user, accessToken, role, loading } = useAuth()
   if (loading) return <LoadingSpinner />
 
-  if (accessToken) {
-    const gate = resolveAuthGate(accessToken, user)
-    return <Navigate to={gate.kind === 'redirect' ? gate.to : ROUTES.HOME_AFTER_AUTH} replace />
-  }
+  const gate = publicGate({ accessToken, user, role })
+  if (gate.kind === 'redirect') return <Navigate to={gate.to} replace />
 
   return <Outlet />
 }
 
-/** Requires full auth plus the admin role. */
+/** The admin role only. It does not need a profile: an admin browses without one. */
 export function AdminRoute() {
   const { user, accessToken, role, loading } = useAuth()
   if (loading) return <LoadingSpinner />
 
-  if (!accessToken || !user) return <Navigate to={ROUTES.WELCOME} replace />
-  if (!isAdminRole(role)) return <Navigate to={ROUTES.HOME_AFTER_AUTH} replace />
+  const gate = adminGate({ accessToken, user, role })
+  if (gate.kind === 'redirect') return <Navigate to={gate.to} replace />
 
   return <Outlet />
 }
 
-/** Profile setup: a token but no profile yet. */
+/** Profile setup: a token but no profile yet. A role that browses without a profile skips it. */
 export function SetupRoute() {
-  const { user, accessToken, loading } = useAuth()
+  const { user, accessToken, role, loading } = useAuth()
   if (loading) return <LoadingSpinner />
 
-  if (!accessToken) return <Navigate to={ROUTES.WELCOME} replace />
-  if (user) return <Navigate to={ROUTES.ONBOARDING_WELCOME} replace />
+  const gate = setupGate({ accessToken, user, role })
+  if (gate.kind === 'redirect') return <Navigate to={gate.to} replace />
 
   return <Outlet />
 }
