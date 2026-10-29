@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { ArrowLeft, Search, Loader2, Shield, ShieldOff, UserMinus, UserPlus, LogOut, Pencil, Check, X } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { toast } from 'sonner'
+import axios from 'axios'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS, PARTICIPANTS_PAGE_LIMIT } from '@/config/constants'
 import { useAuth } from '@/contexts/useAuth'
@@ -46,7 +47,7 @@ const ChatManage = () => {
   // Chat metadata (reuse cache from Chat.tsx)
   // ============================================
 
-  const { data: chatData } = useQuery({
+  const { data: chatData, error: chatError } = useQuery({
     queryKey: ['chats', chatId],
     queryFn: async () => {
       const res = await axiosPrivate.get<Chat>(`/api/chats/${chatId}`, {
@@ -62,6 +63,16 @@ const ChatManage = () => {
     enabled: !!chatId,
     staleTime: Infinity,
   })
+
+  // Same as Chat.tsx: a chat this account cannot see (not a member, removed, deleted, or a
+  // ghost role opening a link) goes back to the list instead of leaving an empty page.
+  useEffect(() => {
+    if (!chatError) return
+    if (axios.isAxiosError(chatError) && (chatError.response?.status === 403 || chatError.response?.status === 404 || chatError.response?.status === 422)) {
+      toast.error('This chat is no longer available.')
+      navigate(ROUTES.CHATS, { replace: true })
+    }
+  }, [chatError, navigate])
 
   // ============================================
   // Participants query

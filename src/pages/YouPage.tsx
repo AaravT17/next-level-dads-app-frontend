@@ -18,10 +18,11 @@ import { UserAvatar } from '@/components/media/UserAvatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
-import { isAdminRole } from '@/lib/roles'
+import { isAdminRole, isGhostRole } from '@/lib/roles'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useUserStats } from '@/hooks/useNavBadges'
+import { usePersonalUser } from '@/hooks/usePersonalUser'
 
 /**
  * Your hub.
@@ -40,7 +41,8 @@ type Row = {
 const YouPage = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, role, setAuth } = useAuth()
+  const { role, setAuth } = useAuth()
+  const user = usePersonalUser()
 
   const { data: stats } = useUserStats()
 
@@ -109,7 +111,13 @@ const YouPage = () => {
       <PageContainer className="space-y-6 animate-fade-in">
         {/* Avatar + name + location + kids */}
         <section className="flex flex-col items-center text-center gap-3">
-          <UserAvatar name={user.name} src={user.avatarUrl} size="xl" shape="rounded" />
+          <UserAvatar
+            name={user.name}
+            src={user.avatarUrl}
+            icon={isGhostRole(role) ? Shield : undefined}
+            size="xl"
+            shape="rounded"
+          />
           <div>
             <h2 className="font-heading text-heading text-foreground">{user.name}</h2>
             {(user.city || user.province) && (

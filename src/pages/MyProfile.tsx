@@ -25,6 +25,7 @@ import {
   Calendar as CalendarIcon,
   Pencil,
   Search,
+  Shield,
   Trash2,
   Upload,
 } from 'lucide-react'
@@ -56,8 +57,10 @@ import {
 } from '@/config/constants'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import { getProfileIncomplete } from '@/lib/profileCompleteness'
+import { PROFILE_COMPLETE, getProfileIncomplete } from '@/lib/profileCompleteness'
+import { isGhostRole } from '@/lib/roles'
 import { userFromResponse } from '@/lib/user'
+import { usePersonalUser } from '@/hooks/usePersonalUser'
 import type { InterestItem, IcebreakerEntry } from '@/types/users'
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -147,7 +150,10 @@ function icebreakersEqual(a: IcebreakerEntry[], b: IcebreakerEntry[]): boolean {
 const MyProfile = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, accessToken, setAuth } = useAuth()
+  const { user, role, accessToken, setAuth } = useAuth()
+  // What to draw and seed the form from. `user` stays the real profile, which is all that may be saved back.
+  const profile = usePersonalUser()
+  const ghost = isGhostRole(role)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [isLoading, setIsLoading] = useState(false)
@@ -171,12 +177,12 @@ const MyProfile = () => {
 
   // Initialize form from user
   useEffect(() => {
-    if (user) {
-      const state = userToForm(user)
+    if (profile) {
+      const state = userToForm(profile)
       setOriginal(state)
       setForm({ ...state, icebreakers: state.icebreakers.map((ib) => ({ ...ib })) })
     }
-  }, [user])
+  }, [profile])
 
   // Fetch interest options
   useEffect(() => {
@@ -447,8 +453,8 @@ const MyProfile = () => {
   }
 
   const handleCancel = () => {
-    if (user) {
-      const state = userToForm(user)
+    if (profile) {
+      const state = userToForm(profile)
       setOriginal(state)
       setForm({ ...state, icebreakers: state.icebreakers.map((ib) => ({ ...ib })) })
     }
@@ -502,21 +508,24 @@ const MyProfile = () => {
 
   // ── Guard ──────────────────────────────────────────────────────
 
-  if (!user || !form) return null
+  if (!profile || !form) return null
 
-  const displayAvatar = avatarPreview || user.avatarUrl || avatarDefaultGrey
+  const displayAvatar = avatarPreview || profile.avatarUrl || avatarDefaultGrey
 
-  const incomplete = getProfileIncomplete({
-    kid_count: form.kid_count,
-    date_of_birth: form.date_of_birth || null,
-    about: form.about || null,
-    goals: form.goals,
-    primary_goal: form.primary_goal || null,
-    connection_styles: form.connection_styles,
-    match_priorities: form.match_priorities,
-    interestCount: form.interest_slugs.length,
-    icebreakerCount: form.icebreakers.length,
-  })
+  // A ghost has no profile to complete, so nothing is flagged.
+  const incomplete = ghost
+    ? PROFILE_COMPLETE
+    : getProfileIncomplete({
+        kid_count: form.kid_count,
+        date_of_birth: form.date_of_birth || null,
+        about: form.about || null,
+        goals: form.goals,
+        primary_goal: form.primary_goal || null,
+        connection_styles: form.connection_styles,
+        match_priorities: form.match_priorities,
+        interestCount: form.interest_slugs.length,
+        icebreakerCount: form.icebreakers.length,
+      })
 
   return (
     <>
@@ -527,11 +536,17 @@ const MyProfile = () => {
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">
             <div className="h-32 w-32 overflow-hidden rounded-lg border-4 border-primary/20">
-              <img
-                src={displayAvatar}
-                alt={user.name}
-                className={cn('h-full w-full object-cover', isLoading && 'opacity-50')}
-              />
+              {ghost && !avatarPreview ? (
+                <div className="flex h-full w-full items-center justify-center bg-primary text-primary-foreground">
+                  <Shield aria-label={profile.name} className="h-1/2 w-1/2" />
+                </div>
+              ) : (
+                <img
+                  src={displayAvatar}
+                  alt={profile.name}
+                  className={cn('h-full w-full object-cover', isLoading && 'opacity-50')}
+                />
+              )}
               {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -554,7 +569,7 @@ const MyProfile = () => {
                   <Upload className="mr-2 h-4 w-4" />
                   Upload Photo
                 </DropdownMenuItem>
-                {user.avatarUrl && (
+                {profile.avatarUrl && (
                   <DropdownMenuItem
                     onClick={handleRemoveAvatar}
                     className="text-destructive focus:text-destructive"
@@ -1136,7 +1151,7 @@ const MyProfile = () => {
           <Button
             className="w-full rounded-md bg-gradient-gold font-semibold"
             onClick={handleSave}
-            disabled={isLoading}
+            disabled={isLoading || ghost}
           >
             {isLoading ? 'Saving...' : 'Save Changes'}
           </Button>

@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useAuth } from '@/contexts/useAuth'
 import { useNotification } from '@/contexts/useNotification'
+import { usePersonalUser } from '@/hooks/usePersonalUser'
 import { ThemePicker } from '@/components/settings/ThemePicker'
 import { toastError } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
@@ -43,6 +44,8 @@ const SettingsPage = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user, accessToken, setAuth } = useAuth()
+  // What to draw. `user` stays the real profile, which is all that may be saved back.
+  const profile = usePersonalUser()
   const { bannersEnabled, setBannersEnabled } = useNotification()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
@@ -82,7 +85,7 @@ const SettingsPage = () => {
     }
   }
 
-  if (!user) return null
+  if (!profile) return null
 
   return (
     <>
@@ -117,7 +120,7 @@ const SettingsPage = () => {
             </label>
             <Switch
               id="marketing-toggle"
-              checked={user.preferences.marketing_emails_opt_in}
+              checked={profile.preferences.marketing_emails_opt_in}
               disabled={updatePreferences.isPending}
               onCheckedChange={(checked) => updatePreferences.mutate(checked)}
             />

@@ -1,8 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
+import { Shield } from 'lucide-react'
 import { useAuth } from '@/contexts/useAuth'
 import { UserAvatar } from '@/components/media/UserAvatar'
 import { usePendingRequestCount } from '@/hooks/useNavBadges'
 import { ROUTES } from '@/lib/routes'
+import { isGhostRole } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { NavBadge } from './NavBadge'
 
@@ -17,7 +19,7 @@ import { NavBadge } from './NavBadge'
  * thing on the hub that is time-sensitive.
  */
 export function AccountButton({ className }: { className?: string }) {
-  const { user } = useAuth()
+  const { user, role } = useAuth()
   const { pathname } = useLocation()
   const pending = usePendingRequestCount()
   const active = pathname.startsWith('/you')
@@ -32,6 +34,7 @@ export function AccountButton({ className }: { className?: string }) {
       <UserAvatar
         name={user?.name}
         src={user?.avatarUrl}
+        icon={isGhostRole(role) ? Shield : undefined}
         size="sm"
         className={cn(
           'transition-transform duration-fast',

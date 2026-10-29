@@ -32,3 +32,22 @@ export function getProfileIncomplete(data: ProfileCompletenessInput) {
     icebreakers: data.icebreakerCount < 3,
   }
 }
+
+export type ProfileIncomplete = ReturnType<typeof getProfileIncomplete>
+
+/**
+ * Nothing flagged. For someone with no profile to complete, such as an admin
+ * browsing without one, so the "Incomplete" markers stay off. Typed as the full
+ * map, so a field added above has to be added here too.
+ */
+export const PROFILE_COMPLETE: ProfileIncomplete = {
+  dateOfBirth: false,
+  about: false,
+  kidCount: false,
+  goals: false,
+  primaryGoal: false,
+  connectionStyles: false,
+  matchPriorities: false,
+  interests: false,
+  icebreakers: false,
+}

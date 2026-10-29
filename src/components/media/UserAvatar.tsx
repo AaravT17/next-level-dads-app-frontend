@@ -1,4 +1,4 @@
-import { Users } from 'lucide-react'
+import { Users, type LucideIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { initials } from '@/utils/format'
 import { cn } from '@/lib/utils'
@@ -22,6 +22,8 @@ export type UserAvatarProps = {
   shape?: 'circle' | 'rounded'
   /** When false, renders a generic group icon instead of initials. Use for group chats. */
   showInitials?: boolean
+  /** Drawn in place of the initials, for an identity that has no name to take them from, like an admin's. */
+  icon?: LucideIcon
   className?: string
 }
 
@@ -39,21 +41,23 @@ export function UserAvatar({
   size = 'sm',
   shape = 'circle',
   showInitials = true,
+  icon,
   className,
 }: UserAvatarProps) {
   const radius = shape === 'circle' ? 'rounded-full' : 'rounded-lg'
+  const Icon = icon ?? (showInitials ? null : Users)
   return (
     <Avatar className={cn(SIZE[size], radius, 'shrink-0', className)}>
       <AvatarImage src={src ?? undefined} alt={name ?? ''} className={radius} />
       <AvatarFallback
         className={cn(
           radius,
-          showInitials
+          showInitials || icon
             ? 'bg-primary text-primary-foreground font-heading font-semibold'
             : 'bg-muted text-muted-foreground',
         )}
       >
-        {showInitials ? initials(name) : <Users className="w-1/2 h-1/2" />}
+        {Icon ? <Icon className="w-1/2 h-1/2" /> : initials(name)}
       </AvatarFallback>
     </Avatar>
   )
