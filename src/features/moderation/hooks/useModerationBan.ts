@@ -1,12 +1,17 @@
 import axios from 'axios'
 import { formatDistanceToNow } from 'date-fns'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/useAuth'
+import { useMemberQuery } from '@/hooks/useMemberQuery'
+import type { BanStatus } from '@/types/moderation'
 import { moderationApi } from '../api/moderationApi'
 import { moderationKeys } from './moderationKeys'
 
 const BAN_REFETCH_MS = 60_000
+
+/** What a ghost sees: no ban, because it cannot post. */
+const NOT_BANNED: BanStatus = { banned: false, expires_at: null }
 
 /** What the user was trying to write — drives the failure-toast copy. */
 export type PostFailureContext = 'conversation' | 'reply' | 'message'
@@ -54,12 +59,15 @@ export function useModerationBan(): BanGate {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
-  const { data } = useQuery({
-    queryKey: moderationKeys.ban(),
-    queryFn: moderationApi.getBanStatus,
-    enabled: !!user,
-    refetchInterval: user ? BAN_REFETCH_MS : false,
-  })
+  const { data } = useMemberQuery(
+    {
+      queryKey: moderationKeys.ban(),
+      queryFn: moderationApi.getBanStatus,
+      enabled: !!user,
+      refetchInterval: user ? BAN_REFETCH_MS : false,
+    },
+    NOT_BANNED,
+  )
 
   const isBanned = !!data?.banned
   const notice = isBanned ? suspensionNotice(data?.expires_at ?? null) : null

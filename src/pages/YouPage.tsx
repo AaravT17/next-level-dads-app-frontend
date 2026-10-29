@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Baby,
   ChevronRight,
@@ -21,7 +21,7 @@ import { ROUTES } from '@/lib/routes'
 import { isAdminRole } from '@/lib/roles'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
-import type { UserStats } from '@/types/users'
+import { useUserStats } from '@/hooks/useNavBadges'
 
 /**
  * Your hub.
@@ -42,16 +42,7 @@ const YouPage = () => {
   const queryClient = useQueryClient()
   const { user, role, setAuth } = useAuth()
 
-  const { data: stats } = useQuery({
-    queryKey: ['user', 'stats'],
-    queryFn: async () => {
-      const res = await axiosPrivate.get<UserStats>('/api/users/me/stats', {
-        timeout: TIMEOUT_LENGTH_MS,
-      })
-      return res.data
-    },
-    staleTime: 1000 * 60,
-  })
+  const { data: stats } = useUserStats()
 
   const handleLogout = async () => {
     try {

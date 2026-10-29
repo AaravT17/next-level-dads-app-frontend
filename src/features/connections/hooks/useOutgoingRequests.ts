@@ -1,5 +1,6 @@
-import { useInfiniteQuery } from '@tanstack/react-query'
 import { PROFILES_PAGE_LIMIT } from '@/config/constants'
+import { useMemberInfiniteQuery } from '@/hooks/useMemberQuery'
+import { emptyPages } from '@/lib/memberQuery'
 import type { ConnectionsCursor, ConnectionsFilters } from '@/types/users'
 import { fetchOutgoingRequests } from '../api/requestsApi'
 
@@ -19,19 +20,22 @@ export const sentRequestsQueryKey = (filters: ConnectionsFilters) =>
  * the request is still open.
  */
 export function useOutgoingRequests(filters: ConnectionsFilters) {
-  return useInfiniteQuery({
-    queryKey: sentRequestsQueryKey(filters),
-    queryFn: ({ pageParam }) => fetchOutgoingRequests(filters, pageParam),
-    initialPageParam: undefined as ConnectionsCursor | undefined,
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 60 * 5,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
-      const lastItem = lastPage[lastPage.length - 1]
-      return {
-        cursor_id: lastItem.connection_id,
-        cursor_updated_at: lastItem.connection_updated_at,
-      }
+  return useMemberInfiniteQuery(
+    {
+      queryKey: sentRequestsQueryKey(filters),
+      queryFn: ({ pageParam }) => fetchOutgoingRequests(filters, pageParam),
+      initialPageParam: undefined as ConnectionsCursor | undefined,
+      staleTime: 1000 * 60 * 2,
+      gcTime: 1000 * 60 * 5,
+      getNextPageParam: (lastPage) => {
+        if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
+        const lastItem = lastPage[lastPage.length - 1]
+        return {
+          cursor_id: lastItem.connection_id,
+          cursor_updated_at: lastItem.connection_updated_at,
+        }
+      },
     },
-  })
+    emptyPages(),
+  )
 }

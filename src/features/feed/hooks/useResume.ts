@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMemberQuery } from '@/hooks/useMemberQuery'
 import { resumeApi } from '../api/resumeApi'
 import { feedKeys } from './feedKeys'
 
@@ -13,10 +13,14 @@ import { feedKeys } from './feedKeys'
  * that renders nothing when it fails.
  */
 export function useResume() {
-  return useQuery({
-    queryKey: feedKeys.resume,
-    queryFn: resumeApi.list,
-    staleTime: 1000 * 60,
-    retry: false,
-  })
+  return useMemberQuery(
+    {
+      queryKey: feedKeys.resume,
+      queryFn: resumeApi.list,
+      staleTime: 1000 * 60,
+      retry: false,
+    },
+    // A ghost has stake in no conversation, so the rail has nothing to show.
+    [],
+  )
 }

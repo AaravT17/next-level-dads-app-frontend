@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useCallback, useLayoutEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
+import { useMemberInfiniteQuery } from '@/hooks/useMemberQuery'
+import { emptyPages } from '@/lib/memberQuery'
 import DadCard from '@/components/DadCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -77,21 +79,24 @@ const Connections = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['connections', 'connected', filters],
-    queryFn: ({ pageParam }) => fetchConnections(filters, pageParam),
-    initialPageParam: undefined as ConnectionsCursor | undefined,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 5, // 5 minutes
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
-      const lastItem = lastPage[lastPage.length - 1]
-      return {
-        cursor_id: lastItem.connection_id,
-        cursor_updated_at: lastItem.connection_updated_at,
-      }
+  } = useMemberInfiniteQuery(
+    {
+      queryKey: ['connections', 'connected', filters],
+      queryFn: ({ pageParam }) => fetchConnections(filters, pageParam),
+      initialPageParam: undefined as ConnectionsCursor | undefined,
+      staleTime: 1000 * 60 * 2, // 2 minutes
+      gcTime: 1000 * 60 * 5, // 5 minutes
+      getNextPageParam: (lastPage) => {
+        if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
+        const lastItem = lastPage[lastPage.length - 1]
+        return {
+          cursor_id: lastItem.connection_id,
+          cursor_updated_at: lastItem.connection_updated_at,
+        }
+      },
     },
-  })
+    emptyPages(),
+  )
 
   const connections = useMemo(() => data?.pages.flat() ?? [], [data])
 
