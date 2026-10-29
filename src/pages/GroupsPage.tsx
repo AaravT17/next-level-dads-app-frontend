@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { toastError } from '@/lib/toast'
 import { communityDetail } from '@/lib/routes'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import axiosPrivate from '@/api/axiosPrivate'
 import { COMMUNITY_PHOTO_EDITING_ENABLED, TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { ScopedCollectionPage } from './collections/ScopedCollectionPage'
@@ -36,6 +37,7 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 const GroupsPage = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { viewOnly } = useViewOnly()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newDescription, setNewDescription] = useState('')
@@ -124,7 +126,11 @@ const GroupsPage = () => {
   const createCommunityAction = (
     <Dialog open={isCreateOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full sm:w-auto shrink-0 rounded-md border-primary">
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto shrink-0 rounded-md border-primary"
+          disabled={viewOnly}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Create Community
         </Button>

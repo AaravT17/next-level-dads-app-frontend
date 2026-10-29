@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Baby, MapPin } from 'lucide-react'
 import { getStageDisplayLabel } from '@/utils/users'
 import { initials } from '@/utils/format'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import { chat } from '@/lib/routes'
 import axiosPrivate from '@/api/axiosPrivate'
 import { toastError } from '@/lib/toast'
@@ -321,7 +322,12 @@ const ProfileDetail = () => {
     removeConnection.mutate()
   }
 
-  const isMutating =
+  const { viewOnly } = useViewOnly()
+
+  // The action buttons are off while a request is running, and for a view-only
+  // role, which can look at a profile but not act on it.
+  const actionsDisabled =
+    viewOnly ||
     sendConnectionRequest.isPending ||
     acceptConnectionRequest.isPending ||
     removeConnection.isPending ||
@@ -346,7 +352,7 @@ const ProfileDetail = () => {
           <Button
             className="flex-1 rounded-md font-semibold"
             variant="outline"
-            disabled={isMutating}
+            disabled={actionsDisabled}
             onClick={handleUnconnect}
           >
             Unconnect
@@ -360,7 +366,7 @@ const ProfileDetail = () => {
         <div className="flex gap-2">
           <Button
             className="flex-1 rounded-md font-semibold"
-            disabled={isMutating}
+            disabled={actionsDisabled}
             onClick={handleAccept}
           >
             Accept
@@ -368,7 +374,7 @@ const ProfileDetail = () => {
           <Button
             className="flex-1 rounded-md font-semibold"
             variant="outline"
-            disabled={isMutating}
+            disabled={actionsDisabled}
             onClick={handleIgnore}
           >
             Ignore
@@ -381,7 +387,7 @@ const ProfileDetail = () => {
       return (
         <Button
           className="w-full rounded-md font-semibold bg-muted text-muted-foreground hover:bg-muted"
-          disabled={isMutating}
+          disabled={actionsDisabled}
           onClick={handleCancelRequest}
         >
           Requested
@@ -393,7 +399,7 @@ const ProfileDetail = () => {
     return (
       <Button
         className="w-full rounded-md font-semibold"
-        disabled={isMutating}
+        disabled={actionsDisabled}
         onClick={handleConnect}
       >
         Connect

@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useMutation } from '@tanstack/react-query'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import { moderationApi } from '../api/moderationApi'
 
 interface ReportUserButtonProps {
@@ -27,6 +28,7 @@ const REASON_MAX_LENGTH = 500
 export function ReportUserButton({ userId, userName, className }: ReportUserButtonProps) {
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
+  const { viewOnly } = useViewOnly()
 
   const report = useMutation({
     mutationFn: moderationApi.reportUser,
@@ -58,8 +60,10 @@ export function ReportUserButton({ userId, userName, className }: ReportUserButt
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Report ${userName ?? 'user'}`}
+        disabled={viewOnly}
         className={cn(
           'flex items-center gap-1.5 text-sm text-muted-foreground hover:text-destructive transition-colors',
+          'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-muted-foreground',
           className,
         )}
       >

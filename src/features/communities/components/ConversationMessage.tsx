@@ -23,7 +23,7 @@ export function ConversationMessage({ message }: ConversationMessageProps) {
   const { heart, unheart } = useHeartMessage(message.id, message.conversation_id)
   const deleteMessage = useDeleteMessage(message.id, message.conversation_id)
   const author = message.author
-  const canDelete = !message.is_deleted && author?.id === user?.id
+  const canDelete = !message.is_deleted && user != null && author?.id === user.id
 
   const handleRepliesToggle = () => setShowReplies((v) => !v)
 

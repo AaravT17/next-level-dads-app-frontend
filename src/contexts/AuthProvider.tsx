@@ -5,13 +5,15 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
-import axios from 'axios'
 import { AuthContext } from '@/contexts/AuthContext'
-import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { getErrorMessage } from '@/utils/errors'
 import { toastError } from '@/lib/toast'
+import { withAuth, withAuthFailure, withRefreshedToken, type AuthUpdate } from '@/lib/authState'
+import { restoreSession } from '@/lib/restoreSession'
+import { fetchMe } from '@/api/me'
 import { User, AuthState } from '../types/auth'
-import axiosPrivate, {
+import {
+  refreshAccessToken,
   registerAuthCallbacks,
   setAccessToken,
 } from '../api/axiosPrivate'
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
     accessToken: null,
+    role: null,
     loading: true,
   })
 
@@ -31,17 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // in auth state changed, and no effect could honestly depend on setAuth
   // without re-running constantly. Both updaters are already functional, so
   // neither closes over state and an empty dep list is correct.
-  const setAuth = useCallback(
-    (auth: { user: User | null; accessToken: string | null }) => {
-      setAccessToken(auth.accessToken)
-      setState((prev) => ({
-        ...prev,
-        user: auth.user,
-        accessToken: auth.accessToken,
-      }))
-    },
-    [],
-  )
+  const setAuth = useCallback((auth: AuthUpdate) => {
+    setAccessToken(auth.accessToken)
+    setState((prev) => withAuth(prev, auth))
+  }, [])
 
   const setLoading = useCallback((loading: boolean) => {
     setState((prev) => ({
@@ -82,67 +78,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     registerAuthCallbacks({
-      onTokenRefresh: (token) => {
+      onTokenRefresh: (token, role) => {
         setAccessToken(token)
-        setState((prev) => ({ ...prev, accessToken: token }))
+        setState((prev) => withRefreshedToken(prev, token, role))
       },
       onAuthFailure: () => {
         setAccessToken(null)
-        setState((prev) => ({ ...prev, user: null, accessToken: null }))
+        setState((prev) => withAuthFailure(prev))
       },
     })
 
     const hydrate = async () => {
       try {
-        const res = await axiosPrivate.get('/api/users/me', {
-          timeout: TIMEOUT_LENGTH_MS,
-        })
-        setState((prev) => ({
-          ...prev,
-          user: {
-            id: res.data.id,
-            name: res.data.name,
-            age: res.data.age,
-            date_of_birth: res.data.date_of_birth,
-            city: res.data.city,
-            province: res.data.province,
-            about: res.data.about,
-            avatarUrl: res.data.avatar_url,
-            interests: res.data.interests ?? [],
-            children_age_ranges: res.data.children_age_ranges ?? [],
-            kid_count: res.data.kid_count ?? null,
-            goals: res.data.goals ?? null,
-            primary_goal: res.data.primary_goal ?? null,
-            connection_styles: res.data.connection_styles ?? null,
-            match_priorities: res.data.match_priorities ?? null,
-            icebreakers: res.data.icebreakers ?? null,
-            isAdmin: res.data.is_admin ?? false,
-            preferences: {
-              marketing_emails_opt_in: res.data.preferences?.marketing_emails_opt_in ?? false,
-            },
-            legal_acceptances: {
-              terms: res.data.legal_acceptances?.terms ?? false,
-              privacy_policy: res.data.legal_acceptances?.privacy_policy ?? false,
-            },
-            notificationState: {
-              lastReadAt: res.data.notification_state?.last_read_at ?? null,
-              lastClearedAt: res.data.notification_state?.last_cleared_at ?? null,
-            },
-          },
-        }))
-      } catch (err) {
-        // A 401 here is the ordinary signed-out case: the request goes out with
-        // no token, the interceptor tries the refresh cookie, and there is no
-        // valid one. Anything else — a timeout, an unreachable server, a 500 —
-        // is a real failure, and swallowing it rendered the app as "signed out"
-        // so a backend incident looked like an unexplained logout.
-        const status = axios.isAxiosError(err) ? err.response?.status : undefined
-        if (status !== 401 && status !== 403) {
+        // A refresh that succeeds has already put the token and role into state
+        // through onTokenRefresh above, so only the profile is left to apply.
+        const restored = await restoreSession(refreshAccessToken, fetchMe)
+        if (restored.kind === 'member') {
+          setState((prev) => ({ ...prev, user: restored.user }))
+        } else if (restored.kind === 'failed') {
+          // Anything but the ordinary signed-out case is a real failure, and
+          // swallowing it rendered the app as "signed out" so a backend incident
+          // looked like an unexplained logout.
           toastError(
             'Could not restore your session',
-            getErrorMessage(err, 'Something went wrong. Please try again.'),
+            getErrorMessage(restored.error, 'Something went wrong. Please try again.'),
           )
         }
+        // Signed out, a ghost, and an account not yet set up are all outcomes and
+        // not errors: the route guards take it from here.
       } finally {
         setLoading(false)
       }

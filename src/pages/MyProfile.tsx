@@ -25,6 +25,7 @@ import {
   Calendar as CalendarIcon,
   Pencil,
   Search,
+  Shield,
   Trash2,
   Upload,
 } from 'lucide-react'
@@ -56,7 +57,10 @@ import {
 } from '@/config/constants'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import { getProfileIncomplete } from '@/lib/profileCompleteness'
+import { PROFILE_COMPLETE, getProfileIncomplete } from '@/lib/profileCompleteness'
+import { isGhostRole } from '@/lib/roles'
+import { userFromResponse } from '@/lib/user'
+import { usePersonalUser } from '@/hooks/usePersonalUser'
 import type { InterestItem, IcebreakerEntry } from '@/types/users'
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -146,10 +150,15 @@ function icebreakersEqual(a: IcebreakerEntry[], b: IcebreakerEntry[]): boolean {
 const MyProfile = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, accessToken, setAuth } = useAuth()
+  const { user, role, accessToken, setAuth } = useAuth()
+  // What to draw and seed the form from. `user` stays the real profile, which is all that may be saved back.
+  const profile = usePersonalUser()
+  const ghost = isGhostRole(role)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [isLoading, setIsLoading] = useState(false)
+  // Busy, or a role that can look at this page but not change anything on it.
+  const locked = isLoading || ghost
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   // Interest options from API
@@ -170,12 +179,12 @@ const MyProfile = () => {
 
   // Initialize form from user
   useEffect(() => {
-    if (user) {
-      const state = userToForm(user)
+    if (profile) {
+      const state = userToForm(profile)
       setOriginal(state)
       setForm({ ...state, icebreakers: state.icebreakers.map((ib) => ({ ...ib })) })
     }
-  }, [user])
+  }, [profile])
 
   // Fetch interest options
   useEffect(() => {
@@ -278,29 +287,10 @@ const MyProfile = () => {
       const data = res.data
       setAuth({
         user: {
-          id: data.id,
-          name: data.name,
-          age: data.age,
-          date_of_birth: data.date_of_birth,
-          city: data.city,
-          province: data.province,
-          about: data.about,
-          avatarUrl: data.avatar_url,
-          interests: data.interests ?? [],
-          children_age_ranges: data.children_age_ranges ?? [],
-          kid_count: data.kid_count ?? null,
-          goals: data.goals ?? null,
-          primary_goal: data.primary_goal ?? null,
-          connection_styles: data.connection_styles ?? null,
-          match_priorities: data.match_priorities ?? null,
-          icebreakers: data.icebreakers ?? null,
-          isAdmin: user?.isAdmin ?? false,
+          ...userFromResponse(data),
+          // Preferences and legal acceptances are not edited here, so keep what is already held.
           preferences: user?.preferences ?? { marketing_emails_opt_in: false },
           legal_acceptances: user?.legal_acceptances ?? { terms: false, privacy_policy: false },
-          notificationState: {
-            lastReadAt: data.notification_state?.last_read_at ?? null,
-            lastClearedAt: data.notification_state?.last_cleared_at ?? null,
-          },
         },
         accessToken,
       })
@@ -465,8 +455,8 @@ const MyProfile = () => {
   }
 
   const handleCancel = () => {
-    if (user) {
-      const state = userToForm(user)
+    if (profile) {
+      const state = userToForm(profile)
       setOriginal(state)
       setForm({ ...state, icebreakers: state.icebreakers.map((ib) => ({ ...ib })) })
     }
@@ -520,21 +510,24 @@ const MyProfile = () => {
 
   // ── Guard ──────────────────────────────────────────────────────
 
-  if (!user || !form) return null
+  if (!profile || !form) return null
 
-  const displayAvatar = avatarPreview || user.avatarUrl || avatarDefaultGrey
+  const displayAvatar = avatarPreview || profile.avatarUrl || avatarDefaultGrey
 
-  const incomplete = getProfileIncomplete({
-    kid_count: form.kid_count,
-    date_of_birth: form.date_of_birth || null,
-    about: form.about || null,
-    goals: form.goals,
-    primary_goal: form.primary_goal || null,
-    connection_styles: form.connection_styles,
-    match_priorities: form.match_priorities,
-    interestCount: form.interest_slugs.length,
-    icebreakerCount: form.icebreakers.length,
-  })
+  // A ghost has no profile to complete, so nothing is flagged.
+  const incomplete = ghost
+    ? PROFILE_COMPLETE
+    : getProfileIncomplete({
+        kid_count: form.kid_count,
+        date_of_birth: form.date_of_birth || null,
+        about: form.about || null,
+        goals: form.goals,
+        primary_goal: form.primary_goal || null,
+        connection_styles: form.connection_styles,
+        match_priorities: form.match_priorities,
+        interestCount: form.interest_slugs.length,
+        icebreakerCount: form.icebreakers.length,
+      })
 
   return (
     <>
@@ -545,11 +538,17 @@ const MyProfile = () => {
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">
             <div className="h-32 w-32 overflow-hidden rounded-lg border-4 border-primary/20">
-              <img
-                src={displayAvatar}
-                alt={user.name}
-                className={cn('h-full w-full object-cover', isLoading && 'opacity-50')}
-              />
+              {ghost && !avatarPreview ? (
+                <div className="flex h-full w-full items-center justify-center bg-primary text-primary-foreground">
+                  <Shield aria-label={profile.name} className="h-1/2 w-1/2" />
+                </div>
+              ) : (
+                <img
+                  src={displayAvatar}
+                  alt={profile.name}
+                  className={cn('h-full w-full object-cover', isLoading && 'opacity-50')}
+                />
+              )}
               {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -562,7 +561,7 @@ const MyProfile = () => {
                   size="icon"
                   variant="secondary"
                   className="absolute -bottom-2 -right-2 h-10 w-10 rounded-full bg-gray-500 text-white hover:bg-gray-600"
-                  disabled={isLoading}
+                  disabled={locked}
                 >
                   <Pencil className="h-5 w-5" />
                 </Button>
@@ -572,7 +571,7 @@ const MyProfile = () => {
                   <Upload className="mr-2 h-4 w-4" />
                   Upload Photo
                 </DropdownMenuItem>
-                {user.avatarUrl && (
+                {profile.avatarUrl && (
                   <DropdownMenuItem
                     onClick={handleRemoveAvatar}
                     className="text-destructive focus:text-destructive"
@@ -608,7 +607,7 @@ const MyProfile = () => {
                 maxLength={MAX_NAME_LENGTH}
                 onChange={(e) => set({ name: e.target.value })}
                 className="rounded-md"
-                disabled={isLoading}
+                disabled={locked}
               />
             </div>
 
@@ -622,7 +621,7 @@ const MyProfile = () => {
                   <Button
                     variant="outline"
                     className="w-full justify-start rounded-md font-normal"
-                    disabled={isLoading}
+                    disabled={locked}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                     {form.date_of_birth ? (
@@ -661,7 +660,7 @@ const MyProfile = () => {
                   maxLength={MAX_CITY_LENGTH}
                   onChange={(e) => set({ city: e.target.value })}
                   className="rounded-md"
-                  disabled={isLoading}
+                  disabled={locked}
                 />
               </div>
               <div className="space-y-2">
@@ -669,7 +668,7 @@ const MyProfile = () => {
                 <Select
                   value={form.province}
                   onValueChange={(v) => set({ province: v })}
-                  disabled={isLoading}
+                  disabled={locked}
                 >
                   <SelectTrigger id="province" className="rounded-md">
                     <SelectValue placeholder="—" />
@@ -698,7 +697,7 @@ const MyProfile = () => {
                   if (e.target.value.length <= MAX_BIO_LENGTH) set({ about: e.target.value })
                 }}
                 className="min-h-24 rounded-md"
-                disabled={isLoading}
+                disabled={locked}
               />
               <p className="text-right text-xs text-muted-foreground">
                 {form.about.length}/{MAX_BIO_LENGTH}
@@ -729,7 +728,7 @@ const MyProfile = () => {
                   else if (e.target.value === '') set({ kid_count: null })
                 }}
                 className="w-24 rounded-md"
-                disabled={isLoading}
+                disabled={locked}
               />
             </div>
 
@@ -746,7 +745,7 @@ const MyProfile = () => {
                       onClick={() =>
                         set({ children_age_ranges: toggle(form.children_age_ranges, s.value) })
                       }
-                      disabled={isLoading}
+                      disabled={locked}
                       className={cn(
                         'rounded-md border px-3 py-2 text-xs font-medium transition-all active:scale-[0.97]',
                         selected
@@ -792,7 +791,7 @@ const MyProfile = () => {
                         }
                         set(updates)
                       }}
-                      disabled={isLoading}
+                      disabled={locked}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-md border p-3 text-left transition-all active:scale-[0.99]',
                         selected
@@ -835,7 +834,7 @@ const MyProfile = () => {
                         key={g}
                         type="button"
                         onClick={() => set({ primary_goal: g })}
-                        disabled={isLoading}
+                        disabled={locked}
                         className={cn(
                           'rounded-md border px-3 py-2 text-xs font-semibold transition-all active:scale-[0.97]',
                           form.primary_goal === g
@@ -867,7 +866,7 @@ const MyProfile = () => {
                       onClick={() =>
                         set({ connection_styles: toggle(form.connection_styles, c.value) })
                       }
-                      disabled={isLoading}
+                      disabled={locked}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-md border p-3 text-left transition-all active:scale-[0.99]',
                         selected
@@ -911,7 +910,7 @@ const MyProfile = () => {
                       onClick={() =>
                         set({ match_priorities: toggle(form.match_priorities, p.value) })
                       }
-                      disabled={isLoading}
+                      disabled={locked}
                       className={cn(
                         'rounded-md border px-3.5 py-2 text-sm font-medium transition-all active:scale-[0.97]',
                         selected
@@ -947,7 +946,7 @@ const MyProfile = () => {
               onChange={(e) => setInterestQuery(e.target.value)}
               placeholder="Search interests"
               className="rounded-md pl-9"
-              disabled={isLoading}
+              disabled={locked}
             />
           </div>
 
@@ -960,7 +959,7 @@ const MyProfile = () => {
                 <button
                   key={opt.id}
                   type="button"
-                  disabled={isLoading || (!selected && atMax)}
+                  disabled={locked || (!selected && atMax)}
                   onClick={() =>
                     set({
                       interest_slugs: toggle(form.interest_slugs, opt.slug, MAX_INTERESTS),
@@ -1017,7 +1016,7 @@ const MyProfile = () => {
                         }}
                         placeholder="Your answer..."
                         className="mt-3 min-h-20 rounded-md border-border shadow-sm"
-                        disabled={isLoading}
+                        disabled={locked}
                       />
                       <div className="mt-3 flex items-center justify-between">
                         <p className="text-xs text-muted-foreground">
@@ -1029,7 +1028,7 @@ const MyProfile = () => {
                             size="sm"
                             className="rounded-md text-xs text-muted-foreground"
                             onClick={cancelIcebreakerEdit}
-                            disabled={isLoading}
+                            disabled={locked}
                           >
                             Cancel
                           </Button>
@@ -1037,7 +1036,7 @@ const MyProfile = () => {
                             size="sm"
                             className="rounded-md"
                             onClick={saveIcebreaker}
-                            disabled={isLoading || !icebreakerAnswer.trim()}
+                            disabled={locked || !icebreakerAnswer.trim()}
                           >
                             Update
                           </Button>
@@ -1057,10 +1056,10 @@ const MyProfile = () => {
                     </p>
                     <p className="mt-3 text-base leading-relaxed text-foreground whitespace-pre-line">{ib.answer}</p>
                     <div className="absolute top-4 right-4 flex gap-1.5">
-                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted" onClick={() => editIcebreaker(i)} disabled={isLoading}>
+                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted" onClick={() => editIcebreaker(i)} disabled={locked}>
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10" onClick={() => removeIcebreaker(i)} disabled={isLoading}>
+                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10" onClick={() => removeIcebreaker(i)} disabled={locked}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -1093,7 +1092,7 @@ const MyProfile = () => {
                         setIcebreakerAnswer('')
                         setEditingIcebreakerIndex(null)
                       }}
-                      disabled={isLoading}
+                      disabled={locked}
                       className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:border-primary/50 hover:bg-muted/30"
                     >
                       {p.text}
@@ -1119,7 +1118,7 @@ const MyProfile = () => {
                 }}
                 placeholder="Your answer..."
                 className="mt-3 min-h-20 rounded-md border-border shadow-sm"
-                disabled={isLoading}
+                disabled={locked}
               />
               <div className="mt-3 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
@@ -1131,7 +1130,7 @@ const MyProfile = () => {
                     size="sm"
                     className="rounded-md text-xs text-muted-foreground"
                     onClick={cancelIcebreakerEdit}
-                    disabled={isLoading}
+                    disabled={locked}
                   >
                     Cancel
                   </Button>
@@ -1139,7 +1138,7 @@ const MyProfile = () => {
                     size="sm"
                     className="rounded-md"
                     onClick={saveIcebreaker}
-                    disabled={isLoading || !icebreakerAnswer.trim()}
+                    disabled={locked || !icebreakerAnswer.trim()}
                   >
                     Save
                   </Button>
@@ -1154,7 +1153,7 @@ const MyProfile = () => {
           <Button
             className="w-full rounded-md bg-gradient-gold font-semibold"
             onClick={handleSave}
-            disabled={isLoading}
+            disabled={locked}
           >
             {isLoading ? 'Saving...' : 'Save Changes'}
           </Button>

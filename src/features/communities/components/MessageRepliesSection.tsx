@@ -15,6 +15,7 @@ import { useCreateReply } from '../hooks/useCreateReply'
 import { useHeartReply } from '../hooks/useHeartReply'
 import { useDeleteReply } from '../hooks/useDeleteReply'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
 import { useAuth } from '@/contexts/useAuth'
 import { profileDetail } from '@/lib/routes'
@@ -42,7 +43,7 @@ function ReplyItem({
   const { user } = useAuth()
   const { heart, unheart } = useHeartReply(reply.id, reply.message_id)
   const deleteReply = useDeleteReply(reply.id, reply.message_id, conversationId)
-  const canDelete = !reply.is_deleted && author?.id === user?.id
+  const canDelete = !reply.is_deleted && user != null && author?.id === user.id
 
   return (
     <div className="flex gap-2.5 py-2">
@@ -140,6 +141,7 @@ export function MessageRepliesSection({
   const replies = useMemo(() => data?.pages.flat() ?? [], [data])
   const createReply = useCreateReply(messageId, conversationId)
   const { isBanned, notice, handlePostError } = useModerationBan()
+  const { viewOnly, notice: viewOnlyNotice } = useViewOnly()
 
   const {
     register,
@@ -206,7 +208,7 @@ export function MessageRepliesSection({
             <Button
               type="submit"
               size="sm"
-              disabled={createReply.isPending || isBanned}
+              disabled={createReply.isPending || isBanned || viewOnly}
               className="flex-1 rounded-md"
             >
               {createReply.isPending ? (
@@ -216,7 +218,9 @@ export function MessageRepliesSection({
               )}
             </Button>
           </div>
-          {notice && <p className="text-caption text-destructive">{notice}</p>}
+          {(viewOnlyNotice ?? notice) && (
+            <p className="text-caption text-destructive">{viewOnlyNotice ?? notice}</p>
+          )}
           {createReply.isError && !isBanned && !(axios.isAxiosError(createReply.error) && createReply.error.response?.status === 429) && (
             <p className="text-caption text-destructive">Failed to send. Please try again.</p>
           )}

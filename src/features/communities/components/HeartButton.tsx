@@ -1,5 +1,6 @@
 import { Heart } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useViewOnly } from '@/hooks/useViewOnly'
 
 interface HeartButtonProps {
   count: number
@@ -15,9 +16,12 @@ export function HeartButton({
   isHearted,
   onHeart,
   onUnheart,
-  disabled,
+  disabled: disabledByCaller,
   size = 'sm',
 }: HeartButtonProps) {
+  const { viewOnly } = useViewOnly()
+  const disabled = disabledByCaller || viewOnly
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (disabled) return

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Baby,
   ChevronRight,
@@ -18,9 +18,11 @@ import { UserAvatar } from '@/components/media/UserAvatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/useAuth'
 import { ROUTES } from '@/lib/routes'
+import { isAdminRole, isGhostRole } from '@/lib/roles'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
-import type { UserStats } from '@/types/users'
+import { useUserStats } from '@/hooks/useNavBadges'
+import { usePersonalUser } from '@/hooks/usePersonalUser'
 
 /**
  * Your hub.
@@ -39,18 +41,10 @@ type Row = {
 const YouPage = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, setAuth } = useAuth()
+  const { role, setAuth } = useAuth()
+  const user = usePersonalUser()
 
-  const { data: stats } = useQuery({
-    queryKey: ['user', 'stats'],
-    queryFn: async () => {
-      const res = await axiosPrivate.get<UserStats>('/api/users/me/stats', {
-        timeout: TIMEOUT_LENGTH_MS,
-      })
-      return res.data
-    },
-    staleTime: 1000 * 60,
-  })
+  const { data: stats } = useUserStats()
 
   const handleLogout = async () => {
     try {
@@ -92,7 +86,7 @@ const YouPage = () => {
       icon: Settings,
       description: 'Preferences, legal and account',
     },
-    ...(user.isAdmin
+    ...(isAdminRole(role)
       ? [
           {
             label: 'Moderation dashboard',
@@ -117,7 +111,13 @@ const YouPage = () => {
       <PageContainer className="space-y-6 animate-fade-in">
         {/* Avatar + name + location + kids */}
         <section className="flex flex-col items-center text-center gap-3">
-          <UserAvatar name={user.name} src={user.avatarUrl} size="xl" shape="rounded" />
+          <UserAvatar
+            name={user.name}
+            src={user.avatarUrl}
+            icon={isGhostRole(role) ? Shield : undefined}
+            size="xl"
+            shape="rounded"
+          />
           <div>
             <h2 className="font-heading text-heading text-foreground">{user.name}</h2>
             {(user.city || user.province) && (

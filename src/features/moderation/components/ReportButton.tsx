@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import { useReportContent } from '../hooks/useReportContent'
 import type { ModerationContentType } from '@/types/moderation'
 
@@ -34,6 +35,7 @@ export function ReportButton({ contentType, contentId, className }: ReportButton
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
   const report = useReportContent()
+  const { viewOnly } = useViewOnly()
   const label = CONTENT_LABEL[contentType]
 
   const submit = () => {
@@ -72,8 +74,10 @@ export function ReportButton({ contentType, contentId, className }: ReportButton
           setOpen(true)
         }}
         aria-label={`Report ${label}`}
+        disabled={viewOnly}
         className={cn(
           'flex items-center gap-1.5 text-sm text-muted-foreground hover:text-destructive transition-colors',
+          'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-muted-foreground',
           className,
         )}
       >

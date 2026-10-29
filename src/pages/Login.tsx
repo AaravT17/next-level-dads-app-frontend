@@ -7,12 +7,14 @@ import { Eye, EyeOff } from 'lucide-react'
 import { AppLogo } from '@/components/layout/AppLogo'
 import { ROUTES } from '@/lib/routes'
 import axiosPublic from '@/api/axiosPublic'
-import axiosPrivate, { setAccessToken } from '@/api/axiosPrivate'
+import { setAccessToken } from '@/api/axiosPrivate'
+import { fetchMe } from '@/api/me'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import { useAuth } from '../contexts/useAuth'
 import { isValidEmail } from '@/utils/auth'
 import { toastError, toastSuccess } from '@/lib/toast'
-import { getErrorMessage, isHttpStatus } from '@/utils/errors'
+import { getErrorMessage } from '@/utils/errors'
+import { loadProfile } from '@/lib/loadProfile'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -37,6 +39,7 @@ const Login = () => {
     }
     setIsLoading(true)
     let accessToken: string | null = null
+    let role: string | null = null
     try {
       const res = await axiosPublic.post(
         '/api/auth/login',
@@ -44,45 +47,19 @@ const Login = () => {
         { timeout: TIMEOUT_LENGTH_MS },
       )
       accessToken = res.data.access_token
+      role = res.data.role ?? null
       setAccessToken(accessToken)
 
-      // fetch user profile before committing auth state
-      const userRes = await axiosPrivate.get('/api/users/me', {
-        timeout: TIMEOUT_LENGTH_MS,
-      })
-      setAuth({
-        user: {
-          id: userRes.data.id,
-          name: userRes.data.name,
-          age: userRes.data.age,
-          date_of_birth: userRes.data.date_of_birth,
-          city: userRes.data.city,
-          province: userRes.data.province,
-          about: userRes.data.about,
-          avatarUrl: userRes.data.avatar_url,
-          interests: userRes.data.interests ?? [],
-          children_age_ranges: userRes.data.children_age_ranges ?? [],
-          kid_count: userRes.data.kid_count ?? null,
-          goals: userRes.data.goals ?? null,
-          primary_goal: userRes.data.primary_goal ?? null,
-          connection_styles: userRes.data.connection_styles ?? null,
-          match_priorities: userRes.data.match_priorities ?? null,
-          icebreakers: userRes.data.icebreakers ?? null,
-          isAdmin: userRes.data.is_admin ?? false,
-          preferences: {
-            marketing_emails_opt_in: userRes.data.preferences?.marketing_emails_opt_in ?? false,
-          },
-          legal_acceptances: {
-            terms: userRes.data.legal_acceptances?.terms ?? false,
-            privacy_policy: userRes.data.legal_acceptances?.privacy_policy ?? false,
-          },
-          notificationState: {
-            lastReadAt: userRes.data.notification_state?.last_read_at ?? null,
-            lastClearedAt: userRes.data.notification_state?.last_cleared_at ?? null,
-          },
-        },
-        accessToken,
-      })
+      // Fetch the profile before committing auth state. A ghost role has none to
+      // fetch, and an account that has not been set up yet is sent to setup.
+      const profile = await loadProfile(role, fetchMe)
+      if (profile.kind === 'no-profile') {
+        // commit the token so SetupRoute allows access
+        setAuth({ user: null, accessToken, role })
+        navigate(ROUTES.SETUP)
+        return
+      }
+      setAuth({ user: profile.kind === 'member' ? profile.user : null, accessToken, role })
       toastSuccess('Login successful', 'Welcome back!')
       const redirectTo = searchParams.get('redirectTo')
       const destination =
@@ -91,12 +68,6 @@ const Login = () => {
           : ROUTES.HOME_AFTER_AUTH
       navigate(destination)
     } catch (err) {
-      if (isHttpStatus(err, 404)) {
-        // user exists but profile not set up — commit token so SetupRoute allows access
-        setAuth({ user: null, accessToken })
-        navigate(ROUTES.SETUP)
-        return
-      }
       setAccessToken(null)
       toastError(
         'Login failed',

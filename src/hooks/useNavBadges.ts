@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { UserStats } from '@/types/users'
 import { useChat } from '@/contexts/useChat'
+import { useMemberQuery } from '@/hooks/useMemberQuery'
 
 /**
  * Counts for the primary navigation badges.
@@ -10,6 +10,15 @@ import { useChat } from '@/contexts/useChat'
  * The unread count is derived from the chat membership hashmap maintained
  * by ChatContext over the WebSocket — no extra request and no cache scan.
  */
+
+/** A ghost's stats: it has no connections, communities or events to count. */
+const EMPTY_STATS: UserStats = {
+  connections: 0,
+  requests: 0,
+  communities_joined: 0,
+  events_registered_for: 0,
+  communities_with_new_activity: 0,
+}
 
 export function useUnreadChatCount(): number {
   const { unreadCount } = useChat()
@@ -25,17 +34,20 @@ export function useUnreadChatCount(): number {
  * and "zero" mean different things to anything that branches on the answer.
  */
 export function useUserStats() {
-  return useQuery({
-    queryKey: ['user', 'stats'],
-    queryFn: async () => {
-      const res = await axiosPrivate.get<UserStats>('/api/users/me/stats', {
-        timeout: TIMEOUT_LENGTH_MS,
-      })
-      return res.data
+  return useMemberQuery(
+    {
+      queryKey: ['user', 'stats'],
+      queryFn: async () => {
+        const res = await axiosPrivate.get<UserStats>('/api/users/me/stats', {
+          timeout: TIMEOUT_LENGTH_MS,
+        })
+        return res.data
+      },
+      staleTime: 1000 * 60,
+      refetchOnWindowFocus: true,
     },
-    staleTime: 1000 * 60,
-    refetchOnWindowFocus: true,
-  })
+    EMPTY_STATS,
+  )
 }
 
 /** Incoming connection requests. Previously had no entry point at all. */

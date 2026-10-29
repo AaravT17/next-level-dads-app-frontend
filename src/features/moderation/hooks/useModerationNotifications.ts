@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/useAuth'
+import { useMemberQuery } from '@/hooks/useMemberQuery'
 import type { ModerationNotification } from '@/types/moderation'
 import { moderationApi } from '../api/moderationApi'
 import { moderationKeys } from './moderationKeys'
@@ -41,13 +42,16 @@ export function useModerationNotifications() {
     handledIds.current = new Set()
   }, [user?.id])
 
-  const { data } = useQuery({
-    queryKey: moderationKeys.notifications(true),
-    queryFn: () => moderationApi.getNotifications(true),
-    enabled: !!user,
-    refetchInterval: user ? POLL_INTERVAL_MS : false,
-    refetchOnWindowFocus: true,
-  })
+  const { data } = useMemberQuery(
+    {
+      queryKey: moderationKeys.notifications(true),
+      queryFn: () => moderationApi.getNotifications(true),
+      enabled: !!user,
+      refetchInterval: user ? POLL_INTERVAL_MS : false,
+      refetchOnWindowFocus: true,
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!data || data.length === 0) return

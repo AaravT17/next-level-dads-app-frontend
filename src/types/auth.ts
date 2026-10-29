@@ -17,7 +17,6 @@ export interface User {
   connection_styles: string[] | null
   match_priorities: string[] | null
   icebreakers: IcebreakerEntry[] | null
-  isAdmin: boolean
   preferences: {
     marketing_emails_opt_in: boolean
   }
@@ -34,16 +33,23 @@ export interface User {
 export interface AuthState {
   user: User | null
   accessToken: string | null
+  /**
+   * The account's role as the backend reports it, or null for an ordinary
+   * member. It lives here and not on `user` because a role that browses without
+   * a profile has no user to hang it on.
+   */
+  role: string | null
   loading: boolean
 }
 
 export interface AuthContextType extends AuthState {
-  setAuth: (auth: { user: User | null; accessToken: string | null }) => void
+  /** `role` is left unchanged when omitted. Signing out (a null token) always clears it. */
+  setAuth: (auth: { user: User | null; accessToken: string | null; role?: string | null }) => void
   setLoading: (loading: boolean) => void
   updateNotificationState: (update: Partial<User['notificationState']>) => void
 }
 
 export interface AuthCallbacks {
-  onTokenRefresh: (token: string) => void
+  onTokenRefresh: (token: string, role: string | null) => void
   onAuthFailure: () => void
 }

@@ -20,6 +20,7 @@ import {
   type ListContext,
 } from '@/features/connections/lib/listMembership'
 import { initials } from '@/utils/format'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import { profileDetail, chat } from '@/lib/routes'
 import { toastError, toastSuccess } from '@/lib/toast'
 import axiosPrivate from '@/api/axiosPrivate'
@@ -340,7 +341,12 @@ const DadCard = ({
     removeConnection.mutate()
   }
 
-  const isLoading =
+  const { viewOnly } = useViewOnly()
+
+  // The action buttons are off while a request is running, and for a view-only
+  // role, which can look at a card but not act on it.
+  const actionsDisabled =
+    viewOnly ||
     sendConnectionRequest.isPending ||
     acceptConnectionRequest.isPending ||
     removeConnection.isPending ||
@@ -405,7 +411,7 @@ const DadCard = ({
             label="Remove connection"
             icon={UserMinus}
             variant="outline"
-            disabled={isLoading}
+            disabled={actionsDisabled}
             onClick={handleUnconnect}
           />
         </div>
@@ -418,14 +424,14 @@ const DadCard = ({
           <IconAction
             label="Accept request"
             icon={Check}
-            disabled={isLoading}
+            disabled={actionsDisabled}
             onClick={handleAccept}
           />
           <IconAction
             label="Ignore request"
             icon={X}
             variant="outline"
-            disabled={isLoading}
+            disabled={actionsDisabled}
             onClick={handleIgnore}
           />
         </div>
@@ -439,7 +445,7 @@ const DadCard = ({
             label="Cancel request"
             icon={Clock}
             variant="muted"
-            disabled={isLoading}
+            disabled={actionsDisabled}
             onClick={handleCancelRequest}
           />
         </div>
@@ -452,7 +458,7 @@ const DadCard = ({
         <IconAction
           label={`Connect with ${name}`}
           icon={UserPlus}
-          disabled={isLoading}
+          disabled={actionsDisabled}
           onClick={handleConnect}
         />
       </div>

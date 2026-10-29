@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
-  useInfiniteQuery,
   useMutation,
 } from '@tanstack/react-query'
+import { useMemberInfiniteQuery } from '@/hooks/useMemberQuery'
+import { emptyPages } from '@/lib/memberQuery'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { QueryState } from '@/components/feedback/QueryState'
 import { InfiniteSentinel } from '@/components/feedback/InfiniteSentinel'
@@ -31,6 +32,7 @@ import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT, CHATS_PAGE_LIMIT } from '@/conf
 import { Chat, ChatsCursor } from '@/types/chats'
 import { ConnectionResponse, ConnectionsCursor } from '@/types/users'
 import { useChat } from '@/contexts/useChat'
+import { useViewOnly } from '@/hooks/useViewOnly'
 
 // ============================================
 // Chats
@@ -38,6 +40,7 @@ import { useChat } from '@/contexts/useChat'
 
 const Chats = () => {
   const { wsReady, isChatMember } = useChat()
+  const { viewOnly } = useViewOnly()
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [newChatSearch, setNewChatSearch] = useState('')
   const [debouncedNewChatSearch, setDebouncedNewChatSearch] = useState('')
@@ -91,29 +94,32 @@ const Chats = () => {
     fetchNextPage: fetchNextChats,
     hasNextPage: hasNextChats,
     isFetchingNextPage: isFetchingNextChats,
-  } = useInfiniteQuery({
-    queryKey: ['chats'],
-    queryFn: async ({ pageParam }) => {
-      const params = new URLSearchParams()
-      if (pageParam) {
-        params.append('cursor_id', (pageParam as ChatsCursor).cursor_id)
-        params.append('cursor_updated_at', (pageParam as ChatsCursor).cursor_updated_at)
-      }
-      const res = await axiosPrivate.get<Chat[]>('/api/chats/', {
-        params,
-        timeout: TIMEOUT_LENGTH_MS,
-      })
-      return res.data.filter((c) => isChatMember(c.id))
+  } = useMemberInfiniteQuery(
+    {
+      queryKey: ['chats'],
+      queryFn: async ({ pageParam }) => {
+        const params = new URLSearchParams()
+        if (pageParam) {
+          params.append('cursor_id', (pageParam as ChatsCursor).cursor_id)
+          params.append('cursor_updated_at', (pageParam as ChatsCursor).cursor_updated_at)
+        }
+        const res = await axiosPrivate.get<Chat[]>('/api/chats/', {
+          params,
+          timeout: TIMEOUT_LENGTH_MS,
+        })
+        return res.data.filter((c) => isChatMember(c.id))
+      },
+      initialPageParam: undefined as ChatsCursor | undefined,
+      enabled: wsReady,
+      staleTime: 180_000,
+      getNextPageParam: (lastPage) => {
+        if (lastPage.length < CHATS_PAGE_LIMIT) return undefined
+        const last = lastPage[lastPage.length - 1]
+        return { cursor_id: last.id, cursor_updated_at: last.updated_at }
+      },
     },
-    initialPageParam: undefined as ChatsCursor | undefined,
-    enabled: wsReady,
-    staleTime: 180_000,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < CHATS_PAGE_LIMIT) return undefined
-      const last = lastPage[lastPage.length - 1]
-      return { cursor_id: last.id, cursor_updated_at: last.updated_at }
-    },
-  })
+    emptyPages(),
+  )
 
   const chats = useMemo(() => chatsData?.pages.flat() ?? [], [chatsData])
 
@@ -128,31 +134,34 @@ const Chats = () => {
     fetchNextPage: fetchNextSearch,
     hasNextPage: hasNextSearch,
     isFetchingNextPage: isFetchingNextSearch,
-  } = useInfiniteQuery({
-    queryKey: ['chats', { name: nameParam }],
-    queryFn: async ({ pageParam }) => {
-      const params = new URLSearchParams()
-      params.append('name', nameParam)
-      if (pageParam) {
-        params.append('cursor_id', (pageParam as ChatsCursor).cursor_id)
-        params.append('cursor_updated_at', (pageParam as ChatsCursor).cursor_updated_at)
-      }
-      const res = await axiosPrivate.get<Chat[]>('/api/chats/', {
-        params,
-        timeout: TIMEOUT_LENGTH_MS,
-      })
-      return res.data.filter((c) => isChatMember(c.id))
+  } = useMemberInfiniteQuery(
+    {
+      queryKey: ['chats', { name: nameParam }],
+      queryFn: async ({ pageParam }) => {
+        const params = new URLSearchParams()
+        params.append('name', nameParam)
+        if (pageParam) {
+          params.append('cursor_id', (pageParam as ChatsCursor).cursor_id)
+          params.append('cursor_updated_at', (pageParam as ChatsCursor).cursor_updated_at)
+        }
+        const res = await axiosPrivate.get<Chat[]>('/api/chats/', {
+          params,
+          timeout: TIMEOUT_LENGTH_MS,
+        })
+        return res.data.filter((c) => isChatMember(c.id))
+      },
+      initialPageParam: undefined as ChatsCursor | undefined,
+      enabled: !!nameParam,
+      staleTime: 0,
+      gcTime: 0,
+      getNextPageParam: (lastPage) => {
+        if (lastPage.length < CHATS_PAGE_LIMIT) return undefined
+        const last = lastPage[lastPage.length - 1]
+        return { cursor_id: last.id, cursor_updated_at: last.updated_at }
+      },
     },
-    initialPageParam: undefined as ChatsCursor | undefined,
-    enabled: !!nameParam,
-    staleTime: 0,
-    gcTime: 0,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < CHATS_PAGE_LIMIT) return undefined
-      const last = lastPage[lastPage.length - 1]
-      return { cursor_id: last.id, cursor_updated_at: last.updated_at }
-    },
-  })
+    emptyPages(),
+  )
 
   const searchChats = useMemo(() => searchData?.pages.flat() ?? [], [searchData])
 
@@ -173,31 +182,34 @@ const Chats = () => {
     fetchNextPage: fetchNextConnections,
     hasNextPage: hasNextConnections,
     isFetchingNextPage: isFetchingNextConnections,
-  } = useInfiniteQuery({
-    queryKey: ['connections', 'new-chat', { name: debouncedNewChatSearch }],
-    queryFn: async ({ pageParam }) => {
-      const params = new URLSearchParams()
-      if (debouncedNewChatSearch) params.append('name', debouncedNewChatSearch)
-      if (pageParam) {
-        params.append('cursor_id', (pageParam as ConnectionsCursor).cursor_id)
-        params.append('cursor_updated_at', (pageParam as ConnectionsCursor).cursor_updated_at)
-      }
-      const res = await axiosPrivate.get<ConnectionResponse[]>('/api/connections/connected', {
-        params,
-        timeout: TIMEOUT_LENGTH_MS,
-      })
-      return res.data
+  } = useMemberInfiniteQuery(
+    {
+      queryKey: ['connections', 'new-chat', { name: debouncedNewChatSearch }],
+      queryFn: async ({ pageParam }) => {
+        const params = new URLSearchParams()
+        if (debouncedNewChatSearch) params.append('name', debouncedNewChatSearch)
+        if (pageParam) {
+          params.append('cursor_id', (pageParam as ConnectionsCursor).cursor_id)
+          params.append('cursor_updated_at', (pageParam as ConnectionsCursor).cursor_updated_at)
+        }
+        const res = await axiosPrivate.get<ConnectionResponse[]>('/api/connections/connected', {
+          params,
+          timeout: TIMEOUT_LENGTH_MS,
+        })
+        return res.data
+      },
+      initialPageParam: undefined as ConnectionsCursor | undefined,
+      enabled: isNewChatOpen,
+      staleTime: 0,
+      gcTime: 0,
+      getNextPageParam: (lastPage): ConnectionsCursor | undefined => {
+        if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
+        const last = lastPage[lastPage.length - 1]
+        return { cursor_id: last.connection_id, cursor_updated_at: last.connection_updated_at }
+      },
     },
-    initialPageParam: undefined as ConnectionsCursor | undefined,
-    enabled: isNewChatOpen,
-    staleTime: 0,
-    gcTime: 0,
-    getNextPageParam: (lastPage): ConnectionsCursor | undefined => {
-      if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
-      const last = lastPage[lastPage.length - 1]
-      return { cursor_id: last.connection_id, cursor_updated_at: last.connection_updated_at }
-    },
-  })
+    emptyPages(),
+  )
 
   const connections = useMemo(() => connectionsData?.pages.flat() ?? [], [connectionsData])
 
@@ -311,6 +323,7 @@ const Chats = () => {
                 variant="ghost"
                 size="icon"
                 className="shrink-0"
+                disabled={viewOnly}
                 onClick={() => setIsNewChatOpen(true)}
               >
                 <Plus className="w-5 h-5" />

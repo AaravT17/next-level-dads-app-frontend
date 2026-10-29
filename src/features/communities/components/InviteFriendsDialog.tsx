@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useMemberInfiniteQuery } from '@/hooks/useMemberQuery'
+import { emptyPages } from '@/lib/memberQuery'
 import { Check, Loader2, Search, UserPlus } from 'lucide-react'
 import axiosPrivate from '@/api/axiosPrivate'
 import { Button } from '@/components/ui/button'
@@ -63,34 +64,37 @@ export function InviteFriendsDialog({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['connections', 'community-invite', { name: debouncedSearch }],
-    queryFn: async ({ pageParam }) => {
-      const params = new URLSearchParams()
-      if (debouncedSearch) params.append('name', debouncedSearch)
-      if (pageParam) {
-        params.append('cursor_id', pageParam.cursor_id)
-        params.append('cursor_updated_at', pageParam.cursor_updated_at)
-      }
-      const res = await axiosPrivate.get<ConnectionResponse[]>(
-        '/api/connections/connected',
-        { params, timeout: TIMEOUT_LENGTH_MS },
-      )
-      return res.data
+  } = useMemberInfiniteQuery(
+    {
+      queryKey: ['connections', 'community-invite', { name: debouncedSearch }],
+      queryFn: async ({ pageParam }) => {
+        const params = new URLSearchParams()
+        if (debouncedSearch) params.append('name', debouncedSearch)
+        if (pageParam) {
+          params.append('cursor_id', pageParam.cursor_id)
+          params.append('cursor_updated_at', pageParam.cursor_updated_at)
+        }
+        const res = await axiosPrivate.get<ConnectionResponse[]>(
+          '/api/connections/connected',
+          { params, timeout: TIMEOUT_LENGTH_MS },
+        )
+        return res.data
+      },
+      initialPageParam: undefined as ConnectionsCursor | undefined,
+      enabled: open,
+      staleTime: 0,
+      gcTime: 0,
+      getNextPageParam: (lastPage): ConnectionsCursor | undefined => {
+        if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
+        const last = lastPage[lastPage.length - 1]
+        return {
+          cursor_id: last.connection_id,
+          cursor_updated_at: last.connection_updated_at,
+        }
+      },
     },
-    initialPageParam: undefined as ConnectionsCursor | undefined,
-    enabled: open,
-    staleTime: 0,
-    gcTime: 0,
-    getNextPageParam: (lastPage): ConnectionsCursor | undefined => {
-      if (lastPage.length < PROFILES_PAGE_LIMIT) return undefined
-      const last = lastPage[lastPage.length - 1]
-      return {
-        cursor_id: last.connection_id,
-        cursor_updated_at: last.connection_updated_at,
-      }
-    },
-  })
+    emptyPages(),
+  )
 
   const connections = useMemo(() => data?.pages.flat() ?? [], [data])
 

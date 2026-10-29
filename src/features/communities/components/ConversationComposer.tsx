@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { CONVERSATION_PROMPT_TYPE_OPTIONS } from '@/config/constants'
 import { useCreateConversation } from '../hooks/useCreateConversation'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import type { ConversationCreate } from '@/types/communities'
 
 interface ConversationComposerProps {
@@ -32,6 +33,7 @@ export function ConversationComposer({
 }: ConversationComposerProps) {
   const { mutate, isPending, isError, error } = useCreateConversation(communityId)
   const { isBanned, notice, handlePostError } = useModerationBan()
+  const { viewOnly, notice: viewOnlyNotice } = useViewOnly()
   const {
     register,
     handleSubmit,
@@ -164,7 +166,7 @@ export function ConversationComposer({
             )}
             <Button
               type="submit"
-              disabled={isPending || isBanned}
+              disabled={isPending || isBanned || viewOnly}
               className="flex-1 rounded-md"
             >
               {isPending ? (
@@ -174,8 +176,8 @@ export function ConversationComposer({
               )}
             </Button>
           </div>
-          {notice && (
-            <p className="text-caption text-destructive text-center">{notice}</p>
+          {(viewOnlyNotice ?? notice) && (
+            <p className="text-caption text-destructive text-center">{viewOnlyNotice ?? notice}</p>
           )}
           {isError && !isBanned && !(axios.isAxiosError(error) && error.response?.status === 429) && (
             <p className="text-caption text-destructive text-center">

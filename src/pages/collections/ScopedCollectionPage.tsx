@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useMemberInfiniteQuery } from '@/hooks/useMemberQuery'
+import { emptyPages } from '@/lib/memberQuery'
 import { Search, X } from 'lucide-react'
 import { AppBar } from '@/components/layout/AppBar'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -119,16 +120,20 @@ export function ScopedCollectionList({
 
   useEffect(() => setSearchInput(urlSearch), [urlSearch])
 
-  const query = useInfiniteQuery({
-    queryKey: [kind, scope, { name: urlSearch }],
-    queryFn: ({ pageParam }) => fetchPage(kind, scope, urlSearch, pageParam),
-    initialPageParam: undefined as Cursor | undefined,
-    staleTime: 1000 * 60 * 2,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < PAGE_LIMIT[kind]) return undefined
-      return nextCursor(kind, lastPage[lastPage.length - 1])
+  const query = useMemberInfiniteQuery(
+    {
+      queryKey: [kind, scope, { name: urlSearch }],
+      queryFn: ({ pageParam }) => fetchPage(kind, scope, urlSearch, pageParam),
+      initialPageParam: undefined as Cursor | undefined,
+      staleTime: 1000 * 60 * 2,
+      getNextPageParam: (lastPage) => {
+        if (lastPage.length < PAGE_LIMIT[kind]) return undefined
+        return nextCursor(kind, lastPage[lastPage.length - 1])
+      },
     },
-  })
+    emptyPages(),
+    scope === 'joined',
+  )
 
   const items = useMemo(() => query.data?.pages.flat() ?? [], [query.data])
 
