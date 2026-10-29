@@ -19,6 +19,7 @@ import { InviteFriendsDialog } from '../components/InviteFriendsDialog'
 import { CommunityPhotoEditor } from '../components/CommunityPhotoEditor'
 import { JoinNudgeProvider } from '../components/JoinNudgeProvider'
 import { EmptyState } from '@/components/feedback/EmptyState'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import { conversationDetail } from '@/lib/routes'
 import type { ConversationSort, ConversationTimeWindow } from '@/types/communities'
 
@@ -75,6 +76,7 @@ const CommunityDetailBody = ({ communityId }: { communityId: string | undefined 
 
   const joinMutation = useJoinCommunity(communityId!)
   const leaveMutation = useLeaveCommunity(communityId!)
+  const { viewOnly } = useViewOnly()
 
   const handleConversationCreated = (conversationId: string) => {
     setComposerOpen(false)
@@ -120,6 +122,7 @@ const CommunityDetailBody = ({ communityId }: { communityId: string | undefined 
             size="sm"
             className="rounded-md gap-1.5"
             onClick={() => setInviteOpen(true)}
+            disabled={viewOnly}
           >
             <UserPlus aria-hidden className="w-4 h-4" />
             Invite a friend
@@ -166,7 +169,7 @@ const CommunityDetailBody = ({ communityId }: { communityId: string | undefined 
               variant="outline"
               className="rounded-md"
               onClick={() => leaveMutation.mutate()}
-              disabled={leaveMutation.isPending}
+              disabled={leaveMutation.isPending || viewOnly}
             >
               {leaveMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -179,7 +182,7 @@ const CommunityDetailBody = ({ communityId }: { communityId: string | undefined 
               variant="outline"
               className="rounded-md"
               onClick={() => joinMutation.mutate()}
-              disabled={joinMutation.isPending}
+              disabled={joinMutation.isPending || viewOnly}
             >
               {joinMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

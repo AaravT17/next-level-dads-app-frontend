@@ -8,6 +8,7 @@ import { formatEventDate, formatEventTime, formatPrice } from '@/utils/format'
 import { Card, CardContent } from './ui/card'
 import { toastError } from '@/lib/toast'
 import { eventDetail } from '@/lib/routes'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import axiosPrivate from '@/api/axiosPrivate'
 import type { Event } from '@/types/events'
 
@@ -25,6 +26,7 @@ const EventCard = ({
 }: Event) => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { viewOnly } = useViewOnly()
 
   const handleCardClick = () => {
     navigate(eventDetail(id))
@@ -155,6 +157,7 @@ const EventCard = ({
           <Button
             variant={is_attending ? 'outline' : 'default'}
             className="rounded-md"
+            disabled={viewOnly || registerForEvent.isPending || unregisterFromEvent.isPending}
             onClick={(e) => {
               e.stopPropagation()
               if (is_attending) {

@@ -157,6 +157,8 @@ const MyProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [isLoading, setIsLoading] = useState(false)
+  // Busy, or a role that can look at this page but not change anything on it.
+  const locked = isLoading || ghost
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   // Interest options from API
@@ -559,7 +561,7 @@ const MyProfile = () => {
                   size="icon"
                   variant="secondary"
                   className="absolute -bottom-2 -right-2 h-10 w-10 rounded-full bg-gray-500 text-white hover:bg-gray-600"
-                  disabled={isLoading}
+                  disabled={locked}
                 >
                   <Pencil className="h-5 w-5" />
                 </Button>
@@ -605,7 +607,7 @@ const MyProfile = () => {
                 maxLength={MAX_NAME_LENGTH}
                 onChange={(e) => set({ name: e.target.value })}
                 className="rounded-md"
-                disabled={isLoading}
+                disabled={locked}
               />
             </div>
 
@@ -619,7 +621,7 @@ const MyProfile = () => {
                   <Button
                     variant="outline"
                     className="w-full justify-start rounded-md font-normal"
-                    disabled={isLoading}
+                    disabled={locked}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                     {form.date_of_birth ? (
@@ -658,7 +660,7 @@ const MyProfile = () => {
                   maxLength={MAX_CITY_LENGTH}
                   onChange={(e) => set({ city: e.target.value })}
                   className="rounded-md"
-                  disabled={isLoading}
+                  disabled={locked}
                 />
               </div>
               <div className="space-y-2">
@@ -666,7 +668,7 @@ const MyProfile = () => {
                 <Select
                   value={form.province}
                   onValueChange={(v) => set({ province: v })}
-                  disabled={isLoading}
+                  disabled={locked}
                 >
                   <SelectTrigger id="province" className="rounded-md">
                     <SelectValue placeholder="—" />
@@ -695,7 +697,7 @@ const MyProfile = () => {
                   if (e.target.value.length <= MAX_BIO_LENGTH) set({ about: e.target.value })
                 }}
                 className="min-h-24 rounded-md"
-                disabled={isLoading}
+                disabled={locked}
               />
               <p className="text-right text-xs text-muted-foreground">
                 {form.about.length}/{MAX_BIO_LENGTH}
@@ -726,7 +728,7 @@ const MyProfile = () => {
                   else if (e.target.value === '') set({ kid_count: null })
                 }}
                 className="w-24 rounded-md"
-                disabled={isLoading}
+                disabled={locked}
               />
             </div>
 
@@ -743,7 +745,7 @@ const MyProfile = () => {
                       onClick={() =>
                         set({ children_age_ranges: toggle(form.children_age_ranges, s.value) })
                       }
-                      disabled={isLoading}
+                      disabled={locked}
                       className={cn(
                         'rounded-md border px-3 py-2 text-xs font-medium transition-all active:scale-[0.97]',
                         selected
@@ -789,7 +791,7 @@ const MyProfile = () => {
                         }
                         set(updates)
                       }}
-                      disabled={isLoading}
+                      disabled={locked}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-md border p-3 text-left transition-all active:scale-[0.99]',
                         selected
@@ -832,7 +834,7 @@ const MyProfile = () => {
                         key={g}
                         type="button"
                         onClick={() => set({ primary_goal: g })}
-                        disabled={isLoading}
+                        disabled={locked}
                         className={cn(
                           'rounded-md border px-3 py-2 text-xs font-semibold transition-all active:scale-[0.97]',
                           form.primary_goal === g
@@ -864,7 +866,7 @@ const MyProfile = () => {
                       onClick={() =>
                         set({ connection_styles: toggle(form.connection_styles, c.value) })
                       }
-                      disabled={isLoading}
+                      disabled={locked}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-md border p-3 text-left transition-all active:scale-[0.99]',
                         selected
@@ -908,7 +910,7 @@ const MyProfile = () => {
                       onClick={() =>
                         set({ match_priorities: toggle(form.match_priorities, p.value) })
                       }
-                      disabled={isLoading}
+                      disabled={locked}
                       className={cn(
                         'rounded-md border px-3.5 py-2 text-sm font-medium transition-all active:scale-[0.97]',
                         selected
@@ -944,7 +946,7 @@ const MyProfile = () => {
               onChange={(e) => setInterestQuery(e.target.value)}
               placeholder="Search interests"
               className="rounded-md pl-9"
-              disabled={isLoading}
+              disabled={locked}
             />
           </div>
 
@@ -957,7 +959,7 @@ const MyProfile = () => {
                 <button
                   key={opt.id}
                   type="button"
-                  disabled={isLoading || (!selected && atMax)}
+                  disabled={locked || (!selected && atMax)}
                   onClick={() =>
                     set({
                       interest_slugs: toggle(form.interest_slugs, opt.slug, MAX_INTERESTS),
@@ -1014,7 +1016,7 @@ const MyProfile = () => {
                         }}
                         placeholder="Your answer..."
                         className="mt-3 min-h-20 rounded-md border-border shadow-sm"
-                        disabled={isLoading}
+                        disabled={locked}
                       />
                       <div className="mt-3 flex items-center justify-between">
                         <p className="text-xs text-muted-foreground">
@@ -1026,7 +1028,7 @@ const MyProfile = () => {
                             size="sm"
                             className="rounded-md text-xs text-muted-foreground"
                             onClick={cancelIcebreakerEdit}
-                            disabled={isLoading}
+                            disabled={locked}
                           >
                             Cancel
                           </Button>
@@ -1034,7 +1036,7 @@ const MyProfile = () => {
                             size="sm"
                             className="rounded-md"
                             onClick={saveIcebreaker}
-                            disabled={isLoading || !icebreakerAnswer.trim()}
+                            disabled={locked || !icebreakerAnswer.trim()}
                           >
                             Update
                           </Button>
@@ -1054,10 +1056,10 @@ const MyProfile = () => {
                     </p>
                     <p className="mt-3 text-base leading-relaxed text-foreground whitespace-pre-line">{ib.answer}</p>
                     <div className="absolute top-4 right-4 flex gap-1.5">
-                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted" onClick={() => editIcebreaker(i)} disabled={isLoading}>
+                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted" onClick={() => editIcebreaker(i)} disabled={locked}>
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10" onClick={() => removeIcebreaker(i)} disabled={isLoading}>
+                      <button type="button" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10" onClick={() => removeIcebreaker(i)} disabled={locked}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -1090,7 +1092,7 @@ const MyProfile = () => {
                         setIcebreakerAnswer('')
                         setEditingIcebreakerIndex(null)
                       }}
-                      disabled={isLoading}
+                      disabled={locked}
                       className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:border-primary/50 hover:bg-muted/30"
                     >
                       {p.text}
@@ -1116,7 +1118,7 @@ const MyProfile = () => {
                 }}
                 placeholder="Your answer..."
                 className="mt-3 min-h-20 rounded-md border-border shadow-sm"
-                disabled={isLoading}
+                disabled={locked}
               />
               <div className="mt-3 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
@@ -1128,7 +1130,7 @@ const MyProfile = () => {
                     size="sm"
                     className="rounded-md text-xs text-muted-foreground"
                     onClick={cancelIcebreakerEdit}
-                    disabled={isLoading}
+                    disabled={locked}
                   >
                     Cancel
                   </Button>
@@ -1136,7 +1138,7 @@ const MyProfile = () => {
                     size="sm"
                     className="rounded-md"
                     onClick={saveIcebreaker}
-                    disabled={isLoading || !icebreakerAnswer.trim()}
+                    disabled={locked || !icebreakerAnswer.trim()}
                   >
                     Save
                   </Button>
@@ -1151,7 +1153,7 @@ const MyProfile = () => {
           <Button
             className="w-full rounded-md bg-gradient-gold font-semibold"
             onClick={handleSave}
-            disabled={isLoading || ghost}
+            disabled={locked}
           >
             {isLoading ? 'Saving...' : 'Save Changes'}
           </Button>

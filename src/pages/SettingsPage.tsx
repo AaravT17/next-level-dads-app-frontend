@@ -19,6 +19,7 @@ import {
 import { useAuth } from '@/contexts/useAuth'
 import { useNotification } from '@/contexts/useNotification'
 import { usePersonalUser } from '@/hooks/usePersonalUser'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import { ThemePicker } from '@/components/settings/ThemePicker'
 import { toastError } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
@@ -46,6 +47,7 @@ const SettingsPage = () => {
   const { user, accessToken, setAuth } = useAuth()
   // What to draw. `user` stays the real profile, which is all that may be saved back.
   const profile = usePersonalUser()
+  const { viewOnly } = useViewOnly()
   const { bannersEnabled, setBannersEnabled } = useNotification()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
@@ -121,7 +123,7 @@ const SettingsPage = () => {
             <Switch
               id="marketing-toggle"
               checked={profile.preferences.marketing_emails_opt_in}
-              disabled={updatePreferences.isPending}
+              disabled={updatePreferences.isPending || viewOnly}
               onCheckedChange={(checked) => updatePreferences.mutate(checked)}
             />
           </div>
@@ -151,6 +153,7 @@ const SettingsPage = () => {
             variant="outline"
             className="w-full rounded-md border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
             onClick={() => setShowDeleteDialog(true)}
+            disabled={viewOnly}
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete account

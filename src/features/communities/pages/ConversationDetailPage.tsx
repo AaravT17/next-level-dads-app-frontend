@@ -17,6 +17,7 @@ import { useConversationMessages } from '../hooks/useConversationMessages'
 import { useConversationParticipants } from '../hooks/useConversationParticipants'
 import { useCreateMessage } from '../hooks/useCreateMessage'
 import { useModerationBan } from '@/features/moderation/hooks/useModerationBan'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import { ReportButton } from '@/features/moderation/components/ReportButton'
 import { useHeartConversation } from '../hooks/useHeartConversation'
 import { useDeleteConversation } from '../hooks/useDeleteConversation'
@@ -80,6 +81,7 @@ const ConversationDetailBody = ({ communityId, conversationId }: BodyProps) => {
 
   const createMessage = useCreateMessage(conversationId ?? '', communityId ?? '')
   const { isBanned, notice, handlePostError } = useModerationBan()
+  const { viewOnly, notice: viewOnlyNotice } = useViewOnly()
 
   const {
     register,
@@ -131,7 +133,7 @@ const ConversationDetailBody = ({ communityId, conversationId }: BodyProps) => {
 
   const author = conversation.author
   const canDeleteConversation =
-    !conversation.is_deleted && author?.id === user?.id
+    !conversation.is_deleted && user != null && author?.id === user.id
 
   return (
     <>
@@ -287,7 +289,7 @@ const ConversationDetailBody = ({ communityId, conversationId }: BodyProps) => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={createMessage.isPending || isBanned}
+                  disabled={createMessage.isPending || isBanned || viewOnly}
                   className="flex-1 rounded-md"
                 >
                   {createMessage.isPending ? (
@@ -297,8 +299,8 @@ const ConversationDetailBody = ({ communityId, conversationId }: BodyProps) => {
                   )}
                 </Button>
               </div>
-              {notice && (
-                <p className="text-caption text-destructive text-center">{notice}</p>
+              {(viewOnlyNotice ?? notice) && (
+                <p className="text-caption text-destructive text-center">{viewOnlyNotice ?? notice}</p>
               )}
               {createMessage.isError && !isBanned && !(axios.isAxiosError(createMessage.error) && createMessage.error.response?.status === 429) && (
                 <p className="text-caption text-destructive text-center">

@@ -20,6 +20,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { CenteredSpinner } from '@/components/feedback/Spinner'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { toastError } from '@/lib/toast'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import axiosPrivate from '@/api/axiosPrivate'
 import { TIMEOUT_LENGTH_MS } from '@/config/constants'
 import type { Event } from '@/types/events'
@@ -153,6 +154,8 @@ const EventDetail = () => {
       toastError('Failed to unregister from event. Please try again.')
     },
   })
+
+  const { viewOnly } = useViewOnly()
 
   const handleRegister = () => {
     registerForEvent.mutate()
@@ -320,6 +323,7 @@ const EventDetail = () => {
               className="w-full rounded-md"
               variant={event.is_attending ? 'outline' : 'default'}
               size="lg"
+              disabled={viewOnly || registerForEvent.isPending || unregisterFromEvent.isPending}
               onClick={event.is_attending ? handleUnregister : handleRegister}
             >
               {event.is_attending ? 'Unregister from Event' : 'Register for Event'}

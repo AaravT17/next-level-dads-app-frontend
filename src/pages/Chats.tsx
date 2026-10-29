@@ -32,6 +32,7 @@ import { TIMEOUT_LENGTH_MS, PROFILES_PAGE_LIMIT, CHATS_PAGE_LIMIT } from '@/conf
 import { Chat, ChatsCursor } from '@/types/chats'
 import { ConnectionResponse, ConnectionsCursor } from '@/types/users'
 import { useChat } from '@/contexts/useChat'
+import { useViewOnly } from '@/hooks/useViewOnly'
 
 // ============================================
 // Chats
@@ -39,6 +40,7 @@ import { useChat } from '@/contexts/useChat'
 
 const Chats = () => {
   const { wsReady, isChatMember } = useChat()
+  const { viewOnly } = useViewOnly()
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [newChatSearch, setNewChatSearch] = useState('')
   const [debouncedNewChatSearch, setDebouncedNewChatSearch] = useState('')
@@ -321,6 +323,7 @@ const Chats = () => {
                 variant="ghost"
                 size="icon"
                 className="shrink-0"
+                disabled={viewOnly}
                 onClick={() => setIsNewChatOpen(true)}
               >
                 <Plus className="w-5 h-5" />

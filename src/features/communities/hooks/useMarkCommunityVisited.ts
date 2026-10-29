@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useViewOnly } from '@/hooks/useViewOnly'
 import { communitiesApi } from '../api/communitiesApi'
 import { shouldStampVisit } from '../lib/visitThrottle'
 
@@ -16,6 +17,9 @@ import { shouldStampVisit } from '../lib/visitThrottle'
  * waiting on the community query before firing, which is a round trip for a
  * branch the server already handles.
  *
+ * A view-only role has no membership to stamp and the server refuses the call,
+ * so it is not sent.
+ *
  * On success it invalidates two things. The communities list is keyed
  * `['communities', scope, ...]` by ScopedCollectionPage rather than through
  * communityKeys, so the bare `['communities']` prefix is what reaches it. The
@@ -23,6 +27,7 @@ import { shouldStampVisit } from '../lib/visitThrottle'
  */
 export function useMarkCommunityVisited(communityId: string | undefined): void {
   const queryClient = useQueryClient()
+  const { viewOnly } = useViewOnly()
 
   const { mutate } = useMutation({
     mutationFn: (id: string) => communitiesApi.markVisited(id),
@@ -35,9 +40,9 @@ export function useMarkCommunityVisited(communityId: string | undefined): void {
   })
 
   useEffect(() => {
-    if (!communityId) return
+    if (!communityId || viewOnly) return
     if (!shouldStampVisit(communityId)) return
 
     mutate(communityId)
-  }, [communityId, mutate])
+  }, [communityId, viewOnly, mutate])
 }
